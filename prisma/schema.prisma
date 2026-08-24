@@ -1,0 +1,411 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Enums
+enum UserRole {
+  admin
+  manager
+  operator
+}
+
+enum CustomerSegment {
+  vip
+  frequent
+  occasional
+  new
+}
+
+enum CustomerStatus {
+  active
+  inactive
+}
+
+enum ProductStatus {
+  active
+  inactive
+  low_stock
+}
+
+enum OrderStatus {
+  pending
+  processing
+  completed
+  cancelled
+}
+
+enum PaymentMethod {
+  credit_card
+  debit_card
+  pix
+  boleto
+  whatsapp_pay
+}
+
+enum ConversationChannel {
+  whatsapp
+  instagram
+  facebook
+  site
+}
+
+enum ConversationStatus {
+  open
+  closed
+  waiting
+}
+
+enum MessageSenderType {
+  user
+  customer
+  bot
+}
+
+enum MessageType {
+  text
+  image
+  file
+  audio
+}
+
+enum MessageStatus {
+  sent
+  delivered
+  read
+}
+
+enum AutomationFlowType {
+  vendas
+  suporte
+  marketing
+}
+
+enum TransactionType {
+  income
+  expense
+}
+
+enum TransactionStatus {
+  pending
+  completed
+}
+
+enum NotificationType {
+  order
+  message
+  payment
+  stock
+  automation
+}
+
+// Models
+model Company {
+  id                 String   @id @default(uuid()) @db.Uuid
+  name               String
+  trade_name         String?
+  cnpj               String   @unique
+  address_street     String?
+  address_number     String?
+  address_complement String?
+  address_city       String?
+  address_state      String?
+  address_zip        String?
+  website            String?
+  description        String?
+  logo_url           String?
+  is_active          Boolean  @default(true)
+  created_at         DateTime @default(now()) @map("createdAt")
+  updated_at         DateTime @updatedAt @map("updatedAt")
+
+  users              User[]
+  customers          Customer[]
+  products           Product[]
+  orders             Order[]
+  conversations      Conversation[]
+  automation_flows   AutomationFlow[]
+  transactions       Transaction[]
+  quick_replies      QuickReply[]
+  notifications      Notification[]
+
+  @@index([cnpj])
+  @@index([is_active])
+  @@map("companies")
+}
+
+model User {
+  id           String    @id @default(uuid()) @db.Uuid
+  company_id   String    @db.Uuid
+  name         String
+  email        String
+  phone        String?
+  avatar_url   String?
+  password_hash String
+  role         UserRole  @default(operator)
+  language     String    @default("pt-BR")
+  timezone     String    @default("America/Sao_Paulo")
+  is_active    Boolean   @default(true)
+  last_login_at DateTime?
+  created_at   DateTime  @default(now()) @map("createdAt")
+  updated_at   DateTime  @updatedAt @map("updatedAt")
+
+  company      Company     @relation(fields: [company_id], references: [id], onDelete: Cascade)
+  conversations Conversation[] @relation("AssignedConversations")
+  notifications Notification[]
+
+  @@unique([company_id, email])
+  @@index([company_id])
+  @@index([email])
+  @@index([role])
+  @@index([is_active])
+  @@map("users")
+}
+
+model Customer {
+  id               String         @id @default(uuid()) @db.Uuid
+  company_id       String         @db.Uuid
+  name             String
+  email            String?
+  phone            String
+  segment          CustomerSegment @default(new)
+  status           CustomerStatus  @default(active)
+  total_orders     Int            @default(0)
+  total_spent      Decimal        @default(0) @db.Decimal(10, 2)
+  last_purchase_date DateTime?
+  registered_at    DateTime       @default(now())
+  created_at       DateTime       @default(now()) @map("createdAt")
+  updated_at       DateTime       @updatedAt @map("updatedAt")
+
+  company        Company        @relation(fields: [company_id], references: [id], onDelete: Cascade)
+  orders         Order[]
+  conversations  Conversation[]
+
+  @@index([company_id])
+  @@index([segment])
+  @@index([status])
+  @@index([phone])
+  @@index([email])
+  @@map("customers")
+}
+
+model Product {
+  id            String        @id @default(uuid()) @db.Uuid
+  company_id    String        @db.Uuid
+  name          String
+  description   String?
+  category      String?
+  price         Decimal       @db.Decimal(10, 2)
+  cost          Decimal?      @db.Decimal(10, 2)
+  stock         Int           @default(0)
+  min_stock     Int           @default(5)
+  total_sales   Int           @default(0)
+  total_revenue Decimal       @default(0) @db.Decimal(10, 2)
+  status        ProductStatus @default(active)
+  image_url     String?
+  created_at    DateTime      @default(now()) @map("createdAt")
+  updated_at    DateTime      @updatedAt @map("updatedAt")
+
+  company    Company      @relation(fields: [company_id], references: [id], onDelete: Cascade)
+  order_items OrderItem[]
+
+  @@index([company_id])
+  @@index([category])
+  @@index([status])
+  @@map("products")
+}
+
+model Order {
+  id              String        @id @default(uuid()) @db.Uuid
+  order_number    String        @unique
+  company_id      String        @db.Uuid
+  customer_id     String        @db.Uuid
+  status          OrderStatus   @default(pending)
+  payment_method  PaymentMethod
+  subtotal        Decimal       @db.Decimal(10, 2)
+  discount        Decimal       @default(0) @db.Decimal(10, 2)
+  shipping_cost   Decimal       @default(0) @db.Decimal(10, 2)
+  total           Decimal       @db.Decimal(10, 2)
+  shipping_address String?
+  notes           String?
+  order_date      DateTime      @default(now())
+  completed_at    DateTime?
+  created_at      DateTime      @default(now()) @map("createdAt")
+  updated_at      DateTime      @updatedAt @map("updatedAt")
+
+  company      Company      @relation(fields: [company_id], references: [id], onDelete: Cascade)
+  customer     Customer     @relation(fields: [customer_id], references: [id], onDelete: Restrict)
+  order_items  OrderItem[]
+  transactions Transaction[]
+
+  @@index([company_id])
+  @@index([customer_id])
+  @@index([status])
+  @@index([order_date])
+  @@map("orders")
+}
+
+model OrderItem {
+  id         String  @id @default(uuid()) @db.Uuid
+  order_id   String  @db.Uuid
+  product_id String  @db.Uuid
+  quantity   Int
+  unit_price Decimal @db.Decimal(10, 2)
+  unit_cost  Decimal? @db.Decimal(10, 2)
+  subtotal   Decimal @db.Decimal(10, 2)
+  created_at DateTime @default(now()) @map("createdAt")
+
+  order   Order   @relation(fields: [order_id], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [product_id], references: [id], onDelete: Restrict)
+
+  @@index([order_id])
+  @@index([product_id])
+  @@map("order_items")
+}
+
+model Conversation {
+  id              String              @id @default(uuid()) @db.Uuid
+  company_id      String              @db.Uuid
+  customer_id     String?             @db.Uuid
+  channel         ConversationChannel
+  contact_name    String
+  contact_phone   String
+  last_message    String?
+  last_message_at DateTime?
+  unread_count    Int                 @default(0)
+  is_pinned       Boolean             @default(false)
+  is_archived     Boolean             @default(false)
+  assigned_to     String?             @db.Uuid
+  status          ConversationStatus  @default(open)
+  created_at      DateTime            @default(now()) @map("createdAt")
+  updated_at      DateTime            @updatedAt @map("updatedAt")
+
+  company  Company          @relation(fields: [company_id], references: [id], onDelete: Cascade)
+  customer Customer?        @relation(fields: [customer_id], references: [id], onDelete: SetNull)
+  assignee User?           @relation("AssignedConversations", fields: [assigned_to], references: [id], onDelete: SetNull)
+  messages Message[]
+
+  @@index([company_id])
+  @@index([channel])
+  @@index([status])
+  @@index([assigned_to])
+  @@index([customer_id])
+  @@map("conversations")
+}
+
+model Message {
+  id            String         @id @default(uuid()) @db.Uuid
+  conversation_id String       @db.Uuid
+  sender_type   MessageSenderType
+  sender_id     String?        @db.Uuid
+  message_type  MessageType
+  content       String
+  media_url     String?
+  status        MessageStatus  @default(sent)
+  is_read       Boolean        @default(false)
+  read_at       DateTime?
+  sent_at       DateTime?
+  created_at    DateTime       @default(now()) @map("createdAt")
+
+  conversation Conversation @relation(fields: [conversation_id], references: [id], onDelete: Cascade)
+
+  @@index([conversation_id])
+  @@index([sender_type])
+  @@index([created_at])
+  @@map("messages")
+}
+
+model AutomationFlow {
+  id                String               @id @default(uuid()) @db.Uuid
+  company_id        String               @db.Uuid
+  name              String
+  type              AutomationFlowType
+  description       String?
+  icon_emoji        String?
+  messages_count    Int                  @default(0)
+  total_conversions Int                  @default(0)
+  conversion_rate   Decimal              @default(0) @db.Decimal(5, 2)
+  growth_percentage Decimal              @default(0) @db.Decimal(5, 2)
+  is_active         Boolean              @default(true)
+  config_json       Json
+  created_at        DateTime             @default(now()) @map("createdAt")
+  updated_at        DateTime             @updatedAt @map("updatedAt")
+
+  company Company @relation(fields: [company_id], references: [id], onDelete: Cascade)
+
+  @@index([company_id])
+  @@index([type])
+  @@index([is_active])
+  @@map("automation_flows")
+}
+
+model Transaction {
+  id              String            @id @default(uuid()) @db.Uuid
+  company_id      String            @db.Uuid
+  order_id        String?           @db.Uuid
+  description     String
+  type            TransactionType
+  category        String?
+  value           Decimal           @db.Decimal(10, 2)
+  status          TransactionStatus @default(pending)
+  payment_method  PaymentMethod?
+  transaction_date DateTime
+  due_date        DateTime?
+  paid_at         DateTime?
+  notes           String?
+  attachment_url  String?
+  created_at      DateTime          @default(now()) @map("createdAt")
+  updated_at      DateTime          @updatedAt @map("updatedAt")
+
+  company Company  @relation(fields: [company_id], references: [id], onDelete: Cascade)
+  order   Order?   @relation(fields: [order_id], references: [id], onDelete: SetNull)
+
+  @@index([company_id])
+  @@index([order_id])
+  @@index([type])
+  @@index([status])
+  @@index([transaction_date])
+  @@map("transactions")
+}
+
+model QuickReply {
+  id           String  @id @default(uuid()) @db.Uuid
+  company_id   String  @db.Uuid
+  shortcut     String
+  message_text String
+  created_by   String? @db.Uuid
+  usage_count  Int     @default(0)
+  created_at   DateTime @default(now()) @map("createdAt")
+  updated_at   DateTime @updatedAt @map("updatedAt")
+
+  company Company @relation(fields: [company_id], references: [id], onDelete: Cascade)
+
+  @@index([company_id])
+  @@index([shortcut])
+  @@map("quick_replies")
+}
+
+model Notification {
+  id                  String           @id @default(uuid()) @db.Uuid
+  user_id             String           @db.Uuid
+  company_id          String           @db.Uuid
+  type                NotificationType
+  title               String
+  message             String
+  is_read             Boolean          @default(false)
+  related_entity_type String?
+  related_entity_id   String?          @db.Uuid
+  created_at          DateTime         @default(now()) @map("createdAt")
+
+  user    User    @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  company Company @relation(fields: [company_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@index([company_id])
+  @@index([is_read])
+  @@index([type])
+  @@map("notifications")
+}
