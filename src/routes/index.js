@@ -1,0 +1,14 @@
+export { default as authRoutes } from './modules/auth/routes/index.js';
+export { default as userRoutes } from './modules/users/routes/index.js';
+export { default as companyRoutes } from './modules/companies/routes/index.js';
+export { default as customerRoutes } from './modules/customers/routes/index.js';
+export { default as productRoutes } from './modules/products/routes/index.js';
+export { default as orderRoutes } from './modules/orders/routes/index.js';
+export { default as orderItemRoutes } from './modules/order-items/routes/index.js';
+export { default as conversationRoutes } from './modules/conversations/routes/index.js';
+export { default as messageRoutes } from './modules/messages/routes/index.js';
+export { default as automationFlowRoutes } from './modules/automation-flows/routes/index.js';
+export { default as transactionRoutes } from './modules/transactions/routes/index.js';
+export { default as quickReplyRoutes } from './modules/quick-replies/routes/index.js';
+export { default as notificationRoutes } from './modules/notifications/routes/index.js';
+export { default as dashboardRoutes } from './modules/dashboard/routes/index.js';
