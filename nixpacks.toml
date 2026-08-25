@@ -1,6 +1,6 @@
 # nixpacks.toml
 [phases.setup]
-nixPkgs = ["nodejs-20", "python3"]
+nixPkgs = ["nodejs_20", "python3"]
 
 [phases.install]
 cmds = [
