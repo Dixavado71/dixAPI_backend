@@ -4,7 +4,7 @@ nixPkgs = ["nodejs-20", "python3"]
 
 [phases.install]
 cmds = [
-  "npm ci --omit=dev --prefer-offline --no-audit --no-fund --loglevel=warn",
+  "npm ci --omit=dev --prefer-offline --no-audit --no-fund --loglevel=warn --cache=/tmp/.npm-cache",
   "npm run db:generate"
 ]
 
@@ -23,3 +23,4 @@ NPM_CONFIG_PREFER_OFFLINE = "true"
 NPM_CONFIG_CACHE_LOCK_STALE = "60000"
 NPM_CONFIG_CACHE_LOCK_RETRIES = "3"
 NPM_CONFIG_PREFER_OFFLINE = "true"
+NPM_CONFIG_CACHE_DIR = "/tmp/.npm-cache"
