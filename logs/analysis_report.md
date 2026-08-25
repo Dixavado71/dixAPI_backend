@@ -623,3 +623,13 @@ Pendências: testes BOLA/IDOR e referências cruzadas, invalidação após mudan
 - CI/CD pipeline GitHub Actions.
 - Monitoramento e alertas.
 - Webhooks WhatsApp/pagamentos em produção.
+
+## Atualização — 2026-08-25 — configuração Railway
+
+- `railway.toml` adicionado com build NIXPACKS (`npm ci && npm run db:generate`), start com `npm run db:deploy && npm start`, health check `/health` 30s; restart on failure.
+- `.env.example` atualizado para exigir PostgreSQL `sslmode=require` e Redis `rediss://`.
+- Railway CLI instalada (`@railway/cli 5.43.4`); autenticação pendente no provedor.
+- `.env.example` atualizado para PostgreSQL com `sslmode=require` e Redis `rediss://`.
+- `.env` mantido ignorado; nenhuma credencial real foi commitada.
+- 41 testes, lint/typecheck, Prisma validate e diff check aprovados.
+- CI revisado; gates locais e Prisma validate aprovados.

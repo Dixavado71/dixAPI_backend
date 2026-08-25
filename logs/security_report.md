@@ -1,5 +1,38 @@
 # Relatório de Segurança
 
+## Atualização — 2026-08-25 — configuração Railway completa
+
+- `railway.toml` adicionado: build NIXPACKS (`npm ci && npm run db:generate`), start `npm run db:deploy && npm start`, health `/health` 30s, restart on failure.
+- `.env.example` atualizado: PostgreSQL com `sslmode=require`, Redis `rediss://`.
+- Railway CLI instalada (`@railway/cli 5.43.4`); autenticação pendente no provedor.
+- `.env.example` atualizado para `sslmode=require` e `rediss://`.
+- `.env` mantido ignorado; nenhuma credencial real no repositório.
+- Gates: 41 testes, lint/typecheck 99 arquivos, Prisma validate, migrate status, audit aprovados.
+- Release depende de backup testado, secret manager, ACL Redis, alertas, rotação de segredos e rollback validado.
+
+## Atualização — 2026-08-25 — publicação GitHub segura
+
+- GitHub CLI autenticado como `Dixavado71`.
+- Criado repositório privado `Dixavado71/dixAPI_backend_private`.
+- Commit `62c40d8` enviado para `main` pelo remoto privado.
+- `.env` não foi versionado; apenas `.env.example` foi publicado.
+- Nenhum arquivo de chave/certificado ou temporário de staging foi incluído.
+- O repositório público existente não foi sobrescrito.
+
+## Atualização — 2026-08-25 — deploy Railway
+
+- CLI Railway instalada (`@railway/cli 5.43.4`); autenticação pendente de execução do usuário (`railway login`).
+- `railway.toml` adicionado: build `NIXPACKS` com `npm ci && npm run db:generate`; start com `npm run db:deploy && npm start`; health check em `/health` com timeout de 30s.
+- `.env.example` continua sendo o único template versionado.
+- Nenhuma credencial Railway ou variável de produção foi escrita no repositório.
+
+## Atualização — 2026-08-25 — template de produção
+
+- `.env.example` atualizado para indicar PostgreSQL com `sslmode=require` e Redis com `rediss://`.
+- Nenhuma credencial real foi incluída no template.
+- `.env` permanece ignorado e não deve ser commitado.
+- Gates técnicos continuam aprovados; configuração real deve ser preenchida via Secret Manager/Railway.
+
 ## Atualização — 2026-08-25 — ações externas de release
 
 - Identificado risco CRÍTICO: o arquivo `.env` local contém credenciais reais de PostgreSQL, Redis e JWT; não deve ser versionado nem usado como armazenamento permanente.

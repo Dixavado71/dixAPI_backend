@@ -178,3 +178,13 @@ Reteste final: health e rotas públicas aprovados; validações e autenticação
 - Cupom agora valida `promotionId` no tenant antes da criação.
 - Não foi aplicada migration nem alteração estrutural no banco.
 - Não foram executadas operações válidas de criação, alteração ou exclusão de negócio.
+
+## Atualização — 2026-08-25 — configuração Railway para deploy
+
+- `railway.toml` adicionado: build NIXPACKS com `npm ci && npm run db:generate`; start com `npm run db:deploy && npm start`; health check `/health` 30s; restart on failure.
+- `.env.example` atualizado para exigir PostgreSQL `sslmode=require` e Redis `rediss://`.
+- Railway CLI instalada (`@railway/cli 5.43.4`); autenticação pendente no provedor.
+- `.env.example` atualizado para PostgreSQL com `sslmode=require` e Redis `rediss://`.
+- `.env` mantido ignorado; nenhuma credencial real no repositório.
+- Nenhuma migration, seed ou operação destrutiva executada.
+- CI configurado; pipeline de deploy dependerá de autenticação Railway e validação de staging.
