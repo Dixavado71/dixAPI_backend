@@ -1,29 +1,27 @@
 import { PrismaClient } from '@prisma/client';
+import { env } from '../../config/env.js';
 import { logger } from '../../config/logger.js';
 
+const databaseUrl = env.databaseUrl ? new URL(env.databaseUrl) : null;
+if (databaseUrl) {
+  databaseUrl.searchParams.set('connection_limit', String(env.databaseConnectionLimit));
+  databaseUrl.searchParams.set('pool_timeout', String(env.databasePoolTimeout));
+}
+
 const prisma = new PrismaClient({
+  ...(databaseUrl ? { datasources: { db: { url: databaseUrl.toString() } } } : {}),
   log: [
-    { emit: 'event', level: 'query' },
-    { emit: 'event', level: 'info' },
     { emit: 'event', level: 'warn' },
     { emit: 'event', level: 'error' },
   ],
 });
 
-prisma.$on('query', (e) => {
-  logger.debug({ query: e.query, params: e.params, duration: e.duration }, 'Prisma Query');
+prisma.$on('warn', (event) => {
+  logger.warn({ message: event.message }, 'Database warning');
 });
 
-prisma.$on('info', (e) => {
-  logger.info(e);
-});
-
-prisma.$on('warn', (e) => {
-  logger.warn(e);
-});
-
-prisma.$on('error', (e) => {
-  logger.error(e);
+prisma.$on('error', (event) => {
+  logger.error({ message: event.message }, 'Database error');
 });
 
 export async function connectDatabase() {

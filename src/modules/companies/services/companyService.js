@@ -17,8 +17,8 @@ export async function create(data) {
   return companyRepository.create(data);
 }
 
-export async function update(id, data) {
-  const company = await companyRepository.findById(id);
+export async function update(id, companyId, data) {
+  const company = await companyRepository.findById(id, companyId);
   if (!company) throw new NotFoundError('Company');
   
   if (data.cnpj && data.cnpj !== company.cnpj) {
@@ -26,13 +26,15 @@ export async function update(id, data) {
     if (existing) throw new ConflictError('CNPJ already registered');
   }
   
-  return companyRepository.update(id, data);
+  const result = await companyRepository.update(id, companyId, data);
+  if (!result.count) throw new NotFoundError('Company');
+  return companyRepository.findById(id, companyId);
 }
 
-export async function remove(id) {
-  const company = await companyRepository.findById(id);
+export async function remove(id, companyId) {
+  const company = await companyRepository.findById(id, companyId);
   if (!company) throw new NotFoundError('Company');
-  return companyRepository.remove(id);
+  return companyRepository.remove(id, companyId);
 }
 
 export default { getAll, getById, create, update, remove };

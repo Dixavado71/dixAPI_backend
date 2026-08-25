@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate JavaScript
+        run: npm run typecheck
+
+      - name: Run lint
+        run: npm run lint
+
+      - name: Validate Prisma schema
+        run: npx prisma validate
+
+      - name: Run tests
+        run: npm test
+
+      - name: Audit runtime dependencies
+        run: npm audit --omit=dev

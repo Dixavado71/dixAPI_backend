@@ -49,16 +49,16 @@ export async function create(data) {
   return prisma.company.create({ data });
 }
 
-export async function update(id, data) {
-  return prisma.company.update({
-    where: { id },
+export async function update(id, companyId, data) {
+  return prisma.company.updateMany({
+    where: { id, ...(companyId ? { id: companyId } : {}) },
     data,
   });
 }
 
-export async function remove(id) {
-  return prisma.company.delete({
-    where: { id },
+export async function remove(id, companyId) {
+  return prisma.company.deleteMany({
+    where: { id, ...(companyId ? { id: companyId } : {}) },
   });
 }
 

@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+export const companyParamsSchema = z.object({ id: z.string().uuid() }).strict();
+
 export const createCompanySchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
   trade_name: z.string().optional(),

@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Database Intelligence Dashboard</title>
+  <meta name="description" content="Painel visual premium da arquitetura do banco PostgreSQL e Prisma.">
+  <link rel="preconnect" href="https://cdn.jsdelivr.net">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.7.2/css/all.min.css">
+  <link rel="stylesheet" href="database-visualizacao.css">
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.min.js"></script>
+  <style>
+    :root{--bg:#eef4fa;--ink:#102a43;--muted:#60758a;--card:#fff;--line:#d9e5ef;--blue:#1261a0;--teal:#078f83;--orange:#df6b25;--purple:#7652b3;--pink:#c83f68;--green:#23824f;--gold:#ad7410;--shadow:0 18px 45px #123b5d18}
+    *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:radial-gradient(circle at 5% 0,#dceeff 0,transparent 32%),var(--bg);color:var(--ink);font:15px/1.55 Inter,Segoe UI,Arial,sans-serif}body:before{content:"";position:fixed;inset:0;pointer-events:none;opacity:.25;background-image:linear-gradient(#fff 1px,transparent 1px),linear-gradient(90deg,#fff 1px,transparent 1px);background-size:34px 34px}header{position:relative;overflow:hidden;padding:54px max(24px,calc((100% - 1380px)/2));background:linear-gradient(120deg,#09263f 0%,#1261a0 58%,#0b8f85 100%);color:#fff;box-shadow:0 12px 35px #09263f42}header:after{content:"";position:absolute;width:420px;height:420px;border:70px solid #ffffff18;border-radius:50%;right:-100px;top:-220px}header h1{position:relative;margin:0 0 10px;font-size:clamp(30px,4vw,50px);letter-spacing:-1px}header p{position:relative;margin:0;color:#d9edf9;font-size:17px}.header-meta{position:relative;display:flex;flex-wrap:wrap;gap:9px;margin-top:22px}.header-meta span{padding:7px 12px;border:1px solid #ffffff38;border-radius:999px;background:#ffffff14;color:#e8f6ff;font-size:13px}.wrap{position:relative;max-width:1380px;margin:auto;padding:30px 24px 70px}.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin-bottom:30px}.stat{position:relative;overflow:hidden;padding:22px;background:linear-gradient(145deg,#fff,#f8fbfe);border:1px solid var(--line);border-radius:20px;box-shadow:var(--shadow);transition:transform .25s,box-shadow .25s}.stat:hover{transform:translateY(-5px);box-shadow:0 22px 45px #123b5d2a}.stat:after{content:"";position:absolute;width:90px;height:90px;border-radius:50%;right:-32px;bottom:-38px;background:#1261a012}.stat i{display:grid;place-items:center;width:44px;height:44px;border-radius:14px;background:#1261a012;color:var(--blue);font-size:21px}.stat strong{display:block;font-size:29px;margin-top:11px;letter-spacing:-.5px}.stat span{color:var(--muted)}.panel{position:relative;padding:25px;margin-top:22px;background:#ffffffde;border:1px solid #fff;border-radius:22px;box-shadow:var(--shadow);backdrop-filter:blur(8px)}.panel:before{content:"";position:absolute;left:0;top:24px;bottom:24px;width:4px;border-radius:0 5px 5px 0;background:linear-gradient(var(--blue),var(--teal))}.panel h2{margin:0 0 5px 10px;font-size:25px;letter-spacing:-.3px}.panel h2 i{margin-right:11px;color:var(--blue)}.panel p{margin:0 0 18px 10px;color:var(--muted)}.diagram{overflow:auto;border-top:1px solid var(--line);padding:24px 8px 8px;background:linear-gradient(180deg,#f8fbfd,#fff);border-radius:0 0 15px 15px}.legend{display:flex;flex-wrap:wrap;gap:9px;margin:16px 10px 20px}.tag{display:inline-flex;align-items:center;gap:7px;padding:8px 12px;border-radius:999px;color:#fff;font-weight:700;font-size:12px;box-shadow:0 5px 12px #17324d1c}.tag:before{content:"";width:7px;height:7px;border-radius:50%;background:#ffffffb8}.blue{background:var(--blue)}.teal{background:var(--teal)}.orange{background:var(--orange)}.purple{background:var(--purple)}.pink{background:var(--pink)}.green{background:var(--green)}.gold{background:var(--gold)}.mermaid{min-width:780px;text-align:center}.mermaid svg{max-width:100%;height:auto}.insight-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:20px 0 0}.insight{padding:15px;border:1px solid var(--line);border-radius:15px;background:#f8fbfd}.insight i{color:var(--teal);margin-right:7px}.insight b{display:block;margin-bottom:3px}.insight span{color:var(--muted);font-size:13px}footer{position:relative;text-align:center;color:var(--muted);padding:25px;border-top:1px solid var(--line)}footer i{color:var(--blue);margin-right:6px}@media(max-width:800px){.stats{grid-template-columns:repeat(2,1fr)}.insight-grid{grid-template-columns:1fr}.wrap{padding:20px 14px 45px}.panel{padding:18px}}@media(max-width:460px){.stats{gap:10px}.stat{padding:15px}.stat strong{font-size:22px}.stat span{font-size:13px}.panel h2{font-size:21px}}
+  </style>
+</head>
+<body>
+<header><h1><i class="fa-solid fa-database"></i> Banco de Dados</h1><p>Visualização web interativa da estrutura PostgreSQL/Prisma do dixAPI_backend</p><div class="header-meta"><span><i class="fa-solid fa-shield-halved"></i> Multi-tenant</span><span><i class="fa-solid fa-diagram-project"></i> Relações Prisma</span><span><i class="fa-solid fa-chart-pie"></i> Domínios integrados</span></div></header>
+<nav class="dashboard-nav" aria-label="Navegação do painel"><a href="#overview"><i class="fa-solid fa-gauge-high"></i> Visão geral</a><a href="#domains"><i class="fa-solid fa-cubes"></i> Domínios</a><a href="#diagrams"><i class="fa-solid fa-diagram-project"></i> Diagramas</a><label class="search-box"><i class="fa-solid fa-magnifying-glass"></i><input data-search type="search" placeholder="Buscar seção..." aria-label="Buscar seção"><kbd>/</kbd></label><button class="tool-btn" data-theme-toggle aria-pressed="false"><i class="fa-solid fa-moon"></i> Escuro</button></nav>
+<main class="wrap" id="overview">
+  <section class="hero-card"><div><span class="eyebrow"><i class="fa-solid fa-sparkles"></i> Database intelligence</span><h2>Mapa visual da plataforma</h2><p>Explore a arquitetura, os domínios, os valores permitidos e os relacionamentos do banco em uma visão única.</p></div><div class="hero-orbit"><i class="fa-solid fa-database"></i><span>PostgreSQL</span></div></section>
+  <section class="stats"><div class="stat"><i class="fa-solid fa-table"></i><strong>30</strong><span>modelos/tabelas</span></div><div class="stat"><i class="fa-solid fa-list-check"></i><strong>36</strong><span>enums</span></div><div class="stat"><i class="fa-solid fa-key"></i><strong>UUID</strong><span>identificador padrão</span></div><div class="stat"><i class="fa-solid fa-server"></i><strong>PostgreSQL</strong><span> banco de dados</span></div></section>
+  <section class="panel catalog-panel" id="domains"><div class="section-heading"><div><span class="eyebrow">CATÁLOGO ESTRUTURAL</span><h2><i class="fa-solid fa-cubes"></i>Domínios e entidades</h2><p>Cards navegáveis com tabelas, finalidade e campos centrais.</p></div><div class="carousel-actions"><button class="tool-btn" data-carousel-prev aria-label="Cards anteriores"><i class="fa-solid fa-chevron-left"></i></button><button class="tool-btn" data-carousel-next aria-label="Próximos cards"><i class="fa-solid fa-chevron-right"></i></button></div></div><div class="domain-carousel" data-carousel><article class="domain-card blue"><div class="domain-icon"><i class="fa-solid fa-building"></i></div><span class="badge">TENANT</span><h3>Identidade e empresas</h3><p>companies · users · user_companies · resellers · refresh_tokens</p><div class="field-pills"><span>UUID</span><span>roles</span><span>status</span></div></article><article class="domain-card teal"><div class="domain-icon"><i class="fa-solid fa-cart-shopping"></i></div><span class="badge">COMERCIAL</span><h3>Clientes e vendas</h3><p>customers · products · orders · order_items</p><div class="field-pills"><span>price</span><span>stock</span><span>total</span></div></article><article class="domain-card orange"><div class="domain-icon"><i class="fa-brands fa-whatsapp"></i></div><span class="badge">ENGAGEMENT</span><h3>Comunicação</h3><p>conversations · messages · automation_flows · notifications</p><div class="field-pills"><span>channel</span><span>content</span><span>status</span></div></article><article class="domain-card pink"><div class="domain-icon"><i class="fa-solid fa-truck-fast"></i></div><span class="badge">OPERAÇÃO</span><h3>Delivery e pagamentos</h3><p>delivery_zones · delivery_drivers · deliveries · payment_records</p><div class="field-pills"><span>fee</span><span>method</span><span>amount</span></div></article><article class="domain-card green"><div class="domain-icon"><i class="fa-solid fa-layer-group"></i></div><span class="badge">SAAS</span><h3>Planos e assinaturas</h3><p>plans · plan_features · company_subscriptions · subscription_events</p><div class="field-pills"><span>cycle</span><span>price</span><span>limits</span></div></article><article class="domain-card gold"><div class="domain-icon"><i class="fa-solid fa-chart-line"></i></div><span class="badge">FINANCEIRO</span><h3>Financeiro e auditoria</h3><p>transactions · platform_transactions · commissions · payouts · audit_logs</p><div class="field-pills"><span>Decimal</span><span>events</span><span>audit</span></div></article></div></section>
+  <section class="panel" id="diagrams"><h2><i class="fa-solid fa-sitemap"></i>Arquitetura geral</h2><p>Domínios conectados à entidade central <b>Company</b>.</p><div class="legend"><span class="tag blue">Tenant</span><span class="tag purple">Identidade</span><span class="tag teal">Vendas</span><span class="tag orange">Comunicação</span><span class="tag pink">Delivery</span><span class="tag green">Planos</span><span class="tag gold">Financeiro</span></div><div class="toolbar"><button class="tool-btn" data-expand aria-pressed="false"><i class="fa-solid fa-expand"></i> Ampliar</button><button class="tool-btn" data-copy=".panel:first-of-type .mermaid"><i class="fa-regular fa-copy"></i> Copiar</button></div><div class="diagram"><pre class="mermaid">flowchart TB
+ C[Company<br/>companies]
+ I[Identidade<br/>users · user_companies · resellers · refresh_tokens]
+ V[Vendas<br/>customers · products · orders · order_items]
+ M[Comunicação<br/>conversations · messages · automation_flows · notifications]
+ D[Delivery<br/>DeliverySettings · delivery_zones · delivery_drivers · deliveries]
+ P[Planos<br/>plans · plan_features · company_subscriptions · subscription_events]
+ F[Financeiro<br/>transactions · platform_transactions · commissions · payouts]
+ PA[Pagamentos<br/>payment_records]
+ C --> I & V & M & D & P & F
+ V --> PA
+ D --> PA
+ classDef c fill:#1967a3,stroke:#fff,color:#fff
+ classDef i fill:#7b61b8,stroke:#fff,color:#fff
+ classDef v fill:#0e9f8e,stroke:#fff,color:#fff
+ classDef m fill:#e8752f,stroke:#fff,color:#fff
+ classDef d fill:#d14d72,stroke:#fff,color:#fff
+ classDef p fill:#2c8a57,stroke:#fff,color:#fff
+ classDef f fill:#bd7b16,stroke:#fff,color:#fff
+ class C c
+ class I i
+ class V v
+ class M m
+ class D d
+ class P p
+ class F f
+ class PA f</pre></div><div class="insight-grid"><div class="insight"><b><i class="fa-solid fa-building"></i> Núcleo tenant</b><span>Company conecta os domínios e representa a loja.</span></div><div class="insight"><b><i class="fa-solid fa-link"></i> Identificadores</b><span>Entidades usam UUID como chave primária.</span></div><div class="insight"><b><i class="fa-solid fa-layer-group"></i> Escopo</b><span>Dados operacionais são organizados por empresa.</span></div></div></section>
+  <section class="panel"><h2><i class="fa-solid fa-cart-shopping"></i>Fluxo de vendas</h2><p>Cliente, catálogo, pedido, itens e movimentação financeira.</p><div class="diagram"><pre class="mermaid">flowchart LR
+ C[Customer<br/>customers] --> O[Order<br/>orders]
+ PR[Product<br/>products] --> OI[OrderItem<br/>order_items]
+ O --> OI
+ O --> T[Transaction<br/>transactions]
+ classDef c fill:#7b61b8,stroke:#fff,color:#fff
+ classDef v fill:#0e9f8e,stroke:#fff,color:#fff
+ classDef o fill:#1967a3,stroke:#fff,color:#fff
+ classDef f fill:#bd7b16,stroke:#fff,color:#fff
+ class C c
+ class PR v
+ class O o
+ class OI v
+ class T f</pre></div></section>
+  <section class="panel"><h2><i class="fa-brands fa-whatsapp"></i>Comunicação e automação</h2><p>Canais, conversas, mensagens, fluxos e notificações.</p><div class="diagram"><pre class="mermaid">flowchart LR
+ C[Company] --> CV[Conversation<br/>conversations]
+ CV --> MSG[Message<br/>messages]
+ C --> AF[AutomationFlow<br/>automation_flows]
+ AF --> N[Notification<br/>notifications]
+ U[User] --> CV
+ classDef c fill:#1967a3,stroke:#fff,color:#fff
+ classDef m fill:#e8752f,stroke:#fff,color:#fff
+ classDef i fill:#7b61b8,stroke:#fff,color:#fff
+ class C c
+ class CV,AF m
+ class MSG,N i
+ class U c</pre></div></section>
+  <section class="panel"><h2><i class="fa-solid fa-truck-fast"></i>Delivery e pagamentos</h2><p>Pedido conectado à logística e aos registros de pagamento.</p><div class="diagram"><pre class="mermaid">flowchart LR
+ O[Order<br/>orders] --> D[Delivery<br/>deliveries]
+ Z[DeliveryZone<br/>delivery_zones] --> D
+ DR[DeliveryDriver<br/>delivery_drivers] --> D
+ DS[DeliverySettings] --> D
+ D --> P[PaymentRecord<br/>payment_records]
+ O --> P
+ classDef o fill:#1967a3,stroke:#fff,color:#fff
+ classDef d fill:#d14d72,stroke:#fff,color:#fff
+ classDef p fill:#bd7b16,stroke:#fff,color:#fff
+ class O o
+ class D,Z,DR,DS d
+ class P p</pre></div></section>
+  <section class="panel"><h2><i class="fa-solid fa-layer-group"></i>Planos e financeiro da plataforma</h2><p>Planos, funcionalidades, assinaturas, eventos e repasses.</p><div class="diagram"><pre class="mermaid">flowchart LR
+ PL[Plan<br/>plans] --> PF[PlanFeature<br/>plan_features]
+ PL --> S[CompanySubscription<br/>company_subscriptions]
+ S --> SE[SubscriptionEvent<br/>subscription_events]
+ S --> PT[PlatformTransaction<br/>platform_transactions]
+ R[Reseller<br/>resellers] --> CO[Commission<br/>commissions]
+ R --> PO[Payout<br/>payouts]
+ PT --> CO
+ classDef p fill:#2c8a57,stroke:#fff,color:#fff
+ classDef f fill:#bd7b16,stroke:#fff,color:#fff
+ classDef r fill:#d14d72,stroke:#fff,color:#fff
+ class PL,PF,S,SE p
+ class PT,CO f
+ class R,PO r</pre></div></section>
+</main><footer><i class="fa-solid fa-circle-info"></i>Fonte: logs/database_structure.md e prisma/schema.prisma · Visualização estrutural do banco</footer>
+<script>mermaid.initialize({startOnLoad:true,theme:'base',securityLevel:'strict',themeVariables:{fontFamily:'Inter, Segoe UI, Arial',primaryTextColor:'#e8f7ff',secondaryTextColor:'#8da9bd',lineColor:'#00b7ff',edgeLabelBackground:'#08111f',clusterBkg:'#0b1220',clusterBorder:'#1b6685',mainBkg:'#0b1220',nodeBorder:'#00f5c8',textColor:'#e8f7ff'}});</script>
+<button class="scroll-top" data-scroll-top aria-label="Voltar ao topo"><i class="fa-solid fa-arrow-up"></i></button>
+<script src="database-visualizacao.js" defer></script>
+</body>
+</html>

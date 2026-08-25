@@ -1,0 +1,890 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "DiixWhatsApp Backend API",
+    "description": "API REST para o dashboard DiixWhatsApp - Sistema multi-tenant de gestão de vendas, clientes, pedidos, delivery e automações via WhatsApp",
+    "version": "1.0.0",
+    "contact": {
+      "name": "DiixWhatsApp Team",
+      "email": "suporte@diixwhatsapp.com"
+    },
+    "license": {
+      "name": "ISC"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:7171",
+      "description": "Servidor de desenvolvimento"
+    }
+  ],
+  "tags": [
+    { "name": "Auth", "description": "Autenticação e autorização" },
+    { "name": "Products", "description": "Gestão de produtos e estoque" },
+    { "name": "Customers", "description": "Gestão de clientes" },
+    { "name": "Orders", "description": "Gestão de pedidos e itens" },
+    { "name": "Catalog", "description": "Categorias, serviços e personalização da loja" },
+    { "name": "Promotions", "description": "Promoções, cupons e descontos" },
+    { "name": "Company", "description": "Configurações da empresa/loja" },
+    { "name": "Communications", "description": "Comunicações e campanhas" },
+    { "name": "Consent", "description": "Consentimento LGPD" },
+    { "name": "Coupons", "description": "Validação e resgate de cupons" },
+    { "name": "Payments", "description": "Eventos de pagamento" },
+    { "name": "Delivery", "description": "Entregas, zonas e motoristas" },
+    { "name": "Dashboard", "description": "Métricas e dashboard" }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "schemas": {
+      "SuccessResponse": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean", "example": true },
+          "data": { "type": "object" }
+        }
+      },
+      "ListResponse": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean", "example": true },
+          "data": { "type": "array", "items": { "type": "object" } },
+          "pagination": {
+            "type": "object",
+            "properties": {
+              "page": { "type": "integer", "example": 1 },
+              "limit": { "type": "integer", "example": 20 },
+              "total": { "type": "integer", "example": 100 },
+              "totalPages": { "type": "integer", "example": 5 }
+            }
+          }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean", "example": false },
+          "error": {
+            "type": "object",
+            "properties": {
+              "code": { "type": "string", "example": "VALIDATION_ERROR" },
+              "message": { "type": "string", "example": "Validation failed" },
+              "details": { "type": "array", "items": { "type": "object" } }
+            }
+          }
+        }
+      },
+      "User": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "name": { "type": "string" },
+          "email": { "type": "string", "format": "email" },
+          "phone": { "type": "string" },
+          "avatar_url": { "type": "string" },
+          "role": { "type": "string", "enum": ["master", "reseller", "admin", "manager", "operator", "visitor"] },
+          "language": { "type": "string" },
+          "timezone": { "type": "string" },
+          "is_active": { "type": "boolean" },
+          "last_login_at": { "type": "string", "format": "date-time" },
+          "created_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "Company": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "name": { "type": "string" },
+          "trade_name": { "type": "string" },
+          "cnpj": { "type": "string" },
+          "address_street": { "type": "string" },
+          "address_number": { "type": "string" },
+          "address_complement": { "type": "string" },
+          "address_city": { "type": "string" },
+          "address_state": { "type": "string" },
+          "address_zip": { "type": "string" },
+          "website": { "type": "string" },
+          "description": { "type": "string" },
+          "logo_url": { "type": "string" },
+          "is_active": { "type": "boolean" },
+          "company_type": { "type": "string", "enum": ["store", "demo", "internal"] },
+          "status": { "type": "string", "enum": ["pending", "active", "suspended", "cancelled"] },
+          "created_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "Product": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "company_id": { "type": "string", "format": "uuid" },
+          "name": { "type": "string" },
+          "description": { "type": "string" },
+          "category": { "type": "string" },
+          "price": { "type": "number", "format": "decimal" },
+          "cost": { "type": "number", "format": "decimal" },
+          "stock": { "type": "integer" },
+          "min_stock": { "type": "integer" },
+          "total_sales": { "type": "integer" },
+          "total_revenue": { "type": "number", "format": "decimal" },
+          "status": { "type": "string", "enum": ["active", "inactive", "low_stock"] },
+          "image_url": { "type": "string" },
+          "created_at": { "type": "string", "format": "date-time" },
+          "updated_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "Customer": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "company_id": { "type": "string", "format": "uuid" },
+          "name": { "type": "string" },
+          "email": { "type": "string", "format": "email" },
+          "phone": { "type": "string" },
+          "segment": { "type": "string", "enum": ["vip", "frequent", "occasional", "new"] },
+          "status": { "type": "string", "enum": ["active", "inactive"] },
+          "total_orders": { "type": "integer" },
+          "total_spent": { "type": "number", "format": "decimal" },
+          "last_purchase_date": { "type": "string", "format": "date-time" },
+          "created_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "Order": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "order_number": { "type": "string" },
+          "company_id": { "type": "string", "format": "uuid" },
+          "customer_id": { "type": "string", "format": "uuid" },
+          "status": { "type": "string", "enum": ["pending", "processing", "completed", "cancelled"] },
+          "payment_method": { "type": "string", "enum": ["credit_card", "debit_card", "pix", "boleto", "whatsapp_pay", "cash_on_delivery", "card_on_delivery"] },
+          "subtotal": { "type": "number", "format": "decimal" },
+          "discount": { "type": "number", "format": "decimal" },
+          "shipping_cost": { "type": "number", "format": "decimal" },
+          "total": { "type": "number", "format": "decimal" },
+          "shipping_address": { "type": "string" },
+          "notes": { "type": "string" },
+          "order_date": { "type": "string", "format": "date-time" },
+          "created_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "CatalogCategory": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "name": { "type": "string" },
+          "slug": { "type": "string" },
+          "kind": { "type": "string", "enum": ["store_category", "service_category"] },
+          "description": { "type": "string" },
+          "is_active": { "type": "boolean" },
+          "is_system": { "type": "boolean" }
+        }
+      },
+      "ServiceCatalog": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "category_id": { "type": "string", "format": "uuid" },
+          "name": { "type": "string" },
+          "slug": { "type": "string" },
+          "description": { "type": "string" },
+          "is_active": { "type": "boolean" },
+          "is_system": { "type": "boolean" }
+        }
+      },
+      "Promotion": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "company_id": { "type": "string", "format": "uuid" },
+          "name": { "type": "string" },
+          "description": { "type": "string" },
+          "type": { "type": "string", "enum": ["percentage", "fixed_amount", "free_shipping", "buy_x_get_y"] },
+          "status": { "type": "string", "enum": ["draft", "scheduled", "active", "paused", "expired", "cancelled"] },
+          "value": { "type": "number", "format": "decimal" },
+          "minimum_amount": { "type": "number", "format": "decimal" },
+          "starts_at": { "type": "string", "format": "date-time" },
+          "ends_at": { "type": "string", "format": "date-time" },
+          "usage_limit": { "type": "integer" },
+          "usage_count": { "type": "integer" }
+        }
+      },
+      "Coupon": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "company_id": { "type": "string", "format": "uuid" },
+          "code": { "type": "string" },
+          "discount_type": { "type": "string", "enum": ["percentage", "fixed_amount", "free_shipping"] },
+          "discount_value": { "type": "number", "format": "decimal" },
+          "status": { "type": "string", "enum": ["active", "paused", "expired", "exhausted"] },
+          "starts_at": { "type": "string", "format": "date-time" },
+          "ends_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "Communication": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "company_id": { "type": "string", "format": "uuid" },
+          "title": { "type": "string" },
+          "body": { "type": "string" },
+          "audience": { "type": "string", "enum": ["employees", "customers", "drivers"] },
+          "channel": { "type": "string", "enum": ["in_app", "email", "whatsapp", "sms"] },
+          "priority": { "type": "string", "enum": ["low", "normal", "high", "critical"] },
+          "status": { "type": "string", "enum": ["draft", "scheduled", "sending", "sent", "failed", "cancelled"] },
+          "scheduled_at": { "type": "string", "format": "date-time" }
+        }
+      }
+    }
+  },
+  "security": [{ "bearerAuth": [] }],
+  "paths": {
+    "/health": {
+      "get": {
+        "tags": ["Health"],
+        "summary": "Health check",
+        "responses": {
+          "200": {
+            "description": "Servidor saudável",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/SuccessResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/docs": {
+      "get": {
+        "tags": ["Docs"],
+        "summary": "Documentação Swagger UI"
+      }
+    },
+    "/api/v1/auth/login": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Login do usuário",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email", "password"],
+                "properties": {
+                  "email": { "type": "string", "format": "email" },
+                  "password": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Login bem-sucedido" },
+          "400": { "description": "Dados inválidos" },
+          "401": { "description": "Credenciais inválidas" }
+        }
+      }
+    },
+    "/api/v1/auth/register": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Registro de usuário (requer autenticação admin/manager)",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name", "email", "password"],
+                "properties": {
+                  "name": { "type": "string", "minLength": 2 },
+                  "email": { "type": "string", "format": "email" },
+                  "password": { "type": "string", "minLength": 8 },
+                  "phone": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Usuário criado" },
+          "400": { "description": "Dados inválidos" },
+          "401": { "description": "Não autenticado" },
+          "403": { "description": "Sem permissão" },
+          "409": { "description": "E-mail já cadastrado" }
+        }
+      }
+    },
+    "/api/v1/auth/refresh": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Refresh token",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["refreshToken"],
+                "properties": {
+                  "refreshToken": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Tokens renovados" },
+          "400": { "description": "Token inválido" },
+          "401": { "description": "Token expirado/revogdo" }
+        }
+      }
+    },
+    "/api/v1/auth/logout": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Logout",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["refreshToken"],
+                "properties": { "refreshToken": { "type": "string" } }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Logout realizado" },
+          "401": { "description": "Não autenticado" }
+        }
+      }
+    },
+    "/api/v1/auth/me": {
+      "get": {
+        "tags": ["Auth"],
+        "summary": "Usuário atual",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": { "description": "Dados do usuário" },
+          "401": { "description": "Não autenticado" }
+        }
+      }
+    },
+    "/api/v1/products": {
+      "get": {
+        "tags": ["Products"],
+        "summary": "Listar produtos",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "status", "in": "query", "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "Lista de produtos" }, "401": { "description": "Não autenticado" } }
+      },
+      "post": {
+        "tags": ["Products"],
+        "summary": "Criar produto",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name", "category", "price", "stock", "min_stock"],
+                "properties": {
+                  "name": { "type": "string", "maxLength": 120 },
+                  "description": { "type": "string", "maxLength": 500 },
+                  "category": { "type": "string" },
+                  "price": { "type": "number", "minimum": 0 },
+                  "cost": { "type": "number", "minimum": 0 },
+                  "stock": { "type": "integer", "minimum": 0 },
+                  "min_stock": { "type": "integer", "minimum": 0 },
+                  "image_url": { "type": "string", "format": "uri" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "201": { "description": "Produto criado" }, "400": { "description": "Dados inválidos" }, "401": { "description": "Não autenticado" } }
+      }
+    },
+    "/api/v1/products/{id}": {
+      "get": {
+        "tags": ["Products"],
+        "summary": "Obter produto",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "responses": { "200": { "description": "Produto encontrado" }, "401": { "description": "Não autenticado" }, "404": { "description": "Produto não encontrado" } }
+      },
+      "patch": {
+        "tags": ["Products"],
+        "summary": "Atualizar produto",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object" } } } },
+        "responses": { "200": { "description": "Produto atualizado" }, "400": { "description": "Dados inválidos" }, "401": { "description": "Não autenticado" }, "404": { "description": "Produto não encontrado" } }
+      },
+      "delete": {
+        "tags": ["Products"],
+        "summary": "Excluir produto",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "responses": { "200": { "description": "Produto excluído" }, "401": { "description": "Não autenticado" }, "404": { "description": "Produto não encontrado" } }
+      }
+    },
+    "/api/v1/customers": {
+      "get": {
+        "tags": ["Customers"],
+        "summary": "Listar clientes",
+        "security": [{ "bearerAuth": [] }],
+        "responses": { "200": { "description": "Lista de clientes" }, "401": { "description": "Não autenticado" } }
+      },
+      "post": {
+        "tags": ["Customers"],
+        "summary": "Criar cliente",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name", "email", "phone"],
+                "properties": {
+                  "name": { "type": "string", "maxLength": 120 },
+                  "email": { "type": "string", "format": "email" },
+                  "phone": { "type": "string" },
+                  "segment": { "type": "string", "enum": ["vip", "frequent", "occasional", "new"] },
+                  "status": { "type": "string", "enum": ["active", "inactive"] }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "201": { "description": "Cliente criado" }, "400": { "description": "Dados inválidos" }, "401": { "description": "Não autenticado" } }
+      }
+    },
+    "/api/v1/customers/{id}": {
+      "patch": {
+        "tags": ["Customers"],
+        "summary": "Atualizar cliente",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object" } } } },
+        "responses": { "200": { "description": "Cliente atualizado" }, "400": { "description": "Dados inválidos" }, "401": { "description": "Não autenticado" }, "404": { "description": "Cliente não encontrado" } }
+      },
+      "delete": {
+        "tags": ["Customers"],
+        "summary": "Excluir cliente",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "responses": { "200": { "description": "Cliente excluído" }, "401": { "description": "Não autenticado" }, "404": { "description": "Cliente não encontrado" } }
+      }
+    },
+    "/api/v1/orders": {
+      "get": {
+        "tags": ["Orders"],
+        "summary": "Listar pedidos",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "name": "status", "in": "query", "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "Lista de pedidos" }, "401": { "description": "Não autenticado" } }
+      },
+      "post": {
+        "tags": ["Orders"],
+        "summary": "Criar pedido",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["customerId", "paymentMethod", "items"],
+                "properties": {
+                  "customerId": { "type": "string", "format": "uuid" },
+                  "paymentMethod": { "type": "string", "enum": ["credit_card", "debit_card", "pix", "boleto", "whatsapp_pay", "cash_on_delivery", "card_on_delivery"] },
+                  "items": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                      "type": "object",
+                      "required": ["productId", "quantity"],
+                      "properties": {
+                        "productId": { "type": "string", "format": "uuid" },
+                        "quantity": { "type": "integer", "minimum": 1 }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "201": { "description": "Pedido criado" }, "400": { "description": "Dados inválidos/estoque insuficiente" }, "401": { "description": "Não autenticado" } }
+      }
+    },
+    "/api/v1/orders/{id}": {
+      "get": {
+        "tags": ["Orders"],
+        "summary": "Obter pedido",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "responses": { "200": { "description": "Pedido encontrado" }, "401": { "description": "Não autenticado" }, "404": { "description": "Pedido não encontrado" } }
+      }
+    },
+    "/api/v1/catalog/categories": {
+      "get": {
+        "tags": ["Catalog"],
+        "summary": "Listar categorias globais",
+        "parameters": [{ "name": "kind", "in": "query", "schema": { "type": "string", "enum": ["store_category", "service_category"] } }],
+        "responses": { "200": { "description": "Lista de categorias" } }
+      }
+    },
+    "/api/v1/catalog/services": {
+      "get": {
+        "tags": ["Catalog"],
+        "summary": "Listar serviços globais",
+        "parameters": [{ "name": "categoryId", "in": "query", "schema": { "type": "string", "format": "uuid" } }],
+        "responses": { "200": { "description": "Lista de serviços" } }
+      }
+    },
+    "/api/v1/catalog/company/categories": {
+      "get": {
+        "tags": ["Catalog"],
+        "summary": "Listar categorias da loja",
+        "security": [{ "bearerAuth": [] }],
+        "responses": { "200": { "description": "Categorias da loja" }, "401": { "description": "Não autenticado" } }
+      },
+      "post": {
+        "tags": ["Catalog"],
+        "summary": "Adicionar categoria à loja",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["categoryId"],
+                "properties": {
+                  "categoryId": { "type": "string", "format": "uuid" },
+                  "customName": { "type": "string", "maxLength": 120 },
+                  "isPrimary": { "type": "boolean" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "201": { "description": "Categoria associada" }, "400": { "description": "Dados inválidos" }, "401": { "description": "Não autenticado" }, "404": { "description": "Categoria não encontrada" } }
+      }
+    },
+    "/api/v1/catalog/company/services": {
+      "get": {
+        "tags": ["Catalog"],
+        "summary": "Listar serviços da loja",
+        "security": [{ "bearerAuth": [] }],
+        "responses": { "200": { "description": "Serviços da loja" }, "401": { "description": "Não autenticado" } }
+      },
+      "post": {
+        "tags": ["Catalog"],
+        "summary": "Adicionar serviço à loja",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["serviceId"],
+                "properties": {
+                  "serviceId": { "type": "string", "format": "uuid" },
+                  "customName": { "type": "string", "maxLength": 120 },
+                  "enabled": { "type": "boolean" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "201": { "description": "Serviço associado" }, "400": { "description": "Dados inválidos" }, "401": { "description": "Não autenticado" }, "404": { "description": "Serviço não encontrado" } }
+      }
+    },
+    "/api/v1/catalog/company/customization": {
+      "get": {
+        "tags": ["Catalog"],
+        "summary": "Obter personalização da loja",
+        "security": [{ "bearerAuth": [] }],
+        "responses": { "200": { "description": "Personalização da loja" }, "401": { "description": "Não autenticado" } }
+      },
+      "patch": {
+        "tags": ["Catalog"],
+        "summary": "Atualizar personalização da loja",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "brandName": { "type": "string", "maxLength": 120 },
+                  "primaryColor": { "type": "string", "pattern": "^#[0-9A-Fa-f]{6}$" },
+                  "secondaryColor": { "type": "string", "pattern": "^#[0-9A-Fa-f]{6}$" },
+                  "logoUrl": { "type": "string", "format": "uri" },
+                  "bannerUrl": { "type": "string", "format": "uri" },
+                  "faviconUrl": { "type": "string", "format": "uri" },
+                  "websiteSlug": { "type": "string", "pattern": "^[a-z0-9-]+$" },
+                  "whatsappGreeting": { "type": "string", "maxLength": 500 },
+                  "whatsappFallback": { "type": "string", "maxLength": 500 },
+                  "storefrontConfig": { "type": "object" },
+                  "botConfig": { "type": "object" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "Personalização atualizada" }, "400": { "description": "Dados inválidos" }, "401": { "description": "Não autenticado" } }
+      }
+    },
+    "/api/v1/promotions": {
+      "get": {
+        "tags": ["Promotions"],
+        "summary": "Listar promoções",
+        "security": [{ "bearerAuth": [] }],
+        "responses": { "200": { "description": "Lista de promoções" }, "401": { "description": "Não autenticado" } }
+      },
+      "post": {
+        "tags": ["Promotions"],
+        "summary": "Criar promoção",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name", "type", "value"],
+                "properties": {
+                  "name": { "type": "string", "maxLength": 120 },
+                  "description": { "type": "string", "maxLength": 1000 },
+                  "type": { "type": "string", "enum": ["percentage", "fixed_amount", "free_shipping", "buy_x_get_y"] },
+                  "value": { "type": "number", "minimum": 0 },
+                  "minimumAmount": { "type": "number", "minimum": 0 },
+                  "startsAt": { "type": "string", "format": "date-time" },
+                  "endsAt": { "type": "string", "format": "date-time" },
+                  "usageLimit": { "type": "integer", "minimum": 1 }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "201": { "description": "Promoção criada" }, "400": { "description": "Dados inválidos" }, "401": { "description": "Não autenticado" } }
+      }
+    },
+    "/api/v1/promotions/coupons": {
+      "get": {
+        "tags": ["Promotions"],
+        "summary": "Listar cupons",
+        "security": [{ "bearerAuth": [] }],
+        "responses": { "200": { "description": "Lista de cupons" }, "401": { "description": "Não autenticado" } }
+      },
+      "post": {
+        "tags": ["Promotions"],
+        "summary": "Criar cupom",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["code", "discountType", "discountValue"],
+                "properties": {
+                  "promotionId": { "type": "string", "format": "uuid" },
+                  "code": { "type": "string", "minLength": 3, "maxLength": 64 },
+                  "description": { "type": "string", "maxLength": 1000 },
+                  "discountType": { "type": "string", "enum": ["percentage", "fixed_amount", "free_shipping"] },
+                  "discountValue": { "type": "number", "minimum": 0 },
+                  "minimumAmount": { "type": "number", "minimum": 0 },
+                  "maxDiscount": { "type": "number", "minimum": 0 },
+                  "usageLimit": { "type": "integer", "minimum": 1 },
+                  "perCustomerLimit": { "type": "integer", "minimum": 1 },
+                  "startsAt": { "type": "string", "format": "date-time" },
+                  "endsAt": { "type": "string", "format": "date-time" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "201": { "description": "Cupom criado" }, "400": { "description": "Dados inválidos" }, "401": { "description": "Não autenticado" }, "409": { "description": "Código já existe" } }
+      }
+    },
+    "/api/v1/coupons/validate": {
+      "post": {
+        "tags": ["Coupons"],
+        "summary": "Validar cupom",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["code", "subtotal"],
+                "properties": {
+                  "code": { "type": "string", "maxLength": 64 },
+                  "customerId": { "type": "string", "format": "uuid" },
+                  "subtotal": { "type": "number", "minimum": 0 }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "Cupom válido" }, "400": { "description": "Cupom inválido/expirado" }, "401": { "description": "Não autenticado" }, "404": { "description": "Cupom não encontrado" } }
+      }
+    },
+    "/api/v1/coupons/redeem": {
+      "post": {
+        "tags": ["Coupons"],
+        "summary": "Resgatar cupom",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["code", "orderId", "subtotal", "discountAmount"],
+                "properties": {
+                  "code": { "type": "string", "maxLength": 64 },
+                  "customerId": { "type": "string", "format": "uuid" },
+                  "orderId": { "type": "string", "format": "uuid" },
+                  "subtotal": { "type": "number", "minimum": 0 },
+                  "discountAmount": { "type": "number", "minimum": 0 }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "201": { "description": "Cupom resgatado" }, "400": { "description": "Cupom inválido/expirado" }, "401": { "description": "Não autenticado" }, "409": { "description": "Cupom já resgatado para este pedido" } }
+      }
+    },
+    "/api/v1/payments/events": {
+      "post": {
+        "tags": ["Payments"],
+        "summary": "Processar evento de pagamento (webhook)",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["paymentId", "provider", "providerEventId", "eventType", "signatureValid"],
+                "properties": {
+                  "paymentId": { "type": "string", "format": "uuid" },
+                  "provider": { "type": "string" },
+                  "providerEventId": { "type": "string" },
+                  "eventType": { "type": "string" },
+                  "signatureValid": { "type": "boolean", "const": true },
+                  "providerTimestamp": { "type": "string", "format": "date-time" },
+                  "payloadHash": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "201": { "description": "Evento processado" }, "400": { "description": "Dados inválidos" }, "401": { "description": "Não autenticado/assinatura inválida" }, "404": { "description": "Pagamento não encontrado" }, "409": { "description": "Evento já processado" } }
+      }
+    },
+    "/api/v1/communications": {
+      "get": {
+        "tags": ["Communications"],
+        "summary": "Listar comunicações",
+        "security": [{ "bearerAuth": [] }],
+        "responses": { "200": { "description": "Lista de comunicações" }, "401": { "description": "Não autenticado" } }
+      },
+      "post": {
+        "tags": ["Communications"],
+        "summary": "Criar comunicação",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["title", "body", "audience", "channel"],
+                "properties": {
+                  "title": { "type": "string", "maxLength": 160 },
+                  "body": { "type": "string", "maxLength": 10000 },
+                  "audience": { "type": "string", "enum": ["employees", "customers", "drivers"] },
+                  "channel": { "type": "string", "enum": ["in_app", "email", "whatsapp", "sms"] },
+                  "priority": { "type": "string", "enum": ["low", "normal", "high", "critical"] },
+                  "scheduledAt": { "type": "string", "format": "date-time" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "201": { "description": "Comunicação criada" }, "400": { "description": "Dados inválidos" }, "401": { "description": "Não autenticado" } }
+      }
+    },
+    "/api/v1/consent": {
+      "post": {
+        "tags": ["Consent"],
+        "summary": "Registrar consentimento LGPD",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["customerId", "status", "source", "purpose"],
+                "properties": {
+                  "customerId": { "type": "string", "format": "uuid" },
+                  "status": { "type": "string", "enum": ["unknown", "opted_in", "opted_out"] },
+                  "source": { "type": "string", "maxLength": 100 },
+                  "purpose": { "type": "string", "maxLength": 160 },
+                  "retentionUntil": { "type": "string", "format": "date-time" },
+                  "evidenceRef": { "type": "string", "maxLength": 255 }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "201": { "description": "Consentimento registrado" }, "400": { "description": "Dados inválidos" }, "401": { "description": "Não autenticado" }, "404": { "description": "Cliente não encontrado" } }
+      }
+    },
+    "/api/v1/consent/customer/{customerId}": {
+      "get": {
+        "tags": ["Consent"],
+        "summary": "Listar consentimentos do cliente",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "name": "customerId", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "responses": { "200": { "description": "Histórico de consentimentos" }, "401": { "description": "Não autenticado" }, "404": { "description": "Cliente não encontrado" } }
+      }
+    },
+    "/api/v1/delivery": {
+      "get": {
+        "tags": ["Delivery"],
+        "summary": "Listar entregas",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "name": "status", "in": "query", "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "Lista de entregas" }, "401": { "description": "Não autenticado" } }
+      }
+    }
+  }
+}

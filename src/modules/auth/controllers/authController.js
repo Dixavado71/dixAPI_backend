@@ -18,7 +18,7 @@ export async function register(req, res, next) {
   try {
     const validatedData = registerSchema.parse(req.body);
     
-    const result = await authService.register(validatedData);
+    const result = await authService.register(validatedData, req.user.companyId);
     
     return createdResponse(res, result);
   } catch (error) {
@@ -40,6 +40,8 @@ export async function refresh(req, res, next) {
 
 export async function logout(req, res, next) {
   try {
+    const validatedData = refreshTokenSchema.parse(req.body);
+    await authService.logout(validatedData.refreshToken);
     return successResponse(res, { message: 'Logged out successfully' });
   } catch (error) {
     next(error);

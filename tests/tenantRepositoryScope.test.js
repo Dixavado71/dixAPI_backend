@@ -1,0 +1,38 @@
+import { describe, expect, it, vi } from 'vitest';
+
+const findFirst = vi.fn().mockResolvedValue(null);
+const findMany = vi.fn().mockResolvedValue([]);
+vi.mock('../src/infrastructure/database/prismaClient.js', () => ({
+  default: {
+    customer: { findFirst, findMany },
+    product: { findFirst, findMany },
+    order: { findFirst, findMany },
+  },
+}));
+
+const customerRepository = await import('../src/modules/customers/repositories/customerRepository.js');
+const productRepository = await import('../src/modules/products/repositories/productRepository.js');
+const orderRepository = await import('../src/modules/orders/repositories/orderRepository.js');
+
+describe('tenant repository scope', () => {
+  it('scopes customer lookup and listing by company', async () => {
+    await customerRepository.findCustomerById('company-a', 'customer-a');
+    expect(findFirst).toHaveBeenCalledWith({ where: { id: 'customer-a', company_id: 'company-a' } });
+    await customerRepository.listCustomers('company-a');
+    expect(findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { company_id: 'company-a' } }));
+  });
+
+  it('scopes product lookup and listing by company', async () => {
+    await productRepository.findProductById('product-a', 'company-a');
+    expect(findFirst).toHaveBeenCalledWith({ where: { id: 'product-a', company_id: 'company-a' } });
+    await productRepository.listAllProducts('company-a');
+    expect(findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { company_id: 'company-a' } }));
+  });
+
+  it('scopes order lookup and listing by company', async () => {
+    await orderRepository.findOrderById('company-a', 'order-a');
+    expect(findFirst).toHaveBeenCalledWith(expect.objectContaining({ where: { id: 'order-a', company_id: 'company-a' } }));
+    await orderRepository.listOrders('company-a');
+    expect(findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { company_id: 'company-a' } }));
+  });
+});

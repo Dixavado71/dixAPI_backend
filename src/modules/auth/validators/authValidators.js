@@ -3,7 +3,7 @@ import { z } from 'zod';
 export const loginSchema = z.object({
   email: z.string().email('Invalid email format'),
   password: z.string().min(1, 'Password is required'),
-});
+}).strict();
 
 export const registerSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
@@ -15,9 +15,7 @@ export const registerSchema = z.object({
     .regex(/\d/, 'Password must contain at least one number')
     .regex(/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/, 'Password must contain at least one special character'),
   phone: z.string().optional(),
-  companyId: z.string().uuid('Invalid company UUID'),
-  role: z.enum(['admin', 'manager', 'operator']).default('operator'),
-});
+}).strict();
 
 export const refreshTokenSchema = z.object({
   refreshToken: z.string().min(1, 'Refresh token is required'),
