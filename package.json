@@ -4,6 +4,9 @@
   "description": "Backend profissional ECMS6 / DiixWhatsApp - API REST Node.js para dashboard DiixWhatsApp",
   "main": "src/server.js",
   "type": "module",
+  "engines": {
+    "node": ">=20.0.0"
+  },
   "directories": {
     "doc": "docs",
     "test": "test"
