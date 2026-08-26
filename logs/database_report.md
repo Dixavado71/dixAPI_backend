@@ -1,5 +1,18 @@
 # Relatório Completo de Auditoria do Banco de Dados
 
+## Atualização — 2026-08-25 — seed demo multi-loja
+
+- `prisma/seed.js` substituído por seed idempotente para ambiente demo/desenvolvimento.
+- População prevista: 1 administrador único com membership nas duas lojas, 1 gerente, 2 funcionários, 2 lojas, 2 entregadores, planos, assinaturas, categorias, personalizações, configurações de delivery, produtos, clientes, pedidos e deliveries.
+- Senhas do seed são configuráveis por variáveis `SEED_*`, com defaults somente para ambiente demo local; nenhum valor foi registrado neste relatório.
+- Seed usa `upsert` ou busca por chaves tenant-safe e não executa reset, drop, truncate ou exclusão de dados.
+- `prisma validate` e `node --check prisma/seed.js` aprovados.
+- Seed foi executado uma vez dentro do container Railway via deployment temporário, com sucesso confirmado pelos logs.
+- Deployment final restaurou o start normal sem seed recorrente; API conectou ao PostgreSQL e Redis.
+- Login do administrador demo retornou HTTP 200; senha não foi registrada.
+
+
+
 ## Atualização — 2026-08-25 — migration PaymentEvent preparada
 
 - Criada migration local `20260825000100_payment_event_tenant_unique`.

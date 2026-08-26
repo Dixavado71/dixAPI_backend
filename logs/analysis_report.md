@@ -1,5 +1,15 @@
 # Registro de Análise e Progresso
 
+## Atualização — 2026-08-25 — seed demo multi-loja
+
+- Seed backend ampliado para criar uma estrutura demo com duas lojas, administrador com membership nas duas lojas, gerente, dois funcionários, dois entregadores e dados operacionais.
+- Incluídos planos, assinaturas, categorias, configurações e personalização de lojas, produtos, clientes, pedidos e delivery.
+- Seed idempotente e configurável por variáveis `SEED_*`; executado uma vez dentro da rede Railway por deployment temporário.
+- Variáveis `SEED_*` foram removidas após a execução e o start normal foi restaurado.
+- Health HTTP 200, conexão PostgreSQL/Redis e login do administrador demo confirmados.
+- `prisma validate` e sintaxe JavaScript aprovados; execução da suíte backend ficou limitada pelo timeout do executor local.
+
+
 ## Atualização — 2026-08-25 — correção do comando Prisma no Railway
 
 - Logs do deployment identificaram `MODULE_NOT_FOUND` para `node_modules/prisma/build/index.js` durante `npm run db:deploy` no estágio de produção instalado com `--omit=dev`.
