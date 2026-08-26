@@ -251,7 +251,7 @@ export async function handleWebhook(instanceName, payload) {
     }).catch(() => null);
 
     if (number.is_bot_enabled && messageContent) {
-      const { processIncomingMessage } = await import('../automation/services/automationService.js');
+      const { processIncomingMessage } = await import('../../automation/services/automationService.js');
       await processIncomingMessage({ companyId: number.company_id, number, from: phoneNumber, text: messageContent, contact }).catch(() => null);
     }
   }
