@@ -85,18 +85,23 @@ export async function getStatus(companyId, numberId) {
   if (!number) throw new NotFoundError('Número não encontrado.');
 
   if (!number.external_account_id) {
-    return { number, connectionState: null };
+    return { number, connectionState: null, rawState: null, isConnecting: false };
   }
 
   const state = await evolutionApi.getConnectionState(number.external_account_id).catch(() => null);
-  const evolutionStatus = state?.instance?.state ?? 'unknown';
-  const mappedStatus = evolutionStatus === 'open' ? 'connected' : evolutionStatus === 'close' ? 'disconnected' : 'connecting';
+  const rawState = state?.instance?.state ?? 'unknown';
+  const mappedStatus = rawState === 'open' ? 'connected' : rawState === 'close' ? 'disconnected' : 'pending';
 
   if (mappedStatus !== number.status) {
     await whatsappRepo.updateNumberById(number.id, { status: mappedStatus });
   }
 
-  return { number: { ...number, status: mappedStatus }, connectionState: state };
+  return {
+    number: { ...number, status: mappedStatus },
+    connectionState: state,
+    rawState,
+    isConnecting: rawState === 'connecting' || rawState === 'pending' || rawState === 'qrcode',
+  };
 }
 
 export async function disconnectNumber(companyId, numberId) {
@@ -200,7 +205,7 @@ export async function handleWebhook(instanceName, payload) {
   const { event, data } = payload;
 
   if (event === 'CONNECTION_UPDATE') {
-    const newStatus = data.state === 'open' ? 'connected' : data.state === 'close' ? 'disconnected' : 'connecting';
+    const newStatus = data.state === 'open' ? 'connected' : data.state === 'close' ? 'disconnected' : 'pending';
     await whatsappRepo.updateNumberById(number.id, { status: newStatus, last_connected_at: newStatus === 'connected' ? new Date() : undefined });
     return;
   }
