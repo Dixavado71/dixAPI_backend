@@ -1,5 +1,5 @@
 import * as authService from '../services/authService.js';
-import { loginSchema, registerSchema, refreshTokenSchema } from '../validators/authValidators.js';
+import { loginSchema, registerSchema, registerStoreSchema, refreshTokenSchema } from '../validators/authValidators.js';
 import { successResponse, createdResponse } from '../../../shared/utils/response.js';
 
 export async function login(req, res, next) {
@@ -9,6 +9,16 @@ export async function login(req, res, next) {
     const result = await authService.login(validatedData.email, validatedData.password);
     
     return successResponse(res, result, 200);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function registerStore(req, res, next) {
+  try {
+    const validatedData = registerStoreSchema.parse(req.body);
+    const result = await authService.registerStore(validatedData);
+    return createdResponse(res, result);
   } catch (error) {
     next(error);
   }
@@ -60,6 +70,7 @@ export async function getCurrentUser(req, res, next) {
 
 export default {
   login,
+  registerStore,
   register,
   refresh,
   logout,

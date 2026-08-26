@@ -1,5 +1,7 @@
 import { Router } from 'express';
+import { adminRoutes } from '../modules/admin/index.js';
 import { authRoutes } from '../modules/auth/index.js';
+import { billingRoutes } from '../modules/billing/index.js';
 import companyRoutes from '../modules/companies/routes/index.js';
 import { deliveryRoutes } from '../modules/delivery/index.js';
 import couponRoutes from '../modules/coupons/routes/index.js';
@@ -12,10 +14,13 @@ import consentRoutes from '../modules/consent/routes/index.js';
 import productRoutes from '../modules/products/routes/index.js';
 import customerRoutes from '../modules/customers/routes/index.js';
 import orderRoutes from '../modules/orders/routes/index.js';
+import transactionRoutes from '../modules/transactions/routes/index.js';
 
 const router = Router();
 
+router.use('/admin', adminRoutes);
 router.use('/auth', authRoutes);
+router.use('/billing', billingRoutes);
 router.use('/companies', companyRoutes);
 router.use('/delivery', deliveryRoutes);
 router.use('/coupons', couponRoutes);
@@ -28,5 +33,6 @@ router.use('/company/customization', customizationRoutes);
 router.use('/communications', communicationRoutes);
 router.use('/consent', consentRoutes);
 router.use('/products', productRoutes);
+router.use('/transactions', transactionRoutes);
 
 export default router;

@@ -13,11 +13,9 @@ export function findUsersByEmail(email) {
       UserCompany: {
         where: { status: 'active', removed_at: null },
         orderBy: { is_primary: 'desc' },
-        take: 1,
         include: { company: true },
       },
     },
-    take: 2,
   });
 }
 
@@ -29,7 +27,6 @@ export function findUserById(id) {
       UserCompany: {
         where: { status: 'active', removed_at: null },
         orderBy: { is_primary: 'desc' },
-        take: 1,
         include: { company: true },
       },
     },
@@ -75,4 +72,101 @@ export function revokeUserRefreshTokens(userId) {
   return prisma.refreshToken.updateMany({ where: { user_id: userId, revoked_at: null }, data: { revoked_at: new Date() } });
 }
 
-export default { findUsersByEmail, findUserById, findActiveMembership, createMembership, createUser, updateUserLastLogin, createRefreshToken, findRefreshToken, revokeRefreshToken, revokeUserRefreshTokens, hashRefreshToken };
+export function findUserByEmailAndCompany(email, companyId) {
+  return prisma.user.findUnique({ where: { company_id_email: { company_id: companyId, email } } });
+}
+
+export function findResellerByAffiliateCode(code) {
+  return prisma.affiliateCode.findFirst({
+    where: {
+      code,
+      is_active: true,
+      OR: [{ expires_at: null }, { expires_at: { gt: new Date() } }],
+    },
+    include: { reseller: true },
+  });
+}
+
+export function createStoreWithSubscription(data) {
+  return prisma.$transaction(async (tx) => {
+    const company = await tx.company.create({
+      data: {
+        name: data.companyName,
+        trade_name: data.companyTradeName ?? data.companyName,
+        cnpj: data.cnpj ?? null,
+        company_type: 'store',
+        status: 'active',
+        is_active: true,
+        reseller_id: data.resellerId ?? null,
+        support_email: data.email,
+        support_phone: data.phone ?? null,
+      },
+    });
+
+    const user = await tx.user.create({
+      data: {
+        company_id: company.id,
+        name: data.adminName,
+        email: data.email,
+        phone: data.phone ?? null,
+        password_hash: data.passwordHash,
+        role: 'admin',
+        is_active: true,
+      },
+    });
+
+    await tx.userCompany.create({
+      data: {
+        user_id: user.id,
+        company_id: company.id,
+        role: 'admin',
+        status: 'active',
+        is_primary: true,
+        joined_at: new Date(),
+      },
+    });
+
+    const plan = await tx.plan.findUnique({ where: { code: data.planCode ?? 'simple' } });
+    const now = new Date();
+    const periodEnd = new Date(now);
+    periodEnd.setDate(periodEnd.getDate() + (plan?.trial_days ?? 14));
+
+    await tx.companySubscription.create({
+      data: {
+        company_id: company.id,
+        plan_id: plan?.id ?? null,
+        status: 'trialing',
+        billing_cycle: 'monthly',
+        price: plan?.monthly_price ?? 0,
+        current_period_start: now,
+        current_period_end: periodEnd,
+        trial_ends_at: periodEnd,
+      },
+    });
+
+    await tx.companyStatusHistory.create({
+      data: {
+        company_id: company.id,
+        from_status: null,
+        to_status: 'active',
+        reason: 'Store registered',
+        changed_by: user.id,
+      },
+    });
+
+    await tx.auditLog.create({
+      data: {
+        company_id: company.id,
+        user_id: user.id,
+        action: 'create',
+        entity_type: 'company',
+        entity_id: company.id,
+        after_data: { name: company.name, trade_name: company.trade_name },
+      },
+    });
+
+    return { user, company, membership: { role: 'admin' } };
+  });
+}
+
+export default { findUsersByEmail, findUserById, findActiveMembership, createMembership, createUser, updateUserLastLogin, createRefreshToken, findRefreshToken, revokeRefreshToken, revokeUserRefreshTokens, hashRefreshToken, findUserByEmailAndCompany, findResellerByAffiliateCode, createStoreWithSubscription };

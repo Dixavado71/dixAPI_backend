@@ -105,6 +105,13 @@ async function main() {
   await upsertUser({ companyId: companyOne.id, email: 'gerente@demo.local', name: 'Gerente Operacional', role: UserRole.manager, password: passwordFromEnv('SEED_MANAGER_PASSWORD', 'Manager@12345'), phone: '11990000002' });
   await upsertUser({ companyId: companyOne.id, email: 'funcionario1@demo.local', name: 'Funcionário Aurora', role: UserRole.operator, password: passwordFromEnv('SEED_OPERATOR1_PASSWORD', 'Operator@12345'), phone: '11990000003' });
   await upsertUser({ companyId: companyTwo.id, email: 'funcionario2@demo.local', name: 'Funcionário Brisa', role: UserRole.operator, password: passwordFromEnv('SEED_OPERATOR2_PASSWORD', 'Operator@12345'), phone: '21990000004' });
+  // Master platform admin
+  const masterUser = await upsertUser({ companyId: companyOne.id, email: 'master@demo.local', name: 'Administrador Master', role: UserRole.master, password: passwordFromEnv('SEED_MASTER_PASSWORD', 'Master@12345'), phone: '11990000006' });
+  await prisma.userCompany.upsert({
+    where: { user_id_company_id: { user_id: masterUser.id, company_id: companyOne.id } },
+    create: { user_id: masterUser.id, company_id: companyOne.id, role: AccountRole.admin, is_primary: true, status: UserStatus.active, joined_at: new Date() },
+    update: { role: AccountRole.admin, status: UserStatus.active },
+  });
   const plan = await prisma.plan.findUniqueOrThrow({ where: { code: PlanCode.silver } });
   for (const company of [companyOne, companyTwo]) {
     const start = new Date();
@@ -114,7 +121,56 @@ async function main() {
   const products = [{ name: 'Combo Aurora', description: 'Produto destaque da loja', category: 'alimentacao', price: 39.9, cost: 15, stock: 50, min_stock: 5, status: ProductStatus.active }, { name: 'Café Especial', description: 'Café torrado premium', category: 'alimentacao', price: 24.9, cost: 8, stock: 80, min_stock: 10, status: ProductStatus.active }, { name: 'Kit Brisa', description: 'Kit promocional da loja', category: 'outros', price: 59.9, cost: 22, stock: 30, min_stock: 5, status: ProductStatus.active }];
   await seedCompanyData(companyOne, products.slice(0, 2), [{ name: 'Mariana Costa', email: 'mariana@example.local', phone: '11991112222', segment: CustomerSegment.vip, status: CustomerStatus.active }, { name: 'Rafael Almeida', email: 'rafael@example.local', phone: '11992223333', segment: CustomerSegment.frequent, status: CustomerStatus.active }], [{ name: 'Carlos Entregas', phone: '11993334444', vehicle_type: VehicleType.motorcycle, vehicle_plate: 'ABC1D23', status: DriverStatus.available, provider_type: DeliveryProviderType.own }]);
   await seedCompanyData(companyTwo, products.slice(2), [{ name: 'Camila Nunes', email: 'camila@example.local', phone: '21994445555', segment: CustomerSegment.new, status: CustomerStatus.active }, { name: 'João Victor', email: 'joao@example.local', phone: '21995556666', segment: CustomerSegment.occasional, status: CustomerStatus.active }], [{ name: 'Fernanda Rotas', phone: '21996667777', vehicle_type: VehicleType.car, vehicle_plate: 'XYZ4E56', status: DriverStatus.available, provider_type: DeliveryProviderType.own }]);
-  console.log('Seed demo criado/atualizado com 2 lojas, usuários, produtos, clientes, pedidos e entregadores.');
+
+  // Demo reseller + affiliate code
+  const resellerEmail = 'reseller@demo.local';
+  const resellerUser = await upsertUser({ companyId: companyOne.id, email: resellerEmail, name: 'Revenda Demo', role: UserRole.reseller, password: passwordFromEnv('SEED_RESELLER_PASSWORD', 'Reseller@12345'), phone: '11990000005' });
+  await prisma.userCompany.upsert({
+    where: { user_id_company_id: { user_id: resellerUser.id, company_id: companyOne.id } },
+    create: { user_id: resellerUser.id, company_id: companyOne.id, role: AccountRole.operator, is_primary: true, status: UserStatus.active, joined_at: new Date() },
+    update: { role: AccountRole.operator, is_primary: true, status: UserStatus.active },
+  });
+  await prisma.reseller.upsert({
+    where: { user_id: resellerUser.id },
+    create: { user_id: resellerUser.id, name: 'Revenda Demo', email: resellerEmail, phone: '11990000005', commission_type: 'percentage', commission_value: 20, status: 'active' },
+    update: { name: 'Revenda Demo', email: resellerEmail, commission_type: 'percentage', commission_value: 20 },
+  });
+  const reseller = await prisma.reseller.findUnique({ where: { user_id: resellerUser.id } });
+  if (reseller) {
+    await prisma.affiliateCode.upsert({
+      where: { reseller_id_code: { reseller_id: reseller.id, code: 'REVENDA20' } },
+      create: { reseller_id: reseller.id, code: 'REVENDA20', description: '20% de comissão para o revendedor', commission_rate: 0.2, is_active: true },
+      update: { commission_rate: 0.2, is_active: true },
+    });
+    // Link companyOne to the reseller
+    await prisma.company.update({ where: { id: companyOne.id }, data: { reseller_id: reseller.id } });
+  }
+
+  // Seed transactions for both companies
+  const now = new Date();
+  const yesterday = new Date(now); yesterday.setDate(yesterday.getDate() - 1);
+  const daysAgo2 = new Date(now); daysAgo2.setDate(daysAgo2.getDate() - 2);
+  const daysAgo7 = new Date(now); daysAgo7.setDate(daysAgo7.getDate() - 7);
+  const daysAgo15 = new Date(now); daysAgo15.setDate(daysAgo15.getDate() - 15);
+  for (const company of [companyOne, companyTwo]) {
+    const sub = await prisma.companySubscription.findFirst({ where: { company_id: company.id } });
+    const subValue = sub?.price ?? plan.monthly_price;
+    const owner = await prisma.user.findFirst({ where: { company_id: company.id, role: 'admin' } });
+    await prisma.transaction.create({
+      data: { company_id: company.id, description: `Assinatura ${plan.name} — diix`, type: 'expense', category: 'Plataforma', value: Number(subValue), status: 'completed', transaction_date: daysAgo7, created_by: owner?.id },
+    });
+    await prisma.transaction.create({
+      data: { company_id: company.id, description: 'Venda de produtos (Combo Aurora / Kit Brisa)', type: 'income', category: 'Vendas', value: 59.9, status: 'completed', transaction_date: yesterday, created_by: owner?.id },
+    });
+    await prisma.transaction.create({
+      data: { company_id: company.id, description: 'Fornecedor — insumos', type: 'expense', category: 'Fornecedores', value: 145.5, status: 'completed', transaction_date: daysAgo2, created_by: owner?.id },
+    });
+    await prisma.transaction.create({
+      data: { company_id: company.id, description: 'Reposição de estoque', type: 'expense', category: 'Logística', value: 89.9, status: 'completed', transaction_date: daysAgo15, created_by: owner?.id },
+    });
+  }
+
+  console.log('Seed demo criado/atualizado com 2 lojas, usuários, produtos, clientes, pedidos, entregadores, revendedor, código de afiliado e transações financeiras.');
 }
 
 main().catch((error) => { console.error(error.message); process.exitCode = 1; }).finally(async () => { await prisma.$disconnect(); });
