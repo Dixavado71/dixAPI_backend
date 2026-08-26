@@ -6,7 +6,9 @@
 - Scripts `db:generate`, `db:migrate` e `db:deploy` alterados para usar o executável Prisma no `PATH`.
 - Removida duplicidade de `NPM_CONFIG_PREFER_OFFLINE` em `nixpacks.toml`.
 - Nenhuma migration foi criada, aplicada ou executada localmente nesta correção.
-- Próximo passo: validar gates, publicar no repositório privado e acompanhar novo deployment Railway.
+- Logs do novo deployment mostraram `sh: 1: prisma: Permission denied` porque `nixpacks.toml` executava `phases.deploy` antes da instalação final de dependências.
+- A fase deploy do Nixpacks foi removida; migrations permanecem no `startCommand` do Railway, após `npm ci` e `db:generate`.
+- Próximo passo: validar, publicar e acompanhar novo deployment Railway.
 
 ## Atualização — 2026-08-25 — atualização de dependências de teste
 

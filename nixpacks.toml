@@ -11,9 +11,6 @@ cmds = [
 [phases.build]
 cmds = []
 
-[phases.deploy]
-cmds = ["npm run db:deploy"]
-
 [environment]
 NODE_ENV = "production"
 NPM_CONFIG_LOGLEVEL = "warn"

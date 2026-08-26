@@ -6,7 +6,9 @@
 - Scripts Prisma passaram a usar o binário resolvido pelo `PATH`, sem inserir segredos ou alterar o banco nesta etapa.
 - Removida configuração duplicada do Nixpacks que gerava configuração inconsistente.
 - Variáveis Railway foram previamente rotacionadas e validadas com TLS; valores não foram registrados.
-- Próximo passo: publicar a correção e validar build, migração e health check no Railway.
+- Logs posteriores mostraram `prisma: Permission denied` na fase deploy antecipada do Nixpacks, antes da instalação final de dependências.
+- A fase deploy antecipada foi removida; migration continua somente no start após instalação, sem expor secrets.
+- Próximo passo: publicar a correção e validar build, migration e health check no Railway.
 
 ## Atualização — 2026-08-25 — configuração Railway completa
 
