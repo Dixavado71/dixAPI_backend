@@ -68,7 +68,7 @@ export async function connectNumber(companyId, data) {
     externalAccountId: instanceName,
   });
 
-  return { number, qrcode: evolutionInstance?.qrcode?.base64 ?? null, qrCode: evolutionInstance?.qrcode?.code ?? null, instanceName };
+  return { number, qrcode: evolutionInstance?.qrcode?.base64 ?? null, instanceName };
 }
 
 export async function getQrCode(companyId, numberId) {
