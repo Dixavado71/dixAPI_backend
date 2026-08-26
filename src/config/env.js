@@ -17,6 +17,11 @@ export const env = {
   jwtAudience: process.env.JWT_AUDIENCE || 'dixapi-api',
   corsOrigin: process.env.CORS_ORIGIN || 'http://localhost:5173',
   logLevel: process.env.LOG_LEVEL || 'info',
+  publicApiUrl: process.env.PUBLIC_API_URL || 'http://localhost:7171',
+  evolutionApiUrl: process.env.EVOLUTION_API_URL,
+  evolutionApiKey: process.env.EVOLUTION_API_KEY,
+  evolutionApiGlobalKey: process.env.EVOLUTION_API_GLOBAL_KEY,
+  evolutionWebhookSecret: process.env.EVOLUTION_WEBHOOK_SECRET,
   defaultAdminPassword: process.env.DEFAULT_ADMIN_PASSWORD,
   defaultManagerPassword: process.env.DEFAULT_MANAGER_PASSWORD,
   defaultOperatorPassword: process.env.DEFAULT_OPERATOR_PASSWORD,
@@ -34,6 +39,8 @@ export function validateEnv() {
     const weakSecrets = [env.jwtAccessSecret, env.jwtRefreshSecret].some(secret => !secret || secret.length < 32);
     if (weakSecrets) throw new Error('JWT secrets must contain at least 32 characters in production');
     if (env.corsOrigin === '*') throw new Error('CORS_ORIGIN cannot be wildcard in production');
+    if (!env.evolutionApiUrl) throw new Error('EVOLUTION_API_URL is required in production');
+    if (!env.evolutionApiKey) throw new Error('EVOLUTION_API_KEY is required in production');
     const redisUsesInternalRailwayNetwork = env.redisUrl?.startsWith('redis://') && env.redisUrl.includes('.railway.internal');
     if (env.redisUrl && !env.redisUrl.startsWith('rediss://') && !redisUsesInternalRailwayNetwork) throw new Error('Redis TLS is required in production');
     const databaseUsesInternalRailwayNetwork = env.databaseUrl?.includes('postgres.railway.internal');

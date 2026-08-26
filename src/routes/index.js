@@ -15,6 +15,9 @@ import productRoutes from '../modules/products/routes/index.js';
 import customerRoutes from '../modules/customers/routes/index.js';
 import orderRoutes from '../modules/orders/routes/index.js';
 import transactionRoutes from '../modules/transactions/routes/index.js';
+import { whatsappRoutes } from '../modules/whatsapp/index.js';
+import { conversationRoutes } from '../modules/conversations/index.js';
+import { automationRoutes } from '../modules/automation/index.js';
 
 const router = Router();
 
@@ -34,5 +37,8 @@ router.use('/communications', communicationRoutes);
 router.use('/consent', consentRoutes);
 router.use('/products', productRoutes);
 router.use('/transactions', transactionRoutes);
+router.use('/whatsapp', whatsappRoutes);
+router.use('/conversations', conversationRoutes);
+router.use('/automation', automationRoutes);
 
 export default router;

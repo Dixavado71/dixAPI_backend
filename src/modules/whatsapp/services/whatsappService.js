@@ -1,0 +1,179 @@
+import { BadRequestError, NotFoundError, ConflictError } from '../../../shared/errors/AppError.js';
+import * as whatsappRepo from '../repositories/whatsappRepository.js';
+import * as evolutionApi from '../../../infrastructure/whatsapp/evolutionApiClient.js';
+import { env } from '../../../config/env.js';
+
+export async function listNumbers(companyId) {
+  return whatsappRepo.listNumbers(companyId);
+}
+
+export async function connectNumber(companyId, data) {
+  if (!env.evolutionApiUrl) throw new BadRequestError('EvolutionAPI não configurada. Contate o administrador.');
+
+  const existing = await whatsappRepo.findNumberByPhone(companyId, data.phoneNumber);
+  if (existing && existing.status !== 'disconnected') throw new ConflictError('Este número já está cadastrado.');
+
+  const instanceName = `${companyId.slice(0, 8)}_${data.phoneNumber}`;
+  const evolutionInstance = await evolutionApi.createInstance(instanceName).catch(() => null);
+
+  if (!evolutionInstance) throw new BadRequestError('Não foi possível criar a instância no EvolutionAPI.');
+
+  const number = await whatsappRepo.upsertNumber(companyId, {
+    phoneNumber: data.phoneNumber,
+    displayName: data.displayName,
+    status: 'pending',
+    isBotEnabled: true,
+    externalAccountId: instanceName,
+  });
+
+  return { number, qrcode: evolutionInstance.base64 ?? null, instanceName };
+}
+
+export async function getQrCode(companyId, numberId) {
+  const number = await whatsappRepo.findNumberById(companyId, numberId);
+  if (!number) throw new NotFoundError('Número não encontrado.');
+  if (!number.external_account_id) throw new BadRequestError('Número não possui instância EvolutionAPI.');
+
+  const qr = await evolutionApi.getInstanceQrCode(number.external_account_id);
+  return { base64: qr.base64 ?? null, code: qr.code ?? null, pairingCode: qr.pairingCode ?? null };
+}
+
+export async function getStatus(companyId, numberId) {
+  const number = await whatsappRepo.findNumberById(companyId, numberId);
+  if (!number) throw new NotFoundError('Número não encontrado.');
+
+  if (!number.external_account_id) {
+    return { number, connectionState: null };
+  }
+
+  const state = await evolutionApi.getConnectionState(number.external_account_id).catch(() => null);
+  const evolutionStatus = state?.instance?.state ?? 'unknown';
+  const mappedStatus = evolutionStatus === 'open' ? 'connected' : evolutionStatus === 'close' ? 'disconnected' : 'connecting';
+
+  if (mappedStatus !== number.status) {
+    await whatsappRepo.updateNumberById(number.id, { status: mappedStatus });
+  }
+
+  return { number: { ...number, status: mappedStatus }, connectionState: state };
+}
+
+export async function disconnectNumber(companyId, numberId) {
+  const number = await whatsappRepo.findNumberById(companyId, numberId);
+  if (!number) throw new NotFoundError('Número não encontrado.');
+
+  if (number.external_account_id) {
+    await evolutionApi.logoutInstance(number.external_account_id).catch(() => null);
+    await evolutionApi.deleteInstance(number.external_account_id).catch(() => null);
+  }
+
+  await whatsappRepo.updateNumberById(number.id, { status: 'disconnected', external_account_id: null, is_bot_enabled: false });
+  return { disconnected: true };
+}
+
+export async function sendMessage(companyId, numberId, data) {
+  const number = await whatsappRepo.findNumberById(companyId, numberId);
+  if (!number) throw new NotFoundError('Número de envio não encontrado.');
+  if (number.status !== 'connected') throw new BadRequestError('Número não está conectado.');
+  if (!number.external_account_id) throw new BadRequestError('Número não possui instância EvolutionAPI.');
+
+  const result = await evolutionApi.sendText(number.external_account_id, data.to, data.text, data.delay);
+  const contact = await whatsappRepo.upsertContact(companyId, number.id, { phoneNumber: data.to });
+
+  await whatsappRepo.createMessage({
+    company_id: companyId,
+    whatsapp_number_id: number.id,
+    customer_id: contact.customer_id,
+    external_message_id: result?.key?.id ?? null,
+    direction: 'outbound',
+    message_type: 'text',
+    content: data.text,
+    status: 'sent',
+    sent_at: new Date(),
+  });
+
+  return { sent: true, externalMessageId: result?.key?.id ?? null };
+}
+
+export async function sendMedia(companyId, numberId, data) {
+  const number = await whatsappRepo.findNumberById(companyId, numberId);
+  if (!number) throw new NotFoundError('Número de envio não encontrado.');
+  if (number.status !== 'connected') throw new BadRequestError('Número não está conectado.');
+  if (!number.external_account_id) throw new BadRequestError('Número não possui instância EvolutionAPI.');
+
+  const result = await evolutionApi.sendMedia(number.external_account_id, data.to, data.mediaType, data.mediaUrl, data.caption, data.delay);
+  await whatsappRepo.upsertContact(companyId, number.id, { phoneNumber: data.to });
+
+  await whatsappRepo.createMessage({
+    company_id: companyId,
+    whatsapp_number_id: number.id,
+    direction: 'outbound',
+    message_type: data.mediaType,
+    content: data.caption ?? data.mediaUrl,
+    status: 'sent',
+    sent_at: new Date(),
+  });
+
+  return { sent: true, externalMessageId: result?.key?.id ?? null };
+}
+
+export async function handleWebhook(instanceName, payload) {
+  if (!payload?.event || !payload?.data) return;
+
+  const number = await whatsappRepo.findNumberByExternalAccountId(instanceName);
+  if (!number) return;
+
+  const { event, data } = payload;
+
+  if (event === 'CONNECTION_UPDATE') {
+    const newStatus = data.state === 'open' ? 'connected' : data.state === 'close' ? 'disconnected' : 'connecting';
+    await whatsappRepo.updateNumberById(number.id, { status: newStatus, last_connected_at: newStatus === 'connected' ? new Date() : undefined });
+    return;
+  }
+
+  if (event === 'QRCODE_UPDATED') return;
+
+  if (event === 'MESSAGES_UPSERT' && data.key?.fromMe === false) {
+    const remoteJid = data.key.remoteJid;
+    const phoneNumber = String(remoteJid).replace('@c.us', '').replace('@s.whatsapp.net', '');
+    const externalId = data.key.id;
+    const messageContent = data.message?.conversation || data.message?.extendedTextMessage?.text || '';
+    const messageType = data.messageType === 'conversation' ? 'text' : data.messageType;
+
+    const existing = await whatsappRepo.findMessageByExternalId(number.id, externalId);
+    if (existing) return;
+
+    const contact = await whatsappRepo.upsertContact(number.company_id, number.id, {
+      phoneNumber,
+      name: data.pushName ?? null,
+      metadata: { pushName: data.pushName, remoteJid },
+    });
+
+    await whatsappRepo.createMessage({
+      company_id: number.company_id,
+      whatsapp_number_id: number.id,
+      customer_id: contact.customer_id,
+      external_message_id: externalId,
+      direction: 'inbound',
+      message_type: messageType,
+      content: messageContent || null,
+      status: 'received',
+      sent_at: new Date((data.messageTimestamp || 0) * 1000),
+    });
+
+    if (number.is_bot_enabled && messageContent) {
+      const { processIncomingMessage } = await import('../automation/services/automationService.js');
+      await processIncomingMessage({ companyId: number.company_id, number, from: phoneNumber, text: messageContent, contact }).catch(() => null);
+    }
+  }
+}
+
+export default {
+  listNumbers,
+  connectNumber,
+  getQrCode,
+  getStatus,
+  disconnectNumber,
+  sendMessage,
+  sendMedia,
+  handleWebhook,
+};
