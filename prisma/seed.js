@@ -206,11 +206,12 @@ async function main() {
       defaultStep: 'welcome',
     },
   };
-  await prisma.automationFlow.upsert({
-    where: { id: `${companyOne.id}_vendas_default` },
-    create: { id: `${companyOne.id}_vendas_default`, company_id: companyOne.id, ...defaultFlow },
-    update: defaultFlow,
-  });
+  const existingFlow = await prisma.automationFlow.findFirst({ where: { company_id: companyOne.id, name: defaultFlow.name } });
+  if (existingFlow) {
+    await prisma.automationFlow.update({ where: { id: existingFlow.id }, data: defaultFlow });
+  } else {
+    await prisma.automationFlow.create({ data: { company_id: companyOne.id, ...defaultFlow } });
+  }
 
   const quickReplies = [
     { shortcut: 'horario', message_text: 'Nosso horário de atendimento é de segunda a sábado, das 9h às 18h. 😊' },
