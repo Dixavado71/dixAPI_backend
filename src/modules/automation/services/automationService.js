@@ -156,11 +156,19 @@ async function createConversationRecord({ companyId, number, from, text, sender,
   });
 }
 
+export function normalize(text) {
+  return String(text || '')
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+}
+
 function matchStepForText(steps, text) {
-  const normalized = text.trim().toLowerCase();
+  const normalized = normalize(text);
   for (const step of steps) {
     if (step.type !== 'question' || !step.options) continue;
-    const match = step.options.find((o) => o.label.toLowerCase() === normalized || o.value.toLowerCase() === normalized);
+    const match = step.options.find((o) => normalize(o.label) === normalized || normalize(o.value) === normalized);
     if (match) return { step, option: match };
   }
   return null;
@@ -175,15 +183,26 @@ export async function processIncomingMessage({ companyId, number, from, text, co
   const steps = Array.isArray(config.steps) ? config.steps : [];
   if (steps.length === 0) return null;
 
+  const normalizedText = normalize(text);
+  const triggers = Array.isArray(config.triggers) ? [...config.triggers].sort((a, b) => normalize(b.keyword).length - normalize(a.keyword).length) : [];
   const currentState = contact?.metadata ?? {};
   const currentStepId = currentState?.flowStep;
 
   let nextStep = null;
 
-  if (currentStepId) {
+  // 1) Gatilhos têm prioridade: "Olá" / "olá" / "OLA" / "menu" / "pedido" reiniciam o fluxo
+  const matchedTrigger = triggers.find((t) => normalizedText.includes(normalize(t.keyword)));
+  if (matchedTrigger) {
+    nextStep = steps.find((s) => s.id === matchedTrigger.step) ?? null;
+  }
+
+  // 2) Se não houve gatilho, resolve o passo atual (pergunta com opções)
+  if (!nextStep && currentStepId) {
     const currentStep = steps.find((s) => s.id === currentStepId);
     if (currentStep?.type === 'question' && currentStep.options) {
-      const matched = currentStep.options.find((o) => o.label.toLowerCase() === text.trim().toLowerCase() || o.value.toLowerCase() === text.trim().toLowerCase());
+      const matched = currentStep.options.find(
+        (o) => normalize(o.label) === normalizedText || normalize(o.value) === normalizedText,
+      );
       if (matched) {
         nextStep = steps.find((s) => s.id === matched.next) ?? null;
       } else {
@@ -195,15 +214,9 @@ export async function processIncomingMessage({ companyId, number, from, text, co
     }
   }
 
+  // 3) Fallback para o passo padrão
   if (!nextStep) {
-    const triggers = Array.isArray(config.triggers) ? config.triggers : [];
-    const normalized = text.trim().toLowerCase();
-    const matchedTrigger = triggers.find((t) => normalized.includes(t.keyword.toLowerCase()));
-    if (matchedTrigger) {
-      nextStep = steps.find((s) => s.id === matchedTrigger.step) ?? null;
-    } else {
-      nextStep = steps.find((s) => s.id === config.defaultStep) ?? steps[0];
-    }
+    nextStep = steps.find((s) => s.id === config.defaultStep) ?? steps[0];
   }
 
   if (!nextStep) return null;
