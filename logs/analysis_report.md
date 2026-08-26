@@ -8,7 +8,8 @@
 - Nenhuma migration foi criada, aplicada ou executada localmente nesta correção.
 - Logs do novo deployment mostraram `sh: 1: prisma: Permission denied` porque `nixpacks.toml` executava `phases.deploy` antes da instalação final de dependências.
 - A fase deploy do Nixpacks foi removida; migrations permanecem no `startCommand` do Railway, após `npm ci` e `db:generate`.
-- O deployment seguinte concluiu Prisma Client, mas falhou com `npm error EBUSY` ao executar uma segunda instalação em `/app/node_modules/.cache`.
+- O deployment seguinte falhou em `npm run db:generate` com `sh: 1: prisma: Permission denied`; o shim `node_modules/.bin/prisma` não é executável no container.
+- Scripts Prisma passaram a chamar diretamente `node node_modules/prisma/build/index.js`, evitando o shim e preservando a instalação única.
 - Removidas instalações redundantes de `railway.toml` e `nixpacks.toml`; agora o Railway instala uma vez, gera o Prisma no build e executa migrations somente no start.
 - Próximo passo: validar, publicar e acompanhar novo deployment Railway.
 
