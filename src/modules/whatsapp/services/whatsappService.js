@@ -196,6 +196,202 @@ export async function sendMedia(companyId, numberId, data) {
   return { sent: true, externalMessageId: result?.key?.id ?? null };
 }
 
+async function requireConnectedNumber(companyId, numberId) {
+  const number = await whatsappRepo.findNumberById(companyId, numberId);
+  if (!number) throw new NotFoundError('Número de envio não encontrado.');
+  if (number.status !== 'connected') throw new BadRequestError('Número não está conectado.');
+  if (!number.external_account_id) throw new BadRequestError('Número não possui instância EvolutionAPI.');
+  return number;
+}
+
+async function recordOutboundMessage(number, to, content, messageType, externalId) {
+  const contact = await whatsappRepo.upsertContact(number.company_id, number.id, { phoneNumber: to }).catch(() => null);
+  await whatsappRepo.createMessage({
+    company_id: number.company_id,
+    whatsapp_number_id: number.id,
+    customer_id: contact?.customer_id ?? null,
+    external_message_id: externalId ?? null,
+    direction: 'outbound',
+    message_type: messageType,
+    content: content || null,
+    status: 'sent',
+    sent_at: new Date(),
+  }).catch(() => null);
+  await syncConversation({
+    companyId: number.company_id,
+    number,
+    phoneNumber: to,
+    sender: 'user',
+    content: content || messageType,
+    messageType,
+    sentAt: new Date(),
+  }).catch(() => null);
+}
+
+export async function sendAudioMessage(companyId, numberId, data) {
+  const number = await requireConnectedNumber(companyId, numberId);
+  const result = await evolutionApi.sendAudio(number.external_account_id, data.to, data.audioUrl, data.delay);
+  await recordOutboundMessage(number, data.to, null, 'audio', result?.key?.id ?? null);
+  return { sent: true, externalMessageId: result?.key?.id ?? null };
+}
+
+export async function sendDocumentMessage(companyId, numberId, data) {
+  const number = await requireConnectedNumber(companyId, numberId);
+  const result = await evolutionApi.sendDocument(number.external_account_id, data.to, data.documentUrl, data.caption, data.fileName, data.delay);
+  await recordOutboundMessage(number, data.to, data.caption ?? data.fileName, 'file', result?.key?.id ?? null);
+  return { sent: true, externalMessageId: result?.key?.id ?? null };
+}
+
+export async function sendVideoMessage(companyId, numberId, data) {
+  const number = await requireConnectedNumber(companyId, numberId);
+  const result = await evolutionApi.sendVideo(number.external_account_id, data.to, data.videoUrl, data.caption, data.delay);
+  await recordOutboundMessage(number, data.to, data.caption, 'video', result?.key?.id ?? null);
+  return { sent: true, externalMessageId: result?.key?.id ?? null };
+}
+
+export async function sendStickerMessage(companyId, numberId, data) {
+  const number = await requireConnectedNumber(companyId, numberId);
+  const result = await evolutionApi.sendSticker(number.external_account_id, data.to, data.stickerUrl, data.delay);
+  await recordOutboundMessage(number, data.to, 'Sticker', 'sticker', result?.key?.id ?? null);
+  return { sent: true, externalMessageId: result?.key?.id ?? null };
+}
+
+export async function sendButtonsMessage(companyId, numberId, data) {
+  const number = await requireConnectedNumber(companyId, numberId);
+  const buttons = (data.buttons ?? []).map((b) => ({ type: 'reply', title: b, id: `btn_${Date.now()}_${b}` }));
+  const result = await evolutionApi.sendButtons(number.external_account_id, data.to, data.title, data.description, buttons, data.footer, data.delay);
+  await recordOutboundMessage(number, data.to, `${data.title}\n${data.description ?? ''}`, 'text', result?.key?.id ?? null);
+  return { sent: true, externalMessageId: result?.key?.id ?? null };
+}
+
+export async function sendListMessage(companyId, numberId, data) {
+  const number = await requireConnectedNumber(companyId, numberId);
+  const sections = (data.sections ?? []).map((s) => ({
+    title: s.title,
+    rows: (s.rows ?? []).map((r) => ({ title: r.title, description: r.description ?? '', rowId: r.id ?? r.title })),
+  }));
+  const result = await evolutionApi.sendList(number.external_account_id, data.to, data.title, data.description, data.buttonText, sections, data.delay);
+  await recordOutboundMessage(number, data.to, `${data.title}\n${data.description ?? ''}`, 'text', result?.key?.id ?? null);
+  return { sent: true, externalMessageId: result?.key?.id ?? null };
+}
+
+export async function sendLocationMessage(companyId, numberId, data) {
+  const number = await requireConnectedNumber(companyId, numberId);
+  const result = await evolutionApi.sendLocation(number.external_account_id, data.to, data.name, data.address, data.latitude, data.longitude, data.delay);
+  await recordOutboundMessage(number, data.to, `📍 ${data.name ?? ''} ${data.address ?? ''}`.trim(), 'text', result?.key?.id ?? null);
+  return { sent: true, externalMessageId: result?.key?.id ?? null };
+}
+
+export async function sendReactionMessage(companyId, numberId, data) {
+  const number = await requireConnectedNumber(companyId, numberId);
+  const result = await evolutionApi.sendReaction(number.external_account_id, data.to, data.messageId, data.reaction);
+  return { sent: true, externalMessageId: result?.key?.id ?? null };
+}
+
+export async function markAsRead(companyId, numberId, data) {
+  const number = await requireConnectedNumber(companyId, numberId);
+  const result = await evolutionApi.markMessageAsRead(number.external_account_id, data.to, data.messageId);
+  return { read: true, result };
+}
+
+export async function setTyping(companyId, numberId, data) {
+  const number = await requireConnectedNumber(companyId, numberId);
+  await evolutionApi.sendTyping(number.external_account_id, data.to);
+  return { typing: true };
+}
+
+export async function setOnlinePresence(companyId, numberId, data) {
+  const number = await requireConnectedNumber(companyId, numberId);
+  await evolutionApi.setPresence(number.external_account_id, data.presence ?? 'available');
+  return { presence: data.presence ?? 'available' };
+}
+
+export async function listChats(companyId, numberId) {
+  const number = await whatsappRepo.findNumberById(companyId, numberId);
+  if (!number) throw new NotFoundError('Número não encontrado.');
+  if (!number.external_account_id) throw new BadRequestError('Número não possui instância EvolutionAPI.');
+  return evolutionApi.fetchChats(number.external_account_id);
+}
+
+export async function listChatMessages(companyId, numberId, chatId, limit) {
+  const number = await whatsappRepo.findNumberById(companyId, numberId);
+  if (!number) throw new NotFoundError('Número não encontrado.');
+  if (!number.external_account_id) throw new BadRequestError('Número não possui instância EvolutionAPI.');
+  return evolutionApi.fetchChatMessages(number.external_account_id, chatId, limit);
+}
+
+export async function listContacts(companyId, numberId) {
+  const number = await whatsappRepo.findNumberById(companyId, numberId);
+  if (!number) throw new NotFoundError('Número não encontrado.');
+  if (!number.external_account_id) throw new BadRequestError('Número não possui instância EvolutionAPI.');
+  return evolutionApi.fetchContacts(number.external_account_id);
+}
+
+export async function syncContacts(companyId, numberId) {
+  const number = await whatsappRepo.findNumberById(companyId, numberId);
+  if (!number) throw new NotFoundError('Número não encontrado.');
+  if (!number.external_account_id) throw new BadRequestError('Número não possui instância EvolutionAPI.');
+  return evolutionApi.syncContacts(number.external_account_id);
+}
+
+export async function checkNumber(companyId, numberId, data) {
+  const number = await whatsappRepo.findNumberById(companyId, numberId);
+  if (!number) throw new NotFoundError('Número não encontrado.');
+  if (!number.external_account_id) throw new BadRequestError('Número não possui instância EvolutionAPI.');
+  return evolutionApi.fetchContactInfo(number.external_account_id, data.number);
+}
+
+export async function updateProfile(companyId, numberId, data) {
+  const number = await whatsappRepo.findNumberById(companyId, numberId);
+  if (!number) throw new NotFoundError('Número não encontrado.');
+  if (!number.external_account_id) throw new BadRequestError('Número não possui instância EvolutionAPI.');
+  const result = await evolutionApi.updateProfileName(number.external_account_id, data.name);
+  await whatsappRepo.updateNumberById(number.id, { display_name: data.name });
+  return { updated: true, result };
+}
+
+export async function updateProfilePicture(companyId, numberId, data) {
+  const number = await whatsappRepo.findNumberById(companyId, numberId);
+  if (!number) throw new NotFoundError('Número não encontrado.');
+  if (!number.external_account_id) throw new BadRequestError('Número não possui instância EvolutionAPI.');
+  const result = await evolutionApi.updateProfilePicture(number.external_account_id, data.picture);
+  return { updated: true, result };
+}
+
+export async function restartInstance(companyId, numberId) {
+  const number = await whatsappRepo.findNumberById(companyId, numberId);
+  if (!number) throw new NotFoundError('Número não encontrado.');
+  if (!number.external_account_id) throw new BadRequestError('Número não possui instância EvolutionAPI.');
+  const result = await evolutionApi.restartInstance(number.external_account_id);
+  return { restarted: true, result };
+}
+
+export async function logoutOnly(companyId, numberId) {
+  const number = await whatsappRepo.findNumberById(companyId, numberId);
+  if (!number) throw new NotFoundError('Número não encontrado.');
+  if (!number.external_account_id) throw new BadRequestError('Número não possui instância EvolutionAPI.');
+  const result = await evolutionApi.logoutInstance(number.external_account_id);
+  await whatsappRepo.updateNumberById(number.id, { status: 'disconnected' });
+  return { loggedOut: true, result };
+}
+
+export async function getInstanceWebhook(companyId, numberId) {
+  const number = await whatsappRepo.findNumberById(companyId, numberId);
+  if (!number) throw new NotFoundError('Número não encontrado.');
+  if (!number.external_account_id) throw new BadRequestError('Número não possui instância EvolutionAPI.');
+  return evolutionApi.getWebhook(number.external_account_id);
+}
+
+export async function updateInstanceWebhook(companyId, numberId) {
+  const number = await whatsappRepo.findNumberById(companyId, numberId);
+  if (!number) throw new NotFoundError('Número não encontrado.');
+  if (!number.external_account_id) throw new BadRequestError('Número não possui instância EvolutionAPI.');
+  const webhookUrl = `${env.publicApiUrl}/api/v1/whatsapp/webhook/${number.external_account_id}`;
+  const result = await evolutionApi.setWebhook(number.external_account_id, webhookUrl);
+  await whatsappRepo.updateNumberById(number.id, { webhook_verified: true });
+  return { configured: true, result };
+}
+
 export async function handleWebhook(instanceName, payload) {
   if (!payload?.event || !payload?.data) return;
 
@@ -263,7 +459,30 @@ export default {
   getQrCode,
   getStatus,
   disconnectNumber,
+  deleteNumber,
   sendMessage,
   sendMedia,
+  sendAudioMessage,
+  sendDocumentMessage,
+  sendVideoMessage,
+  sendStickerMessage,
+  sendButtonsMessage,
+  sendListMessage,
+  sendLocationMessage,
+  sendReactionMessage,
+  markAsRead,
+  setTyping,
+  setOnlinePresence,
+  listChats,
+  listChatMessages,
+  listContacts,
+  syncContacts,
+  checkNumber,
+  updateProfile,
+  updateProfilePicture,
+  restartInstance,
+  logoutOnly,
+  getInstanceWebhook,
+  updateInstanceWebhook,
   handleWebhook,
 };
