@@ -8,8 +8,8 @@
 - Variáveis Railway foram previamente rotacionadas e validadas com TLS; valores não foram registrados.
 - Logs posteriores mostraram `prisma: Permission denied` na fase deploy antecipada do Nixpacks, antes da instalação final de dependências.
 - A fase deploy antecipada foi removida; migration continua somente no start após instalação, sem expor secrets.
-- O deployment seguinte falhou com `prisma: Permission denied` no shim `node_modules/.bin/prisma` durante a geração do cliente.
-- Os scripts passaram a usar o entrypoint Node direto, sem expor secrets nem alterar migrations nesta etapa.
+- O deployment seguinte falhou com `MODULE_NOT_FOUND` porque a configuração customizada desativou a instalação padrão de dependências do Nixpacks.
+- As fases customizadas foram removidas; o Nixpacks volta a instalar dependências antes da geração Prisma, sem expor secrets nem alterar migrations nesta etapa.
 - Instalações redundantes foram removidas; nenhuma variável sensível foi alterada ou registrada.
 - Próximo passo: publicar a correção e validar build, migration e health check no Railway.
 

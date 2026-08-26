@@ -2,12 +2,6 @@
 [phases.setup]
 nixPkgs = ["nodejs_20", "python3"]
 
-[phases.install]
-cmds = []
-
-[phases.build]
-cmds = ["npm run db:generate"]
-
 [environment]
 NODE_ENV = "production"
 NPM_CONFIG_LOGLEVEL = "warn"
