@@ -7,10 +7,6 @@ const redis = createClient({
   socket: {
     connectTimeout: 10000,
     reconnectStrategy: (retries) => Math.min(retries * 100, 3000),
-    // TLS configuration for Railway Redis
-    tls: env.redisUrl.startsWith('rediss://') ? {
-      rejectUnauthorized: false, // Railway uses self-signed certs
-    } : undefined,
   },
 });
 

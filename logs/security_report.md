@@ -11,7 +11,9 @@
 - O deployment seguinte falhou com `MODULE_NOT_FOUND` porque a configuração customizada desativou a instalação padrão de dependências do Nixpacks.
 - As fases customizadas foram removidas; o Nixpacks volta a instalar dependências antes da geração Prisma, sem expor secrets nem alterar migrations nesta etapa.
 - Instalações redundantes foram removidas; nenhuma variável sensível foi alterada ou registrada.
-- Próximo passo: publicar a correção e validar build, migration e health check no Railway.
+- O deployment final concluiu build e migration, mas falhou no runtime porque `node-redis` recebeu `rediss://` junto com `socket.tls`, combinação incompatível.
+- Removida a opção `socket.tls`; `rediss://` continua obrigatório e controla TLS diretamente.
+- Próximo passo: publicar a correção e confirmar health check.
 
 ## Atualização — 2026-08-25 — configuração Railway completa
 
