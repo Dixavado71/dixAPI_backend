@@ -122,7 +122,7 @@ function extractMessageText(data) {
 async function sendFlowMessage(number, to, text) {
   if (!text) return;
   await evolutionApi.sendText(number.external_account_id, normalizePhone(to), text, 800).catch(() => null);
-  await conversationRepo.createConversationRecord({ companyId: number.company_id, number, from: to, text, sender: 'bot', messageType: 'text' }).catch(() => null);
+  await createConversationRecord({ companyId: number.company_id, number, from: to, text, sender: 'bot', messageType: 'text' }).catch(() => null);
 }
 
 async function updateContactFlowState(contactId, state) {
