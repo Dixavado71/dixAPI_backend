@@ -1,5 +1,13 @@
 # Relatório de Segurança
 
+## Atualização — 2026-08-25 — correção de execução Prisma no deploy
+
+- Logs Railway identificaram referência fixa inexistente a `node_modules/prisma/build/index.js` no estágio de produção com dependências omitidas.
+- Scripts Prisma passaram a usar o binário resolvido pelo `PATH`, sem inserir segredos ou alterar o banco nesta etapa.
+- Removida configuração duplicada do Nixpacks que gerava configuração inconsistente.
+- Variáveis Railway foram previamente rotacionadas e validadas com TLS; valores não foram registrados.
+- Próximo passo: publicar a correção e validar build, migração e health check no Railway.
+
 ## Atualização — 2026-08-25 — configuração Railway completa
 
 - `railway.toml` adicionado: build NIXPACKS (`npm ci && npm run db:generate`), start `npm run db:deploy && npm start`, health `/health` 30s, restart on failure.

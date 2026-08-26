@@ -1,5 +1,13 @@
 # Registro de Análise e Progresso
 
+## Atualização — 2026-08-25 — correção do comando Prisma no Railway
+
+- Logs do deployment identificaram `MODULE_NOT_FOUND` para `node_modules/prisma/build/index.js` durante `npm run db:deploy` no estágio de produção instalado com `--omit=dev`.
+- Scripts `db:generate`, `db:migrate` e `db:deploy` alterados para usar o executável Prisma no `PATH`.
+- Removida duplicidade de `NPM_CONFIG_PREFER_OFFLINE` em `nixpacks.toml`.
+- Nenhuma migration foi criada, aplicada ou executada localmente nesta correção.
+- Próximo passo: validar gates, publicar no repositório privado e acompanhar novo deployment Railway.
+
 ## Atualização — 2026-08-25 — atualização de dependências de teste
 
 - Auditoria completa identificou vulnerabilidades em `vitest`, `vite`, `vite-node` e `esbuild` na cadeia de desenvolvimento.
