@@ -3,13 +3,10 @@
 nixPkgs = ["nodejs_20", "python3"]
 
 [phases.install]
-cmds = [
-  "npm ci --omit=dev --prefer-offline --no-audit --no-fund --loglevel=warn --cache=/tmp/.npm-cache",
-  "npm run db:generate"
-]
+cmds = []
 
 [phases.build]
-cmds = []
+cmds = ["npm run db:generate"]
 
 [environment]
 NODE_ENV = "production"

@@ -1,6 +1,6 @@
 [build]
 builder = "NIXPACKS"
-buildCommand = "npm ci --include=dev --prefer-offline --no-audit --no-fund --loglevel=warn && npm run db:generate"
+buildCommand = "npm run db:generate"
 
 [build.env]
 NODE_VERSION = "20"

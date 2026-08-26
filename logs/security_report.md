@@ -8,6 +8,8 @@
 - Variáveis Railway foram previamente rotacionadas e validadas com TLS; valores não foram registrados.
 - Logs posteriores mostraram `prisma: Permission denied` na fase deploy antecipada do Nixpacks, antes da instalação final de dependências.
 - A fase deploy antecipada foi removida; migration continua somente no start após instalação, sem expor secrets.
+- O deployment seguinte falhou com `EBUSY` durante uma segunda instalação npm no cache montado do Nixpacks.
+- Instalações redundantes foram removidas; nenhuma variável sensível foi alterada ou registrada.
 - Próximo passo: publicar a correção e validar build, migration e health check no Railway.
 
 ## Atualização — 2026-08-25 — configuração Railway completa
