@@ -170,7 +170,63 @@ async function main() {
     });
   }
 
-  console.log('Seed demo criado/atualizado com 2 lojas, usuários, produtos, clientes, pedidos, entregadores, revendedor, código de afiliado e transações financeiras.');
+  // Default automation flows + quick replies for demo store (Aurora)
+  const defaultFlow = {
+    name: 'Atendimento de vendas',
+    type: 'vendas',
+    description: 'Fluxo padrão de vendas com menu de produtos, pedido e transferência para atendente.',
+    icon_emoji: '🛍️',
+    is_active: true,
+    config_json: {
+      steps: [
+        { id: 'welcome', type: 'message', content: 'Olá! Seja bem-vindo(a) à Loja Aurora! 🛍️ Como posso ajudar hoje?', next: 'menu' },
+        {
+          id: 'menu', type: 'question', content: 'Escolha uma opção abaixo:', options: [
+            { label: 'Ver produtos', value: 'products', next: 'products' },
+            { label: 'Fazer pedido', value: 'order', next: 'order' },
+            { label: 'Falar com atendente', value: 'human', next: 'human' },
+          ],
+        },
+        { id: 'products', type: 'message', content: 'Confira nosso catálogo: [link do catálogo] ou digite "produtos" para mais opções.', next: 'menu' },
+        { id: 'order', type: 'message', content: 'Perfeito! Me diga quais itens deseja e enviaremos o resumo do pedido.', next: null },
+        { id: 'human', type: 'action', action: 'transfer_to_human', next: null },
+      ],
+      triggers: [
+        { keyword: 'oi', step: 'welcome' },
+        { keyword: 'olá', step: 'welcome' },
+        { keyword: 'boa noite', step: 'welcome' },
+        { keyword: 'bom dia', step: 'welcome' },
+        { keyword: 'boa tarde', step: 'welcome' },
+        { keyword: 'menu', step: 'menu' },
+        { keyword: 'cardápio', step: 'menu' },
+        { keyword: 'catálogo', step: 'products' },
+        { keyword: 'produtos', step: 'products' },
+        { keyword: 'pedido', step: 'order' },
+      ],
+      defaultStep: 'welcome',
+    },
+  };
+  await prisma.automationFlow.upsert({
+    where: { id: `${companyOne.id}_vendas_default` },
+    create: { id: `${companyOne.id}_vendas_default`, company_id: companyOne.id, ...defaultFlow },
+    update: defaultFlow,
+  });
+
+  const quickReplies = [
+    { shortcut: 'horario', message_text: 'Nosso horário de atendimento é de segunda a sábado, das 9h às 18h. 😊' },
+    { shortcut: 'entrega', message_text: 'Fazemos entregas em até 60 minutos para a região. Taxa a partir de R$ 8,00.' },
+    { shortcut: 'pix', message_text: 'Aceitamos PIX, cartão de crédito e dinheiro. O PIX tem 5% de desconto!' },
+    { shortcut: 'endereco', message_text: 'Estamos na Rua das Flores, 100 — São Paulo/SP. Venha nos visitar!' },
+  ];
+  for (const qr of quickReplies) {
+    await prisma.quickReply.upsert({
+      where: { company_id_shortcut: { company_id: companyOne.id, shortcut: qr.shortcut } },
+      create: { company_id: companyOne.id, shortcut: qr.shortcut, message_text: qr.message_text },
+      update: { message_text: qr.message_text },
+    });
+  }
+
+  console.log('Seed demo criado/atualizado com 2 lojas, usuários, produtos, clientes, pedidos, entregadores, revendedor, código de afiliado, fluxo de automação, respostas rápidas e transações financeiras.');
 }
 
 main().catch((error) => { console.error(error.message); process.exitCode = 1; }).finally(async () => { await prisma.$disconnect(); });

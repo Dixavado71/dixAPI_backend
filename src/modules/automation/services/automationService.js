@@ -1,6 +1,7 @@
 import { NotFoundError, ConflictError, BadRequestError } from '../../../shared/errors/AppError.js';
 import * as automationRepo from '../repositories/automationRepository.js';
 import * as whatsappRepo from '../../whatsapp/repositories/whatsappRepository.js';
+import * as conversationRepo from '../../conversations/repositories/conversationRepository.js';
 import * as evolutionApi from '../../../infrastructure/whatsapp/evolutionApiClient.js';
 
 export async function listFlows(companyId, filters) {
@@ -121,10 +122,38 @@ function extractMessageText(data) {
 async function sendFlowMessage(number, to, text) {
   if (!text) return;
   await evolutionApi.sendText(number.external_account_id, normalizePhone(to), text, 800).catch(() => null);
+  await conversationRepo.createConversationRecord({ companyId: number.company_id, number, from: to, text, sender: 'bot', messageType: 'text' }).catch(() => null);
 }
 
 async function updateContactFlowState(contactId, state) {
   await whatsappRepo.updateContactMetadata(contactId, state);
+}
+
+async function createConversationRecord({ companyId, number, from, text, sender, messageType }) {
+  const channel = 'whatsapp';
+  let conversation = await conversationRepo.findConversationByContact(companyId, channel, from);
+  if (!conversation) {
+    conversation = await conversationRepo.createConversation({
+      company_id: companyId,
+      channel,
+      contact_name: from,
+      contact_phone: from,
+      last_message: text,
+      last_message_at: new Date(),
+      unread_count: sender === 'customer' ? 1 : 0,
+      status: sender === 'customer' ? 'open' : 'waiting',
+    });
+  } else {
+    conversation = await conversationRepo.updateConversationLastMessage(conversation.id, text, 0);
+  }
+  await conversationRepo.createMessage({
+    conversation_id: conversation.id,
+    sender_type: sender,
+    message_type: messageType || 'text',
+    content: text || '',
+    status: 'delivered',
+    sent_at: new Date(),
+  });
 }
 
 function matchStepForText(steps, text) {

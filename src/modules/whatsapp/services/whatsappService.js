@@ -1,7 +1,44 @@
 import { BadRequestError, NotFoundError, ConflictError } from '../../../shared/errors/AppError.js';
 import * as whatsappRepo from '../repositories/whatsappRepository.js';
+import * as conversationRepo from '../../conversations/repositories/conversationRepository.js';
 import * as evolutionApi from '../../../infrastructure/whatsapp/evolutionApiClient.js';
 import { env } from '../../../config/env.js';
+
+async function syncConversation({ companyId, number, phoneNumber, sender, content, messageType, sentAt }) {
+  const channel = 'whatsapp';
+  let conversation = await conversationRepo.findConversationByContact(companyId, channel, phoneNumber);
+  const name = content || messageType;
+
+  if (!conversation) {
+    conversation = await conversationRepo.createConversation({
+      company_id: companyId,
+      channel,
+      contact_name: phoneNumber,
+      contact_phone: phoneNumber,
+      last_message: content || null,
+      last_message_at: sentAt,
+      unread_count: sender === 'customer' ? 1 : 0,
+      status: sender === 'customer' ? 'open' : 'waiting',
+    });
+  } else {
+    conversation = await conversationRepo.updateConversationLastMessage(conversation.id, content || null, sender === 'customer' ? 1 : 0);
+    if (sender === 'customer') {
+      conversation = await conversationRepo.updateConversation(conversation.id, { status: 'open' });
+    }
+  }
+
+  await conversationRepo.createMessage({
+    conversation_id: conversation.id,
+    sender_type: sender,
+    message_type: messageType === 'audio' ? 'audio' : messageType === 'image' ? 'image' : messageType === 'document' ? 'file' : 'text',
+    content: content || '',
+    status: 'delivered',
+    sent_at: sentAt,
+  });
+
+  void number;
+  return conversation;
+}
 
 export async function listNumbers(companyId) {
   return whatsappRepo.listNumbers(companyId);
@@ -91,6 +128,16 @@ export async function sendMessage(companyId, numberId, data) {
     sent_at: new Date(),
   });
 
+  await syncConversation({
+    companyId,
+    number,
+    phoneNumber: data.to,
+    sender: 'user',
+    content: data.text,
+    messageType: 'text',
+    sentAt: new Date(),
+  }).catch(() => null);
+
   return { sent: true, externalMessageId: result?.key?.id ?? null };
 }
 
@@ -112,6 +159,16 @@ export async function sendMedia(companyId, numberId, data) {
     status: 'sent',
     sent_at: new Date(),
   });
+
+  await syncConversation({
+    companyId,
+    number,
+    phoneNumber: data.to,
+    sender: 'user',
+    content: data.caption ?? data.mediaUrl,
+    messageType: data.mediaType,
+    sentAt: new Date(),
+  }).catch(() => null);
 
   return { sent: true, externalMessageId: result?.key?.id ?? null };
 }
@@ -159,6 +216,16 @@ export async function handleWebhook(instanceName, payload) {
       status: 'received',
       sent_at: new Date((data.messageTimestamp || 0) * 1000),
     });
+
+    await syncConversation({
+      companyId: number.company_id,
+      number,
+      phoneNumber,
+      sender: 'customer',
+      content: messageContent,
+      messageType,
+      sentAt: new Date((data.messageTimestamp || 0) * 1000),
+    }).catch(() => null);
 
     if (number.is_bot_enabled && messageContent) {
       const { processIncomingMessage } = await import('../automation/services/automationService.js');
