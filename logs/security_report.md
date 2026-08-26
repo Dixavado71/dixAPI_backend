@@ -12,8 +12,9 @@
 - As fases customizadas foram removidas; o Nixpacks volta a instalar dependências antes da geração Prisma, sem expor secrets nem alterar migrations nesta etapa.
 - Instalações redundantes foram removidas; nenhuma variável sensível foi alterada ou registrada.
 - O deployment seguinte eliminou o conflito TLS, mas o Redis interno `redis.railway.internal:6379` apresentou timeout com `rediss://`.
-- A validação permite `redis://` somente para o domínio privado interno Railway; Redis externo continua exigindo `rediss://`.
-- Nenhum segredo foi registrado; próximo passo é atualizar a URL interna e confirmar health check.
+- A validação permite `redis://` somente para Redis no domínio privado interno Railway; Redis externo continua exigindo `rediss://`.
+- A referência Postgres interna também não contém `sslmode=require`; a exceção é restrita a `postgres.railway.internal`, enquanto bancos externos continuam exigindo TLS.
+- Nenhum segredo foi registrado; próximo passo é confirmar health check com os serviços do mesmo projeto.
 
 ## Atualização — 2026-08-25 — configuração Railway completa
 

@@ -36,6 +36,7 @@ export function validateEnv() {
     if (env.corsOrigin === '*') throw new Error('CORS_ORIGIN cannot be wildcard in production');
     const redisUsesInternalRailwayNetwork = env.redisUrl?.startsWith('redis://') && env.redisUrl.includes('.railway.internal');
     if (env.redisUrl && !env.redisUrl.startsWith('rediss://') && !redisUsesInternalRailwayNetwork) throw new Error('Redis TLS is required in production');
-    if (env.databaseUrl && !env.databaseUrl.includes('sslmode=require')) throw new Error('PostgreSQL TLS is required in production');
+    const databaseUsesInternalRailwayNetwork = env.databaseUrl?.includes('postgres.railway.internal');
+    if (env.databaseUrl && !env.databaseUrl.includes('sslmode=require') && !databaseUsesInternalRailwayNetwork) throw new Error('PostgreSQL TLS is required in production');
   }
 }
