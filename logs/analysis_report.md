@@ -12,9 +12,9 @@
 - Removidas as fases install/build customizadas; o Nixpacks volta a executar `npm ci`, enquanto `railway.toml` executa `db:generate` após a instalação.
 - Scripts Prisma mantêm o entrypoint Node direto para evitar o shim sem permissão executável.
 - Removidas instalações redundantes de `railway.toml` e `nixpacks.toml`; agora o Railway instala uma vez, gera o Prisma no build e executa migrations somente no start.
-- O deployment final concluiu build e migration, mas falhou no runtime porque `node-redis` recebeu `rediss://` junto com `socket.tls`, uma combinação incompatível.
-- Removida a opção `socket.tls`; o protocolo `rediss://` passa a controlar TLS diretamente.
-- Próximo passo: validar, publicar e confirmar health check.
+- O deployment final concluiu build e migration; após corrigir o conflito TLS do cliente Redis, o domínio interno `redis.railway.internal:6379` apresentou timeout com `rediss://`.
+- O Railway não fornece endpoint Redis TLS alternativo para este serviço; a validação passa a permitir `redis://` somente para o domínio privado interno `.railway.internal`, mantendo TLS obrigatório para Redis externo.
+- Próximo passo: atualizar a URL interna, publicar e confirmar health check.
 
 ## Atualização — 2026-08-25 — atualização de dependências de teste
 
