@@ -2,10 +2,9 @@ import { env } from '../../config/env.js';
 
 const BASE_URL = env.evolutionApiUrl || 'http://localhost:8080';
 
-function headers(instanceName) {
-  const h = { 'Content-Type': 'application/json' };
+function headers() {
+  const h = { 'Content-Type': 'application/json', apikey: env.evolutionApiKey || '' };
   if (env.evolutionApiGlobalKey) h['x-global-apikey'] = env.evolutionApiGlobalKey;
-  if (instanceName) h['apikey'] = env.evolutionApiKey;
   return h;
 }
 
@@ -21,7 +20,7 @@ async function request(method, path, body) {
 
 async function instanceRequest(method, instanceName, path, body) {
   const url = `${BASE_URL}${path}`;
-  const opts = { method, headers: headers(instanceName) };
+  const opts = { method, headers: { ...headers(), apikey: env.evolutionApiKey } };
   if (body) opts.body = JSON.stringify(body);
   const res = await fetch(url, opts);
   const data = await res.json();

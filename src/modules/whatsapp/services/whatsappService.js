@@ -51,7 +51,12 @@ export async function connectNumber(companyId, data) {
   if (existing && existing.status !== 'disconnected') throw new ConflictError('Este número já está cadastrado.');
 
   const instanceName = `${companyId.slice(0, 8)}_${data.phoneNumber}`;
-  const evolutionInstance = await evolutionApi.createInstance(instanceName).catch(() => null);
+  let evolutionInstance;
+  try {
+    evolutionInstance = await evolutionApi.createInstance(instanceName);
+  } catch (error) {
+    throw new BadRequestError(`Não foi possível criar a instância no EvolutionAPI: ${error.message}`);
+  }
 
   if (!evolutionInstance) throw new BadRequestError('Não foi possível criar a instância no EvolutionAPI.');
 
