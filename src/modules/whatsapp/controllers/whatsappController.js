@@ -38,6 +38,13 @@ export async function disconnectNumber(req, res, next) {
   } catch (error) { return next(error); }
 }
 
+export async function deleteNumber(req, res, next) {
+  try {
+    const result = await whatsappService.deleteNumber(req.tenant.companyId, req.params.id);
+    return successResponse(res, result);
+  } catch (error) { return next(error); }
+}
+
 export async function sendMessage(req, res, next) {
   try {
     const data = sendMessageSchema.parse(req.body);
@@ -61,4 +68,4 @@ export async function webhook(req, res, next) {
   } catch (error) { return next(error); }
 }
 
-export default { listNumbers, connectNumber, getQrCode, getStatus, disconnectNumber, sendMessage, sendMedia, webhook };
+export default { listNumbers, connectNumber, getQrCode, getStatus, disconnectNumber, deleteNumber, sendMessage, sendMedia, webhook };

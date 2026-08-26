@@ -56,6 +56,14 @@ export function deleteNumber(companyId, id) {
   return prisma.whatsAppNumber.deleteMany({ where: { company_id: companyId, id } });
 }
 
+export function deleteNumberWithData(companyId, id) {
+  return prisma.$transaction(async (tx) => {
+    await tx.whatsAppMessage.deleteMany({ where: { company_id: companyId, whatsapp_number_id: id } });
+    await tx.whatsAppContact.deleteMany({ where: { company_id: companyId, whatsapp_number_id: id } });
+    await tx.whatsAppNumber.delete({ where: { id } });
+  });
+}
+
 export function upsertContact(companyId, numberId, data) {
   return prisma.whatsAppContact.upsert({
     where: { whatsapp_number_id_phone_number: { whatsapp_number_id: numberId, phone_number: data.phoneNumber } },
@@ -113,6 +121,7 @@ export default {
   updateNumberStatus,
   updateNumberById,
   deleteNumber,
+  deleteNumberWithData,
   upsertContact,
   createMessage,
   updateContactMetadata,

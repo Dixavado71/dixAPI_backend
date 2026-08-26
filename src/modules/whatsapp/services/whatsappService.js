@@ -112,6 +112,19 @@ export async function disconnectNumber(companyId, numberId) {
   return { disconnected: true };
 }
 
+export async function deleteNumber(companyId, numberId) {
+  const number = await whatsappRepo.findNumberById(companyId, numberId);
+  if (!number) throw new NotFoundError('Número não encontrado.');
+
+  if (number.external_account_id) {
+    await evolutionApi.logoutInstance(number.external_account_id).catch(() => null);
+    await evolutionApi.deleteInstance(number.external_account_id).catch(() => null);
+  }
+
+  await whatsappRepo.deleteNumberWithData(companyId, numberId);
+  return { deleted: true };
+}
+
 export async function sendMessage(companyId, numberId, data) {
   const number = await whatsappRepo.findNumberById(companyId, numberId);
   if (!number) throw new NotFoundError('Número de envio não encontrado.');

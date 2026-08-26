@@ -17,6 +17,7 @@ router.post('/numbers/connect', authorize('admin', 'manager'), whatsappControlle
 router.get('/numbers/:id/qrcode', authorize('admin', 'manager'), whatsappController.getQrCode);
 router.get('/numbers/:id/status', authorize('admin', 'manager'), whatsappController.getStatus);
 router.post('/numbers/:id/disconnect', authorize('admin', 'manager'), whatsappController.disconnectNumber);
+router.delete('/numbers/:id', authorize('admin', 'manager'), whatsappController.deleteNumber);
 router.post('/numbers/:id/send', authorize('admin', 'manager', 'operator'), whatsappController.sendMessage);
 router.post('/numbers/:id/send-media', authorize('admin', 'manager'), whatsappController.sendMedia);
 
