@@ -81,7 +81,7 @@ export function upsertContact(companyId, numberId, data) {
     update: {
       name: data.name ?? undefined,
       last_seen_at: new Date(),
-      metadata: data.metadata ?? undefined,
+      metadata: undefined,
       consent_status: data.consentStatus ?? undefined,
     },
   });
@@ -91,6 +91,10 @@ export function findContactByPhone(companyId, numberId, phoneNumber) {
   return prisma.whatsAppContact.findFirst({
     where: { company_id: companyId, whatsapp_number_id: numberId, phone_number: phoneNumber },
   });
+}
+
+export function findContactById(contactId) {
+  return prisma.whatsAppContact.findUnique({ where: { id: contactId } });
 }
 
 export function createMessage(data) {
@@ -130,6 +134,7 @@ export default {
   deleteNumberWithData,
   upsertContact,
   findContactByPhone,
+  findContactById,
   createMessage,
   updateContactMetadata,
   findMessageByExternalId,

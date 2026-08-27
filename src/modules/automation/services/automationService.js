@@ -126,7 +126,9 @@ async function sendFlowMessage(number, to, text) {
 }
 
 async function updateContactFlowState(contactId, state) {
-  await whatsappRepo.updateContactMetadata(contactId, state);
+  const contact = await whatsappRepo.findContactById(contactId);
+  const merged = { ...(contact?.metadata ?? {}), ...state };
+  await whatsappRepo.updateContactMetadata(contactId, merged);
 }
 
 async function createConversationRecord({ companyId, number, from, text, sender, messageType }) {
