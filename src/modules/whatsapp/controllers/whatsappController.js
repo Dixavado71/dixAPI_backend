@@ -3,7 +3,7 @@ import {
   connectNumberSchema, sendMessageSchema, sendMediaSchema, sendAudioSchema, sendDocumentSchema,
   sendVideoSchema, sendStickerSchema, sendButtonsSchema, sendListSchema, sendLocationSchema,
   sendReactionSchema, markAsReadSchema, presenceSchema, updateProfileSchema,
-  updateProfilePictureSchema, chatMessagesQuerySchema,
+  updateProfilePictureSchema, chatMessagesQuerySchema, sendStatusSchema, sendStatusMediaSchema,
 } from '../validators/whatsappValidators.js';
 import { successResponse, createdResponse } from '../../../shared/utils/response.js';
 
@@ -87,6 +87,16 @@ export async function sendReaction(req, res, next) {
   catch (error) { return next(error); }
 }
 
+export async function sendStatus(req, res, next) {
+  try { const data = sendStatusSchema.parse(req.body); const result = await whatsappService.sendStatus(req.tenant.companyId, req.params.id, data); return createdResponse(res, result); }
+  catch (error) { return next(error); }
+}
+
+export async function sendStatusMedia(req, res, next) {
+  try { const data = sendStatusMediaSchema.parse(req.body); const result = await whatsappService.sendStatusMedia(req.tenant.companyId, req.params.id, data); return createdResponse(res, result); }
+  catch (error) { return next(error); }
+}
+
 export async function markRead(req, res, next) {
   try { const data = markAsReadSchema.parse(req.body); const result = await whatsappService.markAsRead(req.tenant.companyId, req.params.id, data); return successResponse(res, result); }
   catch (error) { return next(error); }
@@ -150,7 +160,7 @@ export async function webhook(req, res, next) {
 export default {
   listNumbers, connectNumber, getQrCode, getStatus, disconnectNumber, deleteNumber,
   sendMessage, sendMedia, sendAudio, sendDocument, sendVideo, sendSticker,
-  sendButtons, sendList, sendLocation, sendReaction, markRead, typing, presence,
+  sendButtons, sendList, sendLocation, sendReaction, sendStatus, sendStatusMedia, markRead, typing, presence,
   getChats, getChatMessages,
   updateProfile, updatePicture, restartNumber, logoutNumber, getWebhook, setupWebhook, webhook,
 };

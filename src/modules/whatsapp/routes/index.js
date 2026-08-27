@@ -41,6 +41,8 @@ router.post('/numbers/:id/send-buttons', authorize('admin', 'manager', 'operator
 router.post('/numbers/:id/send-list', authorize('admin', 'manager', 'operator'), whatsappController.sendList);
 router.post('/numbers/:id/send-location', authorize('admin', 'manager', 'operator'), whatsappController.sendLocation);
 router.post('/numbers/:id/send-reaction', authorize('admin', 'manager', 'operator'), whatsappController.sendReaction);
+router.post('/numbers/:id/send-status', authorize('admin', 'manager', 'operator'), whatsappController.sendStatus);
+router.post('/numbers/:id/send-status-media', authorize('admin', 'manager', 'operator'), whatsappController.sendStatusMedia);
 
 // Chat actions
 router.post('/numbers/:id/read', authorize('admin', 'manager', 'operator'), whatsappController.markRead);

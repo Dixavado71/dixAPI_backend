@@ -112,6 +112,13 @@ export function findMessageByExternalId(whatsappNumberId, externalMessageId) {
   return prisma.whatsAppMessage.findFirst({ where: { whatsapp_number_id: whatsappNumberId, external_message_id: externalMessageId } });
 }
 
+export function updateMessageStatusByExternalId(externalMessageId, status) {
+  return prisma.whatsAppMessage.updateMany({
+    where: { external_message_id: externalMessageId, direction: 'outbound' },
+    data: { status },
+  });
+}
+
 export function listMessages(companyId, numberId, { limit = 50, cursor } = {}) {
   return prisma.whatsAppMessage.findMany({
     where: { company_id: companyId, ...(numberId ? { whatsapp_number_id: numberId } : {}) },
@@ -138,5 +145,6 @@ export default {
   createMessage,
   updateContactMetadata,
   findMessageByExternalId,
+  updateMessageStatusByExternalId,
   listMessages,
 };

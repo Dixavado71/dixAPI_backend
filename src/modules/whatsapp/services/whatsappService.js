@@ -288,6 +288,18 @@ export async function sendReactionMessage(companyId, numberId, data) {
   return { sent: true, externalMessageId: result?.key?.id ?? null };
 }
 
+export async function sendStatus(companyId, numberId, data) {
+  const number = await requireConnectedNumber(companyId, numberId);
+  const result = await evolutionApi.sendStatusText(number.external_account_id, data.content);
+  return { sent: true, result };
+}
+
+export async function sendStatusMedia(companyId, numberId, data) {
+  const number = await requireConnectedNumber(companyId, numberId);
+  const result = await evolutionApi.sendStatusMedia(number.external_account_id, data.mediaType, data.mediaUrl, data.caption);
+  return { sent: true, result };
+}
+
 export async function markAsRead(companyId, numberId, data) {
   const number = await requireConnectedNumber(companyId, numberId);
   const result = await evolutionApi.markMessageAsRead(number.external_account_id, data.to, data.messageId);
@@ -447,6 +459,39 @@ export async function handleWebhook(instanceName, payload) {
 
   if (event === 'QRCODE_UPDATED') return;
 
+  if (event === 'MESSAGES_UPDATE' && data.key?.id) {
+    const statusMap = { 1: 'sent', 2: 'delivered', 3: 'read', 4: 'played' };
+    const statusCode = typeof data.status === 'number' ? data.status : null;
+    const statusLabel = data.status && typeof data.status === 'string' ? data.status.toUpperCase() : statusMap[statusCode];
+    if (statusLabel) {
+      const normalized = String(statusLabel).toLowerCase();
+      await whatsappRepo.updateMessageStatusByExternalId(data.key.id, normalized).catch(() => null);
+    }
+    return;
+  }
+
+  if (event === 'PRESENCE_UPDATE' && data.id) {
+    const phone = String(data.id).replace('@c.us', '').replace('@s.whatsapp.net', '').replace('@lid', '');
+    const presence = data.presences?.[phone] ?? data.presence ?? null;
+    if (presence) {
+      const contact = await whatsappRepo.findContactByPhone(number.company_id, number.id, phone);
+      if (contact?.id) {
+        await whatsappRepo.updateContactMetadata(contact.id, { ...(contact.metadata ?? {}), presence, presenceUpdatedAt: new Date().toISOString() });
+      }
+    }
+    return;
+  }
+
+  if (event === 'CHAT_PRESENCE_UPDATE' && data.id) {
+    const phone = String(data.id).replace('@c.us', '').replace('@s.whatsapp.net', '').replace('@lid', '');
+    const state = data.state; // 'composing' | 'recording' | 'paused'
+    const contact = await whatsappRepo.findContactByPhone(number.company_id, number.id, phone);
+    if (contact?.id) {
+      await whatsappRepo.updateContactMetadata(contact.id, { ...(contact.metadata ?? {}), typingState: state, typingUpdatedAt: new Date().toISOString() });
+    }
+    return;
+  }
+
   if (event === 'MESSAGES_UPSERT' && data.key?.fromMe === false) {
     const remoteJid = data.key.remoteJid;
     const phoneNumber = String(remoteJid).replace('@c.us', '').replace('@s.whatsapp.net', '');
@@ -509,6 +554,8 @@ export default {
   sendListMessage,
   sendLocationMessage,
   sendReactionMessage,
+  sendStatus,
+  sendStatusMedia,
   markAsRead,
   setTyping,
   setOnlinePresence,

@@ -113,6 +113,21 @@ export const chatMessagesQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(200).optional(),
 });
 
+export const sendStatusSchema = z.object({
+  content: z.string().min(1, 'Conteúdo do status obrigatório.').max(4096),
+}).strict();
+
+export const sendStatusMediaSchema = z.object({
+  mediaType: z.enum(['image', 'video', 'audio', 'document']),
+  mediaUrl: z.string().url('URL da mídia inválida.'),
+  caption: z.string().max(1024).optional(),
+}).strict();
+
+export const presenceUpdateSchema = z.object({
+  presence: z.enum(['available', 'unavailable', 'composing', 'recording', 'paused']).optional(),
+  to: z.string().optional(),
+}).strict();
+
 export default {
   connectNumberSchema,
   sendMessageSchema,
@@ -127,8 +142,10 @@ export default {
   sendReactionSchema,
   markAsReadSchema,
   presenceSchema,
-  checkNumberSchema,
   updateProfileSchema,
   updateProfilePictureSchema,
   chatMessagesQuerySchema,
+  sendStatusSchema,
+  sendStatusMediaSchema,
+  presenceUpdateSchema,
 };
