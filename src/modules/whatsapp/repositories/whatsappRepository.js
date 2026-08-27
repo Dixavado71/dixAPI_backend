@@ -87,6 +87,12 @@ export function upsertContact(companyId, numberId, data) {
   });
 }
 
+export function findContactByPhone(companyId, numberId, phoneNumber) {
+  return prisma.whatsAppContact.findFirst({
+    where: { company_id: companyId, whatsapp_number_id: numberId, phone_number: phoneNumber },
+  });
+}
+
 export function createMessage(data) {
   return prisma.whatsAppMessage.create({ data });
 }
@@ -123,6 +129,7 @@ export default {
   deleteNumber,
   deleteNumberWithData,
   upsertContact,
+  findContactByPhone,
   createMessage,
   updateContactMetadata,
   findMessageByExternalId,

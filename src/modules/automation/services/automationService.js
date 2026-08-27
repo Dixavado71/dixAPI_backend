@@ -174,7 +174,7 @@ function matchStepForText(steps, text) {
   return null;
 }
 
-export async function processIncomingMessage({ companyId, number, from, text, contact }) {
+export async function processIncomingMessage({ companyId, number, from, text, contact: _contact }) {
   if (!number.is_bot_enabled) return null;
 
   const flow = await automationRepo.findActiveFlowByType(companyId, 'vendas')
@@ -188,6 +188,8 @@ export async function processIncomingMessage({ companyId, number, from, text, co
 
   const normalizedText = normalize(text);
   const triggers = Array.isArray(config.triggers) ? [...config.triggers].sort((a, b) => normalize(b.keyword).length - normalize(a.keyword).length) : [];
+
+  const contact = await whatsappRepo.findContactByPhone(companyId, number.id, from);
   const currentState = contact?.metadata ?? {};
   const currentStepId = currentState?.flowStep;
 
@@ -228,14 +230,14 @@ export async function processIncomingMessage({ companyId, number, from, text, co
 
   if (nextStep.type === 'message') {
     await sendFlowMessage(number, from, nextStep.content);
-    await updateContactFlowState(contact.id, { flowId: flow.id, flowStep: nextStep.next ?? null });
+    if (contact?.id) await updateContactFlowState(contact.id, { flowId: flow.id, flowStep: nextStep.next ?? null });
   } else if (nextStep.type === 'question') {
     const optionsText = nextStep.options.map((o) => `*${o.label}*`).join('\n');
     await sendFlowMessage(number, from, `${nextStep.content ?? ''}\n\n${optionsText}`);
-    await updateContactFlowState(contact.id, { flowId: flow.id, flowStep: nextStep.id });
+    if (contact?.id) await updateContactFlowState(contact.id, { flowId: flow.id, flowStep: nextStep.id });
   } else if (nextStep.type === 'action' && nextStep.action === 'transfer_to_human') {
     await sendFlowMessage(number, from, 'Um atendente vai te responder em instantes. Por favor, aguarde.');
-    await updateContactFlowState(contact.id, { flowId: null, flowStep: null, transferredToHuman: true, transferredAt: new Date().toISOString() });
+    if (contact?.id) await updateContactFlowState(contact.id, { flowId: null, flowStep: null, transferredToHuman: true, transferredAt: new Date().toISOString() });
   }
 
   return { flowId: flow.id, stepId: nextStep.id };
