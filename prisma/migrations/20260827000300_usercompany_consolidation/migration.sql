@@ -58,10 +58,22 @@ BEGIN
   END LOOP;
 END $$;
 
--- 3) Remove FKs compostas que dependiam de users.company_id
-ALTER TABLE conversations DROP CONSTRAINT IF EXISTS "conversations_company_id_assigned_to_fkey";
-ALTER TABLE quick_replies DROP CONSTRAINT IF EXISTS "quick_replies_company_id_created_by_fkey";
-ALTER TABLE notifications DROP CONSTRAINT IF EXISTS "notifications_company_id_user_id_fkey";
+-- 3) Remove FKs compostas que dependiam de users.company_id (dinamicamente,
+--    independente do nome gerado no schema legado)
+DO $$
+DECLARE
+  r RECORD;
+BEGIN
+  FOR r IN
+    SELECT conrelid::regclass AS tbl, conname
+    FROM pg_constraint
+    WHERE contype = 'f'
+      AND confrelid = 'users'::regclass
+      AND conkey::text LIKE '%company_id%'
+  LOOP
+    EXECUTE format('ALTER TABLE %s DROP CONSTRAINT IF EXISTS %I', r.tbl, r.conname);
+  END LOOP;
+END $$;
 
 -- 4) Remove constraints/índices antigos e a coluna company_id
 ALTER TABLE users DROP CONSTRAINT IF EXISTS "users_company_id_fkey";
