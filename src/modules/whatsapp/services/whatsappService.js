@@ -299,6 +299,7 @@ export async function sendLocationMessage(companyId, numberId, data) {
 export async function sendReactionMessage(companyId, numberId, data) {
   const number = await requireConnectedNumber(companyId, numberId);
   const result = await evolutionApi.sendReaction(number.external_account_id, data.to, data.messageId, data.reaction);
+  await recordOutboundMessage(number, data.to, data.reaction, 'reaction', result?.key?.id ?? null);
   return { sent: true, externalMessageId: result?.key?.id ?? null };
 }
 
@@ -892,7 +893,9 @@ export async function checkNumber(companyId, numberId, data) {
 
 export async function sendPoll(companyId, numberId, data) {
   const number = await requireConnectedNumber(companyId, numberId);
-  return evolutionApi.sendPoll(number.external_account_id, data.number, data.name, data.values);
+  const result = await evolutionApi.sendPoll(number.external_account_id, data.number, data.name, data.values);
+  await recordOutboundMessage(number, data.number, data.name, 'poll', result?.key?.id ?? null);
+  return result;
 }
 
 export async function editMessage(companyId, numberId, data) {
@@ -907,7 +910,9 @@ export async function deleteMessage(companyId, numberId, data) {
 
 export async function sendContact(companyId, numberId, data) {
   const number = await requireConnectedNumber(companyId, numberId);
-  return evolutionApi.sendContactVcard(number.external_account_id, data.number, data.name, data.phone);
+  const result = await evolutionApi.sendContactVcard(number.external_account_id, data.number, data.name, data.phone);
+  await recordOutboundMessage(number, data.number, data.name, 'contact', result?.key?.id ?? null);
+  return result;
 }
 
 /* ===== Profile ===== */
@@ -1011,6 +1016,17 @@ export async function handleWebhook(instanceName, payload) {
       const normalized = String(statusLabel).toLowerCase();
       await whatsappRepo.updateMessageStatusByExternalId(data.key.id, normalized).catch(() => null);
     }
+    return;
+  }
+
+  if (event === 'MESSAGES_REVOKED' && data.key?.id) {
+    await whatsappRepo.updateMessageStatusByExternalId(data.key.id, 'revoked').catch(() => null);
+    logger.info({ numberId: number.id, messageId: data.key.id }, 'mensagem revogada marcada como revoked');
+    return;
+  }
+
+  if (event === 'INSTANCE_ERROR' && data?.error) {
+    logger.error({ numberId: number.id, error: data.error }, 'erro de instância EvolutionAPI');
     return;
   }
 

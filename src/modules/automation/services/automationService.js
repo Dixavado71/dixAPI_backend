@@ -136,6 +136,7 @@ export async function testFlow(companyId, id, data) {
     if (!step) break;
     executed.push({ id: step.id, type: step.type, content: fillTemplate(step.content ?? '', state.vars) });
     const result = await executeStepLocal({ step, state, vars: state.vars, simulated: true });
+    if (result.vars) state.vars = result.vars;
     if (result.clear) break;
     stepId = result.nextStep ?? null;
   }
@@ -189,7 +190,7 @@ export async function useQuickReply(companyId, id) {
 /* ===== Flow execution engine ===== */
 
 function normalizePhone(phone) {
-  return String(phone).replace('@c.us', '').replace('@s.whatsapp.net', '').replace('@g.us', '');
+  return String(phone).replace('@c.us', '').replace('@s.whatsapp.net', '').replace('@lid', '');
 }
 
 export function extractMessageText(data) {
@@ -290,8 +291,8 @@ async function executeStepLocal({ step, state, vars, simulated = false, extra = 
   const varsOut = { ...(vars ?? {}) };
 
   if (step.type === 'variable' && step.variable) {
-    if (step.mode === 'input') {
-      varsOut[step.variable] = extra.text ?? '';
+    if (step.mode === 'input' && extra.text !== undefined) {
+      varsOut[step.variable] = extra.text;
       nextStep = step.next ?? null;
     } else if (step.mode === 'value') {
       varsOut[step.variable] = step.value ?? '';
@@ -315,7 +316,42 @@ async function executeStepLocal({ step, state, vars, simulated = false, extra = 
     if (step.action === 'transfer_to_human') return { nextStep: null, vars: varsOut, clear: true };
   }
 
+  if (step.type === 'end') {
+    return { nextStep: null, vars: varsOut, clear: true };
+  }
+
   return { nextStep, vars: varsOut, clear: false };
+}
+
+function isAllowedWebhookUrl(url) {
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
+async function runWebhook({ step, vars, text, from, flow, group, context }) {
+  if (!step.url || !isAllowedWebhookUrl(step.url)) return { nextStep: step.next ?? null, vars };
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 10000);
+  try {
+    const response = await fetch(step.url, {
+      method: step.method ?? 'POST',
+      headers: { 'Content-Type': 'application/json', ...(step.headers ?? {}) },
+      body: JSON.stringify({ ...vars, mensagem: text, from, flowId: flow.id, stepId: step.id, group: group ?? null }),
+      signal: controller.signal,
+    }).catch(() => null);
+    const body = response ? await response.json().catch(() => null) : null;
+    const value = step.responseVar ? (body?.[step.responseVar] ?? body) : body;
+    if (step.responseVar && value !== undefined) vars[step.responseVar] = value;
+    return { nextStep: step.next ?? null, vars };
+  } catch {
+    return { nextStep: step.next ?? null, vars };
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 async function executeStep({ companyId, number, from, text, contact, flow, step, state, group }) {
@@ -379,6 +415,11 @@ async function executeStep({ companyId, number, from, text, contact, flow, step,
     nextStep = step.next ?? null;
   }
 
+  if (step.type === 'webhook') {
+    const result = await runWebhook({ step, vars, text, from, flow, group, context });
+    nextStep = result.nextStep;
+  }
+
   if (step.type === 'action') {
     if (step.action === 'transfer_to_human') {
       await sendFlowMessage(number, from, step.content || 'Um atendente vai te responder em instantes. Por favor, aguarde.');
@@ -407,19 +448,8 @@ async function executeStep({ companyId, number, from, text, contact, flow, step,
       }).catch(() => null);
       nextStep = step.next ?? null;
     } else if (step.action === 'webhook') {
-      try {
-        const response = await fetch(step.url, {
-          method: step.method ?? 'POST',
-          headers: { 'Content-Type': 'application/json', ...(step.headers ?? {}) },
-          body: JSON.stringify({ ...vars, mensagem: text, from, flowId: flow.id, stepId: step.id, group: group ?? null }),
-        }).catch(() => null);
-        const body = response ? await response.json().catch(() => null) : null;
-        const value = step.responseVar ? (body?.[step.responseVar] ?? body) : body;
-        if (step.responseVar && value !== undefined) vars[step.responseVar] = value;
-        nextStep = step.next ?? null;
-      } catch {
-        nextStep = step.next ?? null;
-      }
+      const result = await runWebhook({ step, vars, text, from, flow, group, context });
+      nextStep = result.nextStep;
     } else if (step.action === 'end') {
       clear = true;
       nextStep = null;
@@ -455,7 +485,25 @@ async function executeStep({ companyId, number, from, text, contact, flow, step,
 export async function processIncomingMessage({ companyId, number, from, text, contact, group }) {
   if (!number.is_bot_enabled) return null;
 
-  const flow = await resolveFlow(companyId, number, group, text);
+  const resolvedContact = contact ?? await whatsappRepo.findContactByPhone(companyId, number.id, from);
+  const cachedState = await chatbotCache.getFlowState(companyId, from);
+  const dbState = resolvedContact?.metadata ?? {};
+  const currentState = cachedState ?? dbState;
+  const currentStepId = currentState?.flowStep;
+  const persistedFlowId = currentState?.flowId ?? null;
+  const cacheRead = !!cachedState;
+
+  let flow = null;
+  if (persistedFlowId) {
+    const persistedFlow = await automationRepo.findFlowById(companyId, persistedFlowId).catch(() => null);
+    if (persistedFlow?.is_active && Array.isArray(persistedFlow.config_json?.steps) && persistedFlow.config_json.steps.length > 0) {
+      flow = persistedFlow;
+    }
+  }
+  if (!flow) {
+    flow = await resolveFlow(companyId, number, group, text);
+  }
+
   if (!flow) {
     logger.warn({ companyId, from, text }, 'bot: nenhum fluxo ativo encontrado (vendas/suporte/marketing)');
     return null;
@@ -470,13 +518,6 @@ export async function processIncomingMessage({ companyId, number, from, text, co
 
   const normalizedText = normalize(text);
   const triggers = Array.isArray(config.triggers) ? [...config.triggers].sort((a, b) => normalize(b.keyword).length - normalize(a.keyword).length) : [];
-
-  const resolvedContact = contact ?? await whatsappRepo.findContactByPhone(companyId, number.id, from);
-  const cachedState = await chatbotCache.getFlowState(companyId, from);
-  const dbState = resolvedContact?.metadata ?? {};
-  const currentState = cachedState ?? dbState;
-  const currentStepId = currentState?.flowStep;
-  const cacheRead = !!cachedState;
 
   let nextStep = null;
 

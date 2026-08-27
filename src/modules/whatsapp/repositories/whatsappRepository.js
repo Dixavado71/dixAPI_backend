@@ -160,7 +160,7 @@ export function findMessageByExternalId(whatsappNumberId, externalMessageId) {
 
 export function updateMessageStatusByExternalId(externalMessageId, status) {
   return prisma.whatsAppMessage.updateMany({
-    where: { external_message_id: externalMessageId, direction: 'outbound' },
+    where: { external_message_id: externalMessageId },
     data: { status },
   });
 }
