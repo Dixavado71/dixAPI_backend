@@ -19,7 +19,10 @@ const event = {
 
 function txClient(existing = null) {
   return {
-    paymentRecord: { findFirst: vi.fn().mockResolvedValue(payment) },
+    paymentRecord: {
+      findFirst: vi.fn().mockResolvedValue(payment),
+      updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+    },
     paymentEvent: {
       findUnique: vi.fn().mockResolvedValue(existing),
       create: vi.fn().mockResolvedValue({ id: 'event-record-1', ...event }),
@@ -53,5 +56,33 @@ describe('payment event security', () => {
       where: { company_id_provider_provider_event_id: { company_id: 'company-1', provider: 'gateway', provider_event_id: 'event-1' } },
     });
     expect(client.paymentEvent.create).not.toHaveBeenCalled();
+  });
+
+  it('updates the payment record status on a paid event', async () => {
+    const client = txClient();
+    transaction.mockImplementation(callback => callback(client));
+
+    await processPaymentEvent({ ...event, eventType: 'paid' });
+
+    expect(client.paymentEvent.create).toHaveBeenCalled();
+    expect(client.paymentRecord.updateMany).toHaveBeenCalledWith({
+      where: { id: 'payment-1', company_id: 'company-1' },
+      data: {
+        status: 'paid',
+        provider_event_id: 'event-1',
+        confirmed_at: expect.any(Date),
+        amount_received: payment.amount,
+      },
+    });
+  });
+
+  it('does not update the payment record for unknown event types', async () => {
+    const client = txClient();
+    transaction.mockImplementation(callback => callback(client));
+
+    await processPaymentEvent({ ...event, eventType: 'chargeback' });
+
+    expect(client.paymentEvent.create).toHaveBeenCalled();
+    expect(client.paymentRecord.updateMany).not.toHaveBeenCalled();
   });
 });
