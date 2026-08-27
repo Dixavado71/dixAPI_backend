@@ -417,7 +417,8 @@ export async function getInstanceWebhook(companyId, numberId) {
   const number = await whatsappRepo.findNumberById(companyId, numberId);
   if (!number) throw new NotFoundError('Número não encontrado.');
   if (!number.external_account_id) throw new BadRequestError('Número não possui instância EvolutionAPI.');
-  return evolutionApi.getWebhook(number.external_account_id);
+  const result = await evolutionApi.getWebhook(number.external_account_id).catch(() => ({ webhook: null }));
+  return { webhook: result?.webhook ?? null, verified: number.webhook_verified, url: `${env.publicApiUrl}/api/v1/whatsapp/webhook/${number.external_account_id}` };
 }
 
 export async function updateInstanceWebhook(companyId, numberId) {
