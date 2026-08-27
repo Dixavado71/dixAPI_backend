@@ -35,7 +35,6 @@ export async function createUser(companyId, actorRole, data) {
 
   const passwordHash = await hashPassword(data.password);
   const user = await repo.createUser({
-    company_id: companyId,
     name: data.name,
     email: data.email,
     phone: data.phone ?? null,

@@ -506,9 +506,8 @@ model Company {
 
 model User {
   id            String    @id @default(uuid()) @db.Uuid
-  company_id    String    @db.Uuid
   name          String
-  email         String
+  email         String    @unique
   phone         String?
   avatar_url    String?
   password_hash String
@@ -520,18 +519,15 @@ model User {
   created_at    DateTime  @default(now())
   updated_at    DateTime  @updatedAt
 
-  company        Company        @relation(fields: [company_id], references: [id], onDelete: Cascade)
   conversations  Conversation[] @relation("AssignedConversations")
   notifications  Notification[]
   refresh_tokens RefreshToken[]
   quick_replies  QuickReply[]   @relation("QuickReplyCreatedBy")
   UserCompany    UserCompany[]
   Reseller       Reseller?
+  Company        Company?       @relation(fields: [companyId], references: [id])
+  companyId      String?        @db.Uuid
 
-  @@unique([company_id, email])
-  @@unique([company_id, id])
-  @@index([company_id])
-  @@index([company_id, role, is_active])
   @@index([email])
   @@index([role])
   @@index([is_active])
@@ -666,7 +662,7 @@ model Conversation {
 
   company  Company   @relation(fields: [company_id], references: [id], onDelete: Cascade)
   customer Customer? @relation(fields: [company_id, customer_id], references: [company_id, id], onDelete: Restrict)
-  assignee User?     @relation("AssignedConversations", fields: [company_id, assigned_to], references: [company_id, id], onDelete: Restrict)
+  assignee User?     @relation("AssignedConversations", fields: [assigned_to], references: [id], onDelete: Restrict)
   messages Message[]
 
   @@unique([company_id, id])
@@ -766,7 +762,7 @@ model QuickReply {
   updated_at   DateTime @updatedAt
 
   company Company @relation(fields: [company_id], references: [id], onDelete: Cascade)
-  creator User?   @relation("QuickReplyCreatedBy", fields: [company_id, created_by], references: [company_id, id], onDelete: Restrict)
+  creator User?   @relation("QuickReplyCreatedBy", fields: [created_by], references: [id], onDelete: Restrict)
 
   @@unique([company_id, shortcut])
   @@index([company_id])
@@ -786,7 +782,7 @@ model Notification {
   related_entity_id   String?          @db.Uuid
   created_at          DateTime         @default(now())
 
-  user    User    @relation(fields: [company_id, user_id], references: [company_id, id], onDelete: Cascade)
+  user    User    @relation(fields: [user_id], references: [id], onDelete: Cascade)
   company Company @relation(fields: [company_id], references: [id], onDelete: Cascade)
 
   @@unique([company_id, id])

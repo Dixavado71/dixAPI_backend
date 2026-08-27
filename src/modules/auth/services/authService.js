@@ -110,7 +110,7 @@ export async function register(userData, companyId) {
   const hashedPassword = await hashPassword(userData.password);
   const user = await authRepository.createUser({
     name: userData.name, email: userData.email, password_hash: hashedPassword,
-    phone: userData.phone, company_id: companyId, role: 'operator',
+    phone: userData.phone, role: 'operator',
   });
   const membership = await authRepository.createMembership(user.id, companyId, 'operator');
   return { user: { id: user.id, name: user.name, email: user.email, phone: user.phone, role: membership.role }, tokens: await issueTokens(user, membership) };
@@ -128,7 +128,7 @@ export async function refreshTokens(refreshToken) {
     if (storedToken.expires_at <= new Date()) throw new UnauthorizedError('Invalid refresh token');
     const user = await authRepository.findUserById(decoded.id);
     const membership = user ? await authRepository.findActiveMembership(user.id, decoded.companyId) : null;
-    if (!user || !user.is_active || !membership || user.company.status !== 'active') throw new UnauthorizedError('Invalid refresh token');
+    if (!user || !user.is_active || !membership || !membership.company || membership.company.status !== 'active') throw new UnauthorizedError('Invalid refresh token');
     await authRepository.revokeRefreshToken(storedToken.id);
     return issueTokens(user, membership);
   } catch (error) {

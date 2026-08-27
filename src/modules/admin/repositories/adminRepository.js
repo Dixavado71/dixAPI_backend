@@ -80,7 +80,6 @@ export function createAdminStore(data) {
     });
     const user = await tx.user.create({
       data: {
-        company_id: company.id,
         name: data.adminName,
         email: data.email,
         phone: data.phone ?? null,

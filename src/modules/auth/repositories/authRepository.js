@@ -9,7 +9,6 @@ export function findUsersByEmail(email) {
   return prisma.user.findMany({
     where: { email },
     include: {
-      company: true,
       UserCompany: {
         where: { status: 'active', removed_at: null },
         orderBy: { is_primary: 'desc' },
@@ -23,7 +22,6 @@ export function findUserById(id) {
   return prisma.user.findUnique({
     where: { id },
     include: {
-      company: true,
       UserCompany: {
         where: { status: 'active', removed_at: null },
         orderBy: { is_primary: 'desc' },
@@ -47,7 +45,7 @@ export function createMembership(userId, companyId, role) {
 }
 
 export function createUser(userData) {
-  return prisma.user.create({ data: userData, include: { company: true } });
+  return prisma.user.create({ data: userData });
 }
 
 export function updateUserLastLogin(userId) {
@@ -73,7 +71,9 @@ export function revokeUserRefreshTokens(userId) {
 }
 
 export function findUserByEmailAndCompany(email, companyId) {
-  return prisma.user.findUnique({ where: { company_id_email: { company_id: companyId, email } } });
+  return prisma.user.findFirst({
+    where: { email, UserCompany: { some: { company_id: companyId } } },
+  });
 }
 
 export function findResellerByAffiliateCode(code) {
@@ -105,7 +105,6 @@ export function createStoreWithSubscription(data) {
 
     const user = await tx.user.create({
       data: {
-        company_id: company.id,
         name: data.adminName,
         email: data.email,
         phone: data.phone ?? null,

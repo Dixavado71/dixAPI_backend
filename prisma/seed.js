@@ -8,8 +8,8 @@ const passwordFromEnv = (key, fallback) => process.env[key] || fallback;
 async function upsertUser({ companyId, email, name, role, password, phone }) {
   const passwordHash = await bcrypt.hash(password, 12);
   const user = await prisma.user.upsert({
-    where: { company_id_email: { company_id: companyId, email } },
-    create: { company_id: companyId, name, email, phone, password_hash: passwordHash, role, is_active: true },
+    where: { email },
+    create: { name, email, phone, password_hash: passwordHash, role, is_active: true },
     update: { name, phone, password_hash: passwordHash, role, is_active: true },
   });
   await prisma.userCompany.upsert({
@@ -155,7 +155,7 @@ async function main() {
   for (const company of [companyOne, companyTwo]) {
     const sub = await prisma.companySubscription.findFirst({ where: { company_id: company.id } });
     const subValue = sub?.price ?? plan.monthly_price;
-    const owner = await prisma.user.findFirst({ where: { company_id: company.id, role: 'admin' } });
+    const owner = await prisma.user.findFirst({ where: { UserCompany: { some: { company_id: company.id, role: 'admin' } } } });
     await prisma.transaction.create({
       data: { company_id: company.id, description: `Assinatura ${plan.name} — diix`, type: 'expense', category: 'Plataforma', value: Number(subValue), status: 'completed', transaction_date: daysAgo7, created_by: owner?.id },
     });
