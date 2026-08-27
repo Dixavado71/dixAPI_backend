@@ -1102,6 +1102,7 @@ export async function handleWebhook(instanceName, payload) {
           logger.error({ companyId: number.company_id, from: phoneNumber, text: messageContent, err: err.message }, 'bot falhou ao processar mensagem');
         }
       } else {
+        logger.info({ companyId: number.company_id, from: phoneNumber, reason: check.reason, mode: (await whatsappRepo.getBotConfig(number.company_id).catch(() => ({})))?.mode ?? 'unknown' }, 'bot: contato nao permitido pelo modo de atendimento');
         const config = (await whatsappRepo.getBotConfig(number.company_id)) ?? {};
         const conv = await conversationRepo.findConversationByContact(number.company_id, 'whatsapp', phoneNumber);
         if (conv) {
