@@ -602,7 +602,8 @@ export async function updateGroup(companyId, numberId, groupId, data) {
   const number = await requireNumber(companyId, numberId);
   if (data.name) return evolutionApi.updateGroupSubject(number.external_account_id, groupId, data.name);
   if (data.description) return evolutionApi.updateGroupDescription(number.external_account_id, groupId, data.description);
-  return evolutionApi.updateGroupSetting(number.external_account_id, groupId, data.action);
+  if (data.action) return evolutionApi.updateGroupSetting(number.external_account_id, groupId, data.action);
+  return { updated: false, message: 'Nenhuma alteração informada.' };
 }
 
 export async function groupSettings(companyId, numberId, groupId, data) {

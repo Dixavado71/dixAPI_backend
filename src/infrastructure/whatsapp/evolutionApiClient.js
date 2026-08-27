@@ -36,13 +36,10 @@ function isAllowedMediaUrl(mediaUrl) {
     return false;
   }
   if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return false;
-  if (parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1') return true;
-  try {
-    const base = new URL(BASE_URL);
-    return parsed.hostname === base.hostname;
-  } catch {
-    return false;
-  }
+  const hostname = parsed.hostname;
+  if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '0.0.0.0' || hostname === '[::1]') return false;
+  if (hostname.startsWith('10.') || hostname.startsWith('172.16.') || hostname.startsWith('192.168.')) return false;
+  return true;
 }
 
 export async function downloadMedia(instanceName, mediaUrl) {
