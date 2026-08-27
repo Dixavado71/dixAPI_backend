@@ -211,6 +211,8 @@ export async function processIncomingMessage({ companyId, number, from, text, co
       if (matched) {
         nextStep = steps.find((s) => s.id === matched.next) ?? null;
       } else {
+        const labels = currentStep.options.map((o) => `"${normalize(o.label)}"`).join(', ');
+        console.log(`[BOT-DEBUG] step=${currentStepId} text="${normalizedText}" options=[${labels}] no match, re-sending menu`);
         nextStep = currentStep;
         await sendFlowMessage(number, from, 'Desculpe, não entendi. Escolha uma das opções abaixo:');
       }
