@@ -21,16 +21,20 @@ router.post('/numbers/:id/restart', authorize('admin', 'manager'), whatsappContr
 router.post('/numbers/:id/logout', authorize('admin', 'manager'), whatsappController.logoutNumber);
 router.post('/numbers/:id/disconnect', authorize('admin', 'manager'), whatsappController.disconnectNumber);
 router.delete('/numbers/:id', authorize('admin', 'manager'), whatsappController.deleteNumber);
+router.post('/numbers/:id/request-pairing-code', authorize('admin', 'manager'), whatsappController.requestPairingCode);
+router.post('/numbers/:id/change-number', authorize('admin', 'manager'), whatsappController.changeNumber);
 
 // Profile
 router.patch('/numbers/:id/profile', authorize('admin', 'manager'), whatsappController.updateProfile);
 router.patch('/numbers/:id/picture', authorize('admin', 'manager'), whatsappController.updatePicture);
+router.post('/numbers/:id/contacts/profile-picture', authorize('admin', 'manager', 'operator'), whatsappController.getProfilePicture);
+router.post('/numbers/:id/contacts/profile-name', authorize('admin', 'manager', 'operator'), whatsappController.getProfileName);
 
 // Webhook management
 router.get('/numbers/:id/webhook', authorize('admin', 'manager'), whatsappController.getWebhook);
 router.post('/numbers/:id/webhook/setup', authorize('admin', 'manager'), whatsappController.setupWebhook);
 
-// Messaging
+// Messaging (basic)
 router.post('/numbers/:id/send', authorize('admin', 'manager', 'operator'), whatsappController.sendMessage);
 router.post('/numbers/:id/send-media', authorize('admin', 'manager', 'operator'), whatsappController.sendMedia);
 router.post('/numbers/:id/send-audio', authorize('admin', 'manager', 'operator'), whatsappController.sendAudio);
@@ -44,13 +48,50 @@ router.post('/numbers/:id/send-reaction', authorize('admin', 'manager', 'operato
 router.post('/numbers/:id/send-status', authorize('admin', 'manager', 'operator'), whatsappController.sendStatus);
 router.post('/numbers/:id/send-status-media', authorize('admin', 'manager', 'operator'), whatsappController.sendStatusMedia);
 
+// Messaging (advanced)
+router.post('/numbers/:id/send-poll', authorize('admin', 'manager', 'operator'), whatsappController.sendPoll);
+router.post('/numbers/:id/send-link-preview', authorize('admin', 'manager', 'operator'), whatsappController.sendLinkPreview);
+router.post('/numbers/:id/send-base64', authorize('admin', 'manager', 'operator'), whatsappController.sendBase64);
+router.post('/numbers/:id/send-bulk', authorize('admin', 'manager', 'operator'), whatsappController.sendBulk);
+router.post('/numbers/:id/send-typewriter', authorize('admin', 'manager', 'operator'), whatsappController.sendTypewriter);
+router.post('/numbers/:id/send-contact', authorize('admin', 'manager', 'operator'), whatsappController.sendContact);
+router.post('/numbers/:id/edit-message', authorize('admin', 'manager', 'operator'), whatsappController.editMessage);
+router.post('/numbers/:id/delete-message', authorize('admin', 'manager', 'operator'), whatsappController.deleteMessage);
+
 // Chat actions
 router.post('/numbers/:id/read', authorize('admin', 'manager', 'operator'), whatsappController.markRead);
 router.post('/numbers/:id/typing', authorize('admin', 'manager', 'operator'), whatsappController.typing);
 router.post('/numbers/:id/presence', authorize('admin', 'manager'), whatsappController.presence);
 
-// Chats & contacts
+// Chats
 router.get('/numbers/:id/chats', authorize('admin', 'manager', 'operator'), whatsappController.getChats);
 router.get('/numbers/:id/chats/messages', authorize('admin', 'manager', 'operator'), whatsappController.getChatMessages);
+router.post('/numbers/:id/chats/find', authorize('admin', 'manager', 'operator'), whatsappController.findChat);
+router.post('/numbers/:id/chats/create', authorize('admin', 'manager', 'operator'), whatsappController.createChat);
+router.post('/numbers/:id/chats/check-number', authorize('admin', 'manager', 'operator'), whatsappController.checkNumber);
+router.post('/numbers/:id/chats/:chatId/archive', authorize('admin', 'manager', 'operator'), whatsappController.archiveChat);
+router.post('/numbers/:id/chats/:chatId/unarchive', authorize('admin', 'manager', 'operator'), whatsappController.unarchiveChat);
+router.get('/numbers/:id/chats/:chatId/fetch-all', authorize('admin', 'manager', 'operator'), whatsappController.fetchAllMessages);
+
+// Groups
+router.post('/numbers/:id/groups', authorize('admin', 'manager'), whatsappController.createGroup);
+router.get('/numbers/:id/groups', authorize('admin', 'manager', 'operator'), whatsappController.getGroups);
+router.get('/numbers/:id/groups/:groupId', authorize('admin', 'manager', 'operator'), whatsappController.getGroup);
+router.patch('/numbers/:id/groups/:groupId', authorize('admin', 'manager'), whatsappController.updateGroup);
+router.post('/numbers/:id/groups/:groupId/settings', authorize('admin', 'manager'), whatsappController.groupSettings);
+router.post('/numbers/:id/groups/:groupId/add', authorize('admin', 'manager'), whatsappController.addGroupParticipant);
+router.post('/numbers/:id/groups/:groupId/remove', authorize('admin', 'manager'), whatsappController.removeGroupParticipant);
+router.post('/numbers/:id/groups/:groupId/promote', authorize('admin', 'manager'), whatsappController.promoteGroupParticipant);
+router.post('/numbers/:id/groups/:groupId/demote', authorize('admin', 'manager'), whatsappController.demoteGroupParticipant);
+router.post('/numbers/:id/groups/:groupId/invite', authorize('admin', 'manager', 'operator'), whatsappController.getInviteLink);
+router.post('/numbers/:id/groups/:groupId/revoke-invite', authorize('admin', 'manager'), whatsappController.revokeInviteLink);
+router.post('/numbers/:id/groups/:groupId/picture', authorize('admin', 'manager'), whatsappController.updateGroupPicture);
+router.post('/numbers/:id/groups/:groupId/leave', authorize('admin', 'manager'), whatsappController.leaveGroup);
+router.post('/numbers/:id/groups/accept-invite', authorize('admin', 'manager'), whatsappController.acceptInviteCode);
+
+// Status / Stories
+router.get('/numbers/:id/status', authorize('admin', 'manager', 'operator'), whatsappController.getStories);
+router.get('/numbers/:id/status/:statusId', authorize('admin', 'manager', 'operator'), whatsappController.getStoryById);
+router.post('/numbers/:id/status/reaction', authorize('admin', 'manager', 'operator'), whatsappController.reactStory);
 
 export default router;

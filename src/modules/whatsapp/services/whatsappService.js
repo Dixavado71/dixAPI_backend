@@ -443,6 +443,208 @@ export async function updateInstanceWebhook(companyId, numberId) {
   return { configured: true, result };
 }
 
+async function requireNumber(companyId, numberId) {
+  const number = await whatsappRepo.findNumberById(companyId, numberId);
+  if (!number) throw new NotFoundError('Número não encontrado.');
+  if (!number.external_account_id) throw new BadRequestError('Número não possui instância EvolutionAPI.');
+  return number;
+}
+
+/* ===== Groups ===== */
+
+export async function createGroup(companyId, numberId, data) {
+  const number = await requireConnectedNumber(companyId, numberId);
+  const participants = (data.participants ?? []).map((p) => p.replace(/\D/g, ''));
+  return evolutionApi.createGroup(number.external_account_id, data.name, participants);
+}
+
+export async function listGroups(companyId, numberId) {
+  const number = await requireNumber(companyId, numberId);
+  return evolutionApi.fetchGroups(number.external_account_id);
+}
+
+export async function findGroup(companyId, numberId, groupId) {
+  const number = await requireNumber(companyId, numberId);
+  return evolutionApi.findGroupById(number.external_account_id, groupId);
+}
+
+export async function updateGroup(companyId, numberId, groupId, data) {
+  const number = await requireNumber(companyId, numberId);
+  if (data.name) return evolutionApi.updateGroupSubject(number.external_account_id, groupId, data.name);
+  if (data.description) return evolutionApi.updateGroupDescription(number.external_account_id, groupId, data.description);
+  return evolutionApi.updateGroupSetting(number.external_account_id, groupId, data.action, data.value);
+}
+
+export async function groupSettings(companyId, numberId, groupId, data) {
+  const number = await requireNumber(companyId, numberId);
+  return evolutionApi.updateGroupSetting(number.external_account_id, groupId, data.action, data.value);
+}
+
+export async function addParticipant(companyId, numberId, groupId, data) {
+  const number = await requireNumber(companyId, numberId);
+  return evolutionApi.addGroupParticipant(number.external_account_id, groupId, data.phone);
+}
+
+export async function removeParticipant(companyId, numberId, groupId, data) {
+  const number = await requireNumber(companyId, numberId);
+  return evolutionApi.removeGroupParticipant(number.external_account_id, groupId, data.phone);
+}
+
+export async function promoteParticipant(companyId, numberId, groupId, data) {
+  const number = await requireNumber(companyId, numberId);
+  return evolutionApi.promoteGroupParticipant(number.external_account_id, groupId, data.phone);
+}
+
+export async function demoteParticipant(companyId, numberId, groupId, data) {
+  const number = await requireNumber(companyId, numberId);
+  return evolutionApi.demoteGroupParticipant(number.external_account_id, groupId, data.phone);
+}
+
+export async function inviteLink(companyId, numberId, groupId) {
+  const number = await requireNumber(companyId, numberId);
+  return evolutionApi.fetchInviteLink(number.external_account_id, groupId);
+}
+
+export async function revokeInvite(companyId, numberId, groupId) {
+  const number = await requireNumber(companyId, numberId);
+  return evolutionApi.revokeInviteLink(number.external_account_id, groupId);
+}
+
+export async function acceptInvite(companyId, numberId, data) {
+  const number = await requireNumber(companyId, numberId);
+  return evolutionApi.acceptInviteCode(number.external_account_id, data.code);
+}
+
+export async function groupPicture(companyId, numberId, groupId, data) {
+  const number = await requireNumber(companyId, numberId);
+  return evolutionApi.updateGroupPicture(number.external_account_id, groupId, data.picture);
+}
+
+export async function leaveGroup(companyId, numberId, groupId) {
+  const number = await requireNumber(companyId, numberId);
+  return evolutionApi.leaveGroup(number.external_account_id, groupId);
+}
+
+/* ===== Status / Stories ===== */
+
+export async function listStatus(companyId, numberId) {
+  const number = await requireNumber(companyId, numberId);
+  return evolutionApi.fetchStatus(number.external_account_id);
+}
+
+export async function getStatusById(companyId, numberId, statusId) {
+  const number = await requireNumber(companyId, numberId);
+  return evolutionApi.fetchStatusById(number.external_account_id, statusId);
+}
+
+export async function reactStatus(companyId, numberId, data) {
+  const number = await requireNumber(companyId, numberId);
+  return evolutionApi.reactionStatus(number.external_account_id, data.statusId, data.reaction);
+}
+
+/* ===== Chats (extra) ===== */
+
+export async function findChat(companyId, numberId, data) {
+  const number = await requireNumber(companyId, numberId);
+  return evolutionApi.findChat(number.external_account_id, data.chatId);
+}
+
+export async function createChat(companyId, numberId, data) {
+  const number = await requireNumber(companyId, numberId);
+  return evolutionApi.createChat(number.external_account_id, data.number);
+}
+
+export async function archiveChat(companyId, numberId, chatId) {
+  const number = await requireNumber(companyId, numberId);
+  return evolutionApi.archiveChat(number.external_account_id, chatId);
+}
+
+export async function unarchiveChat(companyId, numberId, chatId) {
+  const number = await requireNumber(companyId, numberId);
+  return evolutionApi.unarchiveChat(number.external_account_id, chatId);
+}
+
+export async function fetchAllMessages(companyId, numberId, chatId) {
+  const number = await requireNumber(companyId, numberId);
+  return evolutionApi.fetchAllMessages(number.external_account_id, chatId);
+}
+
+export async function checkNumber(companyId, numberId, data) {
+  const number = await requireNumber(companyId, numberId);
+  return evolutionApi.checkNumber(number.external_account_id, data.number);
+}
+
+/* ===== Messages (advanced) ===== */
+
+export async function sendPoll(companyId, numberId, data) {
+  const number = await requireConnectedNumber(companyId, numberId);
+  return evolutionApi.sendPoll(number.external_account_id, data.number, data.name, data.values);
+}
+
+export async function editMessage(companyId, numberId, data) {
+  const number = await requireConnectedNumber(companyId, numberId);
+  return evolutionApi.editMessage(number.external_account_id, data.number, data.messageId, data.text);
+}
+
+export async function deleteMessage(companyId, numberId, data) {
+  const number = await requireConnectedNumber(companyId, numberId);
+  if (data.forEveryone) return evolutionApi.deleteMessageForEveryone(number.external_account_id, data.number, data.messageId);
+  return evolutionApi.deleteMessage(number.external_account_id, data.number, data.messageId);
+}
+
+export async function sendLinkPreview(companyId, numberId, data) {
+  const number = await requireConnectedNumber(companyId, numberId);
+  return evolutionApi.sendLinkPreview(number.external_account_id, data.number, data.url, data.title, data.description, data.image);
+}
+
+export async function sendBase64(companyId, numberId, data) {
+  const number = await requireConnectedNumber(companyId, numberId);
+  if (data.mediaType === 'audio') return evolutionApi.sendAudioFromBase64(number.external_account_id, data.number, data.base64, data.fileName);
+  return evolutionApi.sendFileFromBase64(number.external_account_id, data.number, data.base64, data.fileName);
+}
+
+export async function sendBulk(companyId, numberId, data) {
+  const number = await requireConnectedNumber(companyId, numberId);
+  const messages = (data.messages ?? []).map((m) => ({
+    number: m.number.replace(/\D/g, ''), text: m.text, delay: m.delay ?? 1000,
+  }));
+  return evolutionApi.sendTextBulk(number.external_account_id, messages);
+}
+
+export async function sendTypewriter(companyId, numberId, data) {
+  const number = await requireConnectedNumber(companyId, numberId);
+  return evolutionApi.sendTypewriter(number.external_account_id, data.number, data.text);
+}
+
+export async function sendContact(companyId, numberId, data) {
+  const number = await requireConnectedNumber(companyId, numberId);
+  return evolutionApi.sendContactVcard(number.external_account_id, data.number, data.name, data.phone);
+}
+
+/* ===== Profile ===== */
+
+export async function getProfilePicture(companyId, numberId, data) {
+  const number = await requireNumber(companyId, numberId);
+  return evolutionApi.getProfilePicture(number.external_account_id, data.number);
+}
+
+export async function getProfileName(companyId, numberId, data) {
+  const number = await requireNumber(companyId, numberId);
+  return evolutionApi.getProfileName(number.external_account_id, data.number);
+}
+
+export async function requestPairingCode(companyId, numberId, data) {
+  const number = await requireNumber(companyId, numberId);
+  return evolutionApi.requestPairingCode(number.external_account_id, data.phone);
+}
+
+export async function changeNumber(companyId, numberId, data) {
+  const number = await requireNumber(companyId, numberId);
+  const result = await evolutionApi.changeNumber(number.external_account_id, data.number);
+  await whatsappRepo.updateNumberById(number.id, { phone_number: data.number.replace(/\D/g, '') });
+  return { changed: true, result };
+}
+
 export async function handleWebhook(instanceName, payload) {
   if (!payload?.event || !payload?.data) return;
 
@@ -567,5 +769,40 @@ export default {
   logoutOnly,
   getInstanceWebhook,
   updateInstanceWebhook,
+  createGroup,
+  listGroups,
+  findGroup,
+  updateGroup,
+  groupSettings,
+  addParticipant,
+  removeParticipant,
+  promoteParticipant,
+  demoteParticipant,
+  inviteLink,
+  revokeInvite,
+  acceptInvite,
+  groupPicture,
+  leaveGroup,
+  listStatus,
+  getStatusById,
+  reactStatus,
+  findChat,
+  createChat,
+  archiveChat,
+  unarchiveChat,
+  fetchAllMessages,
+  checkNumber,
+  sendPoll,
+  editMessage,
+  deleteMessage,
+  sendLinkPreview,
+  sendBase64,
+  sendBulk,
+  sendTypewriter,
+  sendContact,
+  getProfilePicture,
+  getProfileName,
+  requestPairingCode,
+  changeNumber,
   handleWebhook,
 };

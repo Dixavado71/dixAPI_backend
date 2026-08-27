@@ -192,6 +192,38 @@ export async function updateGroupDescription(instanceName, groupId, description)
   return instanceRequest('PUT', instanceName, `/group/update/${instanceName}`, { groupId, description });
 }
 
+export async function createGroup(instanceName, name, participants = []) {
+  return instanceRequest('POST', instanceName, `/group/create/${instanceName}`, { name, participants });
+}
+
+export async function findGroupById(instanceName, groupId) {
+  return instanceRequest('POST', instanceName, `/group/findGroupInfos/${instanceName}`, { groupId });
+}
+
+export async function findGroupByName(instanceName, name) {
+  return instanceRequest('GET', instanceName, `/group/findGroupByName/${instanceName}/${encodeURIComponent(name)}`);
+}
+
+export async function updateGroupSetting(instanceName, groupId, action, value) {
+  return instanceRequest('POST', instanceName, `/group/updateSetting/${instanceName}`, { groupId, action, value });
+}
+
+export async function fetchInviteLink(instanceName, groupId) {
+  return instanceRequest('POST', instanceName, `/group/fetchInviteLink/${instanceName}`, { groupId });
+}
+
+export async function revokeInviteLink(instanceName, groupId) {
+  return instanceRequest('POST', instanceName, `/group/revokeInviteLink/${instanceName}`, { groupId });
+}
+
+export async function acceptInviteCode(instanceName, code) {
+  return instanceRequest('POST', instanceName, `/group/acceptInviteCode/${instanceName}`, { code });
+}
+
+export async function updateGroupPicture(instanceName, groupId, pictureBase64) {
+  return instanceRequest('POST', instanceName, `/group/updatePicture/${instanceName}`, { groupId, picture: pictureBase64 });
+}
+
 export async function addGroupParticipant(instanceName, groupId, phone) {
   return instanceRequest('POST', instanceName, `/group/addParticipant/${instanceName}`, { groupId, phone });
 }
@@ -214,6 +246,102 @@ export async function leaveGroup(instanceName, groupId) {
 
 export async function fetchGroups(instanceName) {
   return instanceRequest('GET', instanceName, `/group/findGroups/${instanceName}`);
+}
+
+/* ===== Status / Stories ===== */
+
+export async function fetchStatus(instanceName) {
+  return instanceRequest('GET', instanceName, `/status/findStatus/${instanceName}`);
+}
+
+export async function fetchStatusById(instanceName, statusId) {
+  return instanceRequest('GET', instanceName, `/status/findStatusById/${instanceName}/${statusId}`);
+}
+
+export async function reactionStatus(instanceName, statusId, reaction) {
+  return instanceRequest('POST', instanceName, `/status/reactionStatus/${instanceName}`, { statusId, reaction });
+}
+
+/* ===== Chats (extra) ===== */
+
+export async function findChat(instanceName, chatId) {
+  return instanceRequest('POST', instanceName, `/chat/findChat/${instanceName}`, { chatId });
+}
+
+export async function createChat(instanceName, number) {
+  return instanceRequest('POST', instanceName, `/chat/create/${instanceName}`, { number });
+}
+
+export async function archiveChat(instanceName, chatId) {
+  return instanceRequest('POST', instanceName, `/chat/archive/${instanceName}`, { chatId });
+}
+
+export async function unarchiveChat(instanceName, chatId) {
+  return instanceRequest('POST', instanceName, `/chat/unarchive/${instanceName}`, { chatId });
+}
+
+export async function fetchAllMessages(instanceName, chatId) {
+  return instanceRequest('POST', instanceName, `/chat/fetchAllMessages/${instanceName}`, { chatId });
+}
+
+export async function checkNumber(instanceName, number) {
+  return instanceRequest('POST', instanceName, `/chat/checkNumber/${instanceName}`, { number });
+}
+
+/* ===== Messages (advanced) ===== */
+
+export async function sendPoll(instanceName, number, name, values) {
+  return instanceRequest('POST', instanceName, `/message/sendPoll/${instanceName}`, { number, name, values });
+}
+
+export async function editMessage(instanceName, number, messageId, text) {
+  return instanceRequest('POST', instanceName, `/message/edit/${instanceName}`, { number, messageId, text });
+}
+
+export async function deleteMessage(instanceName, number, messageId) {
+  return instanceRequest('POST', instanceName, `/message/delete/${instanceName}`, { number, messageId });
+}
+
+export async function deleteMessageForEveryone(instanceName, number, messageId) {
+  return instanceRequest('POST', instanceName, `/message/deleteMessageForEveryone/${instanceName}`, { number, messageId });
+}
+
+export async function sendLinkPreview(instanceName, number, url, title, description, image) {
+  return instanceRequest('POST', instanceName, `/message/sendLinkPreview/${instanceName}`, { number, url, title, description, image });
+}
+
+export async function sendFileFromBase64(instanceName, number, base64, fileName) {
+  return instanceRequest('POST', instanceName, `/message/sendFileFromBase64/${instanceName}`, { number, base64, fileName });
+}
+
+export async function sendAudioFromBase64(instanceName, number, base64, fileName) {
+  return instanceRequest('POST', instanceName, `/message/sendAudioFromBase64/${instanceName}`, { number, base64, fileName });
+}
+
+export async function sendTextBulk(instanceName, messages) {
+  return instanceRequest('POST', instanceName, `/message/sendTextBulk/${instanceName}`, messages);
+}
+
+export async function sendTypewriter(instanceName, number, text) {
+  return instanceRequest('POST', instanceName, `/message/sendTypewriter/${instanceName}`, { number, text });
+}
+
+/* ===== Profile / Instance ===== */
+
+export async function getProfilePicture(instanceName, number) {
+  return instanceRequest('POST', instanceName, `/contact/getProfilePicture/${instanceName}`, { number });
+}
+
+export async function getProfileName(instanceName, number) {
+  return instanceRequest('POST', instanceName, `/contact/getProfileName/${instanceName}`, { number });
+}
+
+export async function requestPairingCode(instanceName, phone) {
+  return instanceRequest('POST', instanceName, `/instance/requestPairingCode/${instanceName}`, { phone });
+}
+
+export async function changeNumber(instanceName, number) {
+  return instanceRequest('POST', instanceName, `/instance/changeNumber/${instanceName}`, { number });
 }
 
 /* ===== Webhook ===== */
@@ -260,6 +388,14 @@ export default {
   sendTyping,
   sendPresencePaused,
   setChatName,
+  createGroup,
+  findGroupById,
+  findGroupByName,
+  updateGroupSetting,
+  fetchInviteLink,
+  revokeInviteLink,
+  acceptInviteCode,
+  updateGroupPicture,
   updateGroupSubject,
   updateGroupDescription,
   addGroupParticipant,
@@ -268,6 +404,28 @@ export default {
   demoteGroupParticipant,
   leaveGroup,
   fetchGroups,
+  fetchStatus,
+  fetchStatusById,
+  reactionStatus,
+  findChat,
+  createChat,
+  archiveChat,
+  unarchiveChat,
+  fetchAllMessages,
+  checkNumber,
+  sendPoll,
+  editMessage,
+  deleteMessage,
+  deleteMessageForEveryone,
+  sendLinkPreview,
+  sendFileFromBase64,
+  sendAudioFromBase64,
+  sendTextBulk,
+  sendTypewriter,
+  getProfilePicture,
+  getProfileName,
+  requestPairingCode,
+  changeNumber,
   setWebhook,
   getWebhook,
 };

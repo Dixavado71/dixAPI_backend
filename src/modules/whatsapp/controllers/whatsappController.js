@@ -4,6 +4,11 @@ import {
   sendVideoSchema, sendStickerSchema, sendButtonsSchema, sendListSchema, sendLocationSchema,
   sendReactionSchema, markAsReadSchema, presenceSchema, updateProfileSchema,
   updateProfilePictureSchema, chatMessagesQuerySchema, sendStatusSchema, sendStatusMediaSchema,
+  createGroupSchema, updateGroupSchema, groupActionSchema, inviteCodeSchema, groupPictureSchema,
+  reactStatusSchema, findChatSchema, createChatSchema, checkNumberSchema, sendPollSchema,
+  editMessageSchema, deleteMessageSchema, linkPreviewSchema, sendBase64Schema, sendBulkSchema,
+  typewriterSchema, sendContactSchema, profilePictureSchema, profileNameSchema,
+  requestPairingSchema, changeNumberSchema,
 } from '../validators/whatsappValidators.js';
 import { successResponse, createdResponse } from '../../../shared/utils/response.js';
 
@@ -122,6 +127,191 @@ export async function getChatMessages(req, res, next) {
   catch (error) { return next(error); }
 }
 
+/* ===== Groups ===== */
+
+export async function createGroup(req, res, next) {
+  try { const data = createGroupSchema.parse(req.body); const result = await whatsappService.createGroup(req.tenant.companyId, req.params.id, data); return createdResponse(res, result); }
+  catch (error) { return next(error); }
+}
+
+export async function getGroups(req, res, next) {
+  try { const result = await whatsappService.listGroups(req.tenant.companyId, req.params.id); return successResponse(res, result); }
+  catch (error) { return next(error); }
+}
+
+export async function getGroup(req, res, next) {
+  try { const result = await whatsappService.findGroup(req.tenant.companyId, req.params.id, req.params.groupId); return successResponse(res, result); }
+  catch (error) { return next(error); }
+}
+
+export async function updateGroup(req, res, next) {
+  try { const data = updateGroupSchema.parse(req.body); const result = await whatsappService.updateGroup(req.tenant.companyId, req.params.id, req.params.groupId, data); return successResponse(res, result); }
+  catch (error) { return next(error); }
+}
+
+export async function groupSettings(req, res, next) {
+  try { const data = updateGroupSchema.parse(req.body); const result = await whatsappService.groupSettings(req.tenant.companyId, req.params.id, req.params.groupId, data); return successResponse(res, result); }
+  catch (error) { return next(error); }
+}
+
+export async function addGroupParticipant(req, res, next) {
+  try { const data = groupActionSchema.parse(req.body); const result = await whatsappService.addParticipant(req.tenant.companyId, req.params.id, req.params.groupId, data); return successResponse(res, result); }
+  catch (error) { return next(error); }
+}
+
+export async function removeGroupParticipant(req, res, next) {
+  try { const data = groupActionSchema.parse(req.body); const result = await whatsappService.removeParticipant(req.tenant.companyId, req.params.id, req.params.groupId, data); return successResponse(res, result); }
+  catch (error) { return next(error); }
+}
+
+export async function promoteGroupParticipant(req, res, next) {
+  try { const data = groupActionSchema.parse(req.body); const result = await whatsappService.promoteParticipant(req.tenant.companyId, req.params.id, req.params.groupId, data); return successResponse(res, result); }
+  catch (error) { return next(error); }
+}
+
+export async function demoteGroupParticipant(req, res, next) {
+  try { const data = groupActionSchema.parse(req.body); const result = await whatsappService.demoteParticipant(req.tenant.companyId, req.params.id, req.params.groupId, data); return successResponse(res, result); }
+  catch (error) { return next(error); }
+}
+
+export async function getInviteLink(req, res, next) {
+  try { const result = await whatsappService.inviteLink(req.tenant.companyId, req.params.id, req.params.groupId); return successResponse(res, result); }
+  catch (error) { return next(error); }
+}
+
+export async function revokeInviteLink(req, res, next) {
+  try { const result = await whatsappService.revokeInvite(req.tenant.companyId, req.params.id, req.params.groupId); return successResponse(res, result); }
+  catch (error) { return next(error); }
+}
+
+export async function acceptInviteCode(req, res, next) {
+  try { const data = inviteCodeSchema.parse(req.body); const result = await whatsappService.acceptInvite(req.tenant.companyId, req.params.id, data); return successResponse(res, result); }
+  catch (error) { return next(error); }
+}
+
+export async function updateGroupPicture(req, res, next) {
+  try { const data = groupPictureSchema.parse(req.body); const result = await whatsappService.groupPicture(req.tenant.companyId, req.params.id, req.params.groupId, data); return successResponse(res, result); }
+  catch (error) { return next(error); }
+}
+
+export async function leaveGroup(req, res, next) {
+  try { const result = await whatsappService.leaveGroup(req.tenant.companyId, req.params.id, req.params.groupId); return successResponse(res, result); }
+  catch (error) { return next(error); }
+}
+
+/* ===== Status / Stories ===== */
+
+export async function getStories(req, res, next) {
+  try { const result = await whatsappService.listStatus(req.tenant.companyId, req.params.id); return successResponse(res, result); }
+  catch (error) { return next(error); }
+}
+
+export async function getStoryById(req, res, next) {
+  try { const result = await whatsappService.getStatusById(req.tenant.companyId, req.params.id, req.params.statusId); return successResponse(res, result); }
+  catch (error) { return next(error); }
+}
+
+export async function reactStory(req, res, next) {
+  try { const data = reactStatusSchema.parse(req.body); const result = await whatsappService.reactStatus(req.tenant.companyId, req.params.id, data); return successResponse(res, result); }
+  catch (error) { return next(error); }
+}
+
+/* ===== Chats (extra) ===== */
+
+export async function findChat(req, res, next) {
+  try { const data = findChatSchema.parse(req.body); const result = await whatsappService.findChat(req.tenant.companyId, req.params.id, data); return successResponse(res, result); }
+  catch (error) { return next(error); }
+}
+
+export async function createChat(req, res, next) {
+  try { const data = createChatSchema.parse(req.body); const result = await whatsappService.createChat(req.tenant.companyId, req.params.id, data); return createdResponse(res, result); }
+  catch (error) { return next(error); }
+}
+
+export async function archiveChat(req, res, next) {
+  try { const result = await whatsappService.archiveChat(req.tenant.companyId, req.params.id, req.params.chatId); return successResponse(res, result); }
+  catch (error) { return next(error); }
+}
+
+export async function unarchiveChat(req, res, next) {
+  try { const result = await whatsappService.unarchiveChat(req.tenant.companyId, req.params.id, req.params.chatId); return successResponse(res, result); }
+  catch (error) { return next(error); }
+}
+
+export async function fetchAllMessages(req, res, next) {
+  try { const result = await whatsappService.fetchAllMessages(req.tenant.companyId, req.params.id, req.params.chatId); return successResponse(res, result); }
+  catch (error) { return next(error); }
+}
+
+export async function checkNumber(req, res, next) {
+  try { const data = checkNumberSchema.parse(req.body); const result = await whatsappService.checkNumber(req.tenant.companyId, req.params.id, data); return successResponse(res, result); }
+  catch (error) { return next(error); }
+}
+
+/* ===== Messages (advanced) ===== */
+
+export async function sendPoll(req, res, next) {
+  try { const data = sendPollSchema.parse(req.body); const result = await whatsappService.sendPoll(req.tenant.companyId, req.params.id, data); return createdResponse(res, result); }
+  catch (error) { return next(error); }
+}
+
+export async function editMessage(req, res, next) {
+  try { const data = editMessageSchema.parse(req.body); const result = await whatsappService.editMessage(req.tenant.companyId, req.params.id, data); return successResponse(res, result); }
+  catch (error) { return next(error); }
+}
+
+export async function deleteMessage(req, res, next) {
+  try { const data = deleteMessageSchema.parse(req.body); const result = await whatsappService.deleteMessage(req.tenant.companyId, req.params.id, data); return successResponse(res, result); }
+  catch (error) { return next(error); }
+}
+
+export async function sendLinkPreview(req, res, next) {
+  try { const data = linkPreviewSchema.parse(req.body); const result = await whatsappService.sendLinkPreview(req.tenant.companyId, req.params.id, data); return createdResponse(res, result); }
+  catch (error) { return next(error); }
+}
+
+export async function sendBase64(req, res, next) {
+  try { const data = sendBase64Schema.parse(req.body); const result = await whatsappService.sendBase64(req.tenant.companyId, req.params.id, data); return createdResponse(res, result); }
+  catch (error) { return next(error); }
+}
+
+export async function sendBulk(req, res, next) {
+  try { const data = sendBulkSchema.parse(req.body); const result = await whatsappService.sendBulk(req.tenant.companyId, req.params.id, data); return createdResponse(res, result); }
+  catch (error) { return next(error); }
+}
+
+export async function sendTypewriter(req, res, next) {
+  try { const data = typewriterSchema.parse(req.body); const result = await whatsappService.sendTypewriter(req.tenant.companyId, req.params.id, data); return createdResponse(res, result); }
+  catch (error) { return next(error); }
+}
+
+export async function sendContact(req, res, next) {
+  try { const data = sendContactSchema.parse(req.body); const result = await whatsappService.sendContact(req.tenant.companyId, req.params.id, data); return createdResponse(res, result); }
+  catch (error) { return next(error); }
+}
+
+/* ===== Profile ===== */
+
+export async function getProfilePicture(req, res, next) {
+  try { const data = profilePictureSchema.parse(req.body); const result = await whatsappService.getProfilePicture(req.tenant.companyId, req.params.id, data); return successResponse(res, result); }
+  catch (error) { return next(error); }
+}
+
+export async function getProfileName(req, res, next) {
+  try { const data = profileNameSchema.parse(req.body); const result = await whatsappService.getProfileName(req.tenant.companyId, req.params.id, data); return successResponse(res, result); }
+  catch (error) { return next(error); }
+}
+
+export async function requestPairingCode(req, res, next) {
+  try { const data = requestPairingSchema.parse(req.body); const result = await whatsappService.requestPairingCode(req.tenant.companyId, req.params.id, data); return successResponse(res, result); }
+  catch (error) { return next(error); }
+}
+
+export async function changeNumber(req, res, next) {
+  try { const data = changeNumberSchema.parse(req.body); const result = await whatsappService.changeNumber(req.tenant.companyId, req.params.id, data); return successResponse(res, result); }
+  catch (error) { return next(error); }
+}
+
 export async function updateProfile(req, res, next) {
   try { const data = updateProfileSchema.parse(req.body); const result = await whatsappService.updateProfile(req.tenant.companyId, req.params.id, data); return successResponse(res, result); }
   catch (error) { return next(error); }
@@ -162,5 +352,12 @@ export default {
   sendMessage, sendMedia, sendAudio, sendDocument, sendVideo, sendSticker,
   sendButtons, sendList, sendLocation, sendReaction, sendStatus, sendStatusMedia, markRead, typing, presence,
   getChats, getChatMessages,
+  createGroup, getGroups, getGroup, updateGroup, groupSettings, addGroupParticipant, removeGroupParticipant,
+  promoteGroupParticipant, demoteGroupParticipant, getInviteLink, revokeInviteLink, acceptInviteCode,
+  updateGroupPicture, leaveGroup,
+  getStories, getStoryById, reactStory,
+  findChat, createChat, archiveChat, unarchiveChat, fetchAllMessages, checkNumber,
+  sendPoll, editMessage, deleteMessage, sendLinkPreview, sendBase64, sendBulk, sendTypewriter, sendContact,
+  getProfilePicture, getProfileName, requestPairingCode, changeNumber,
   updateProfile, updatePicture, restartNumber, logoutNumber, getWebhook, setupWebhook, webhook,
 };

@@ -96,10 +96,6 @@ export const presenceSchema = z.object({
   presence: z.enum(['available', 'unavailable', 'composing', 'recording', 'paused']).optional(),
 }).strict();
 
-export const checkNumberSchema = z.object({
-  number: z.string().regex(/^\d{10,15}$/, 'Número inválido.'),
-}).strict();
-
 export const updateProfileSchema = z.object({
   name: z.string().min(2).max(50),
 }).strict();
@@ -123,9 +119,113 @@ export const sendStatusMediaSchema = z.object({
   caption: z.string().max(1024).optional(),
 }).strict();
 
-export const presenceUpdateSchema = z.object({
-  presence: z.enum(['available', 'unavailable', 'composing', 'recording', 'paused']).optional(),
-  to: z.string().optional(),
+export const createGroupSchema = z.object({
+  name: z.string().min(2, 'Nome do grupo deve ter pelo menos 2 caracteres.').max(100),
+  participants: z.array(z.string().min(10)).optional(),
+}).strict();
+
+export const updateGroupSchema = z.object({
+  name: z.string().min(2).max(100).optional(),
+  description: z.string().max(500).optional(),
+  action: z.enum(['announcement', 'restrict']).optional(),
+  value: z.boolean().optional(),
+}).strict();
+
+export const groupActionSchema = z.object({
+  phone: z.string().min(10, 'Número inválido.'),
+}).strict();
+
+export const inviteCodeSchema = z.object({
+  code: z.string().min(1, 'Código de convite é obrigatório.'),
+}).strict();
+
+export const groupPictureSchema = z.object({
+  picture: z.string().min(10, 'Imagem inválida (base64).'),
+}).strict();
+
+export const reactStatusSchema = z.object({
+  statusId: z.string().min(1),
+  reaction: z.string().min(1).max(50),
+}).strict();
+
+export const findChatSchema = z.object({
+  chatId: z.string().min(1),
+}).strict();
+
+export const createChatSchema = z.object({
+  number: z.string().min(10, 'Número inválido.'),
+}).strict();
+
+export const checkNumberSchema = z.object({
+  number: z.string().min(10, 'Número inválido.'),
+}).strict();
+
+export const sendPollSchema = z.object({
+  number: z.string().min(1),
+  name: z.string().min(1, 'Pergunta da enquete é obrigatória.').max(255),
+  values: z.array(z.string().min(1)).min(2, 'Mínimo de 2 opções').max(12, 'Máximo de 12 opções'),
+}).strict();
+
+export const editMessageSchema = z.object({
+  number: z.string().min(1),
+  messageId: z.string().min(1),
+  text: z.string().min(1).max(4096),
+}).strict();
+
+export const deleteMessageSchema = z.object({
+  number: z.string().min(1),
+  messageId: z.string().min(1),
+  forEveryone: z.boolean().optional(),
+}).strict();
+
+export const linkPreviewSchema = z.object({
+  number: z.string().min(1),
+  url: z.string().url('URL inválida.'),
+  title: z.string().max(255).optional(),
+  description: z.string().max(1024).optional(),
+  image: z.string().optional(),
+}).strict();
+
+export const sendBase64Schema = z.object({
+  number: z.string().min(1),
+  mediaType: z.enum(['image', 'video', 'audio', 'document']).optional(),
+  base64: z.string().min(1, 'Base64 é obrigatório.'),
+  fileName: z.string().max(255).optional(),
+}).strict();
+
+export const sendBulkSchema = z.object({
+  messages: z.array(z.object({
+    number: z.string().min(10),
+    text: z.string().min(1).max(4096),
+    delay: z.number().int().min(0).max(10000).optional(),
+  })).min(1, 'Pelo menos 1 mensagem é obrigatória.').max(5000, 'Máximo 5000 mensagens.'),
+}).strict();
+
+export const typewriterSchema = z.object({
+  number: z.string().min(1),
+  text: z.string().min(1).max(4096),
+}).strict();
+
+export const sendContactSchema = z.object({
+  number: z.string().min(1),
+  name: z.string().min(1).max(255),
+  phone: z.string().min(10),
+}).strict();
+
+export const profilePictureSchema = z.object({
+  number: z.string().min(1),
+}).strict();
+
+export const profileNameSchema = z.object({
+  number: z.string().min(1),
+}).strict();
+
+export const requestPairingSchema = z.object({
+  phone: z.string().min(10),
+}).strict();
+
+export const changeNumberSchema = z.object({
+  number: z.string().min(10),
 }).strict();
 
 export default {
@@ -147,5 +247,25 @@ export default {
   chatMessagesQuerySchema,
   sendStatusSchema,
   sendStatusMediaSchema,
-  presenceUpdateSchema,
+  createGroupSchema,
+  updateGroupSchema,
+  groupActionSchema,
+  inviteCodeSchema,
+  groupPictureSchema,
+  reactStatusSchema,
+  findChatSchema,
+  createChatSchema,
+  checkNumberSchema,
+  sendPollSchema,
+  editMessageSchema,
+  deleteMessageSchema,
+  linkPreviewSchema,
+  sendBase64Schema,
+  sendBulkSchema,
+  typewriterSchema,
+  sendContactSchema,
+  profilePictureSchema,
+  profileNameSchema,
+  requestPairingSchema,
+  changeNumberSchema,
 };
