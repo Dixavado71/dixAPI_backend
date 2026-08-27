@@ -2,14 +2,11 @@
   "openapi": "3.0.3",
   "info": {
     "title": "DiixWhatsApp Backend API",
-    "description": "API REST para o dashboard DiixWhatsApp - Sistema multi-tenant de gestão de vendas, clientes, pedidos, delivery e automações via WhatsApp",
-    "version": "1.0.0",
+    "description": "API REST do DiixWhatsApp - Sistema multi-tenant de gestão de vendas, clientes, pedidos, delivery, WhatsApp, chatbot e automações. Documentação gerada a partir das rotas registradas.",
+    "version": "1.1.0",
     "contact": {
       "name": "DiixWhatsApp Team",
       "email": "suporte@diixwhatsapp.com"
-    },
-    "license": {
-      "name": "ISC"
     }
   },
   "servers": [
@@ -19,19 +16,69 @@
     }
   ],
   "tags": [
-    { "name": "Auth", "description": "Autenticação e autorização" },
-    { "name": "Products", "description": "Gestão de produtos e estoque" },
-    { "name": "Customers", "description": "Gestão de clientes" },
-    { "name": "Orders", "description": "Gestão de pedidos e itens" },
-    { "name": "Catalog", "description": "Categorias, serviços e personalização da loja" },
-    { "name": "Promotions", "description": "Promoções, cupons e descontos" },
-    { "name": "Company", "description": "Configurações da empresa/loja" },
-    { "name": "Communications", "description": "Comunicações e campanhas" },
-    { "name": "Consent", "description": "Consentimento LGPD" },
-    { "name": "Coupons", "description": "Validação e resgate de cupons" },
-    { "name": "Payments", "description": "Eventos de pagamento" },
-    { "name": "Delivery", "description": "Entregas, zonas e motoristas" },
-    { "name": "Dashboard", "description": "Métricas e dashboard" }
+    {
+      "name": "Auth"
+    },
+    {
+      "name": "Admin"
+    },
+    {
+      "name": "Users"
+    },
+    {
+      "name": "Companies"
+    },
+    {
+      "name": "Products"
+    },
+    {
+      "name": "Customers"
+    },
+    {
+      "name": "Orders"
+    },
+    {
+      "name": "Catalog"
+    },
+    {
+      "name": "Promotions"
+    },
+    {
+      "name": "Coupons"
+    },
+    {
+      "name": "Payments"
+    },
+    {
+      "name": "Delivery"
+    },
+    {
+      "name": "Communications"
+    },
+    {
+      "name": "Consent"
+    },
+    {
+      "name": "Transactions"
+    },
+    {
+      "name": "Billing"
+    },
+    {
+      "name": "Conversations"
+    },
+    {
+      "name": "Automation"
+    },
+    {
+      "name": "Notifications"
+    },
+    {
+      "name": "WhatsApp"
+    },
+    {
+      "name": "Dashboard"
+    }
   ],
   "components": {
     "securitySchemes": {
@@ -40,850 +87,4723 @@
         "scheme": "bearer",
         "bearerFormat": "JWT"
       }
-    },
-    "schemas": {
-      "SuccessResponse": {
-        "type": "object",
-        "properties": {
-          "success": { "type": "boolean", "example": true },
-          "data": { "type": "object" }
-        }
-      },
-      "ListResponse": {
-        "type": "object",
-        "properties": {
-          "success": { "type": "boolean", "example": true },
-          "data": { "type": "array", "items": { "type": "object" } },
-          "pagination": {
-            "type": "object",
-            "properties": {
-              "page": { "type": "integer", "example": 1 },
-              "limit": { "type": "integer", "example": 20 },
-              "total": { "type": "integer", "example": 100 },
-              "totalPages": { "type": "integer", "example": 5 }
-            }
-          }
-        }
-      },
-      "ErrorResponse": {
-        "type": "object",
-        "properties": {
-          "success": { "type": "boolean", "example": false },
-          "error": {
-            "type": "object",
-            "properties": {
-              "code": { "type": "string", "example": "VALIDATION_ERROR" },
-              "message": { "type": "string", "example": "Validation failed" },
-              "details": { "type": "array", "items": { "type": "object" } }
-            }
-          }
-        }
-      },
-      "User": {
-        "type": "object",
-        "properties": {
-          "id": { "type": "string", "format": "uuid" },
-          "name": { "type": "string" },
-          "email": { "type": "string", "format": "email" },
-          "phone": { "type": "string" },
-          "avatar_url": { "type": "string" },
-          "role": { "type": "string", "enum": ["master", "reseller", "admin", "manager", "operator", "visitor"] },
-          "language": { "type": "string" },
-          "timezone": { "type": "string" },
-          "is_active": { "type": "boolean" },
-          "last_login_at": { "type": "string", "format": "date-time" },
-          "created_at": { "type": "string", "format": "date-time" }
-        }
-      },
-      "Company": {
-        "type": "object",
-        "properties": {
-          "id": { "type": "string", "format": "uuid" },
-          "name": { "type": "string" },
-          "trade_name": { "type": "string" },
-          "cnpj": { "type": "string" },
-          "address_street": { "type": "string" },
-          "address_number": { "type": "string" },
-          "address_complement": { "type": "string" },
-          "address_city": { "type": "string" },
-          "address_state": { "type": "string" },
-          "address_zip": { "type": "string" },
-          "website": { "type": "string" },
-          "description": { "type": "string" },
-          "logo_url": { "type": "string" },
-          "is_active": { "type": "boolean" },
-          "company_type": { "type": "string", "enum": ["store", "demo", "internal"] },
-          "status": { "type": "string", "enum": ["pending", "active", "suspended", "cancelled"] },
-          "created_at": { "type": "string", "format": "date-time" }
-        }
-      },
-      "Product": {
-        "type": "object",
-        "properties": {
-          "id": { "type": "string", "format": "uuid" },
-          "company_id": { "type": "string", "format": "uuid" },
-          "name": { "type": "string" },
-          "description": { "type": "string" },
-          "category": { "type": "string" },
-          "price": { "type": "number", "format": "decimal" },
-          "cost": { "type": "number", "format": "decimal" },
-          "stock": { "type": "integer" },
-          "min_stock": { "type": "integer" },
-          "total_sales": { "type": "integer" },
-          "total_revenue": { "type": "number", "format": "decimal" },
-          "status": { "type": "string", "enum": ["active", "inactive", "low_stock"] },
-          "image_url": { "type": "string" },
-          "created_at": { "type": "string", "format": "date-time" },
-          "updated_at": { "type": "string", "format": "date-time" }
-        }
-      },
-      "Customer": {
-        "type": "object",
-        "properties": {
-          "id": { "type": "string", "format": "uuid" },
-          "company_id": { "type": "string", "format": "uuid" },
-          "name": { "type": "string" },
-          "email": { "type": "string", "format": "email" },
-          "phone": { "type": "string" },
-          "segment": { "type": "string", "enum": ["vip", "frequent", "occasional", "new"] },
-          "status": { "type": "string", "enum": ["active", "inactive"] },
-          "total_orders": { "type": "integer" },
-          "total_spent": { "type": "number", "format": "decimal" },
-          "last_purchase_date": { "type": "string", "format": "date-time" },
-          "created_at": { "type": "string", "format": "date-time" }
-        }
-      },
-      "Order": {
-        "type": "object",
-        "properties": {
-          "id": { "type": "string", "format": "uuid" },
-          "order_number": { "type": "string" },
-          "company_id": { "type": "string", "format": "uuid" },
-          "customer_id": { "type": "string", "format": "uuid" },
-          "status": { "type": "string", "enum": ["pending", "processing", "completed", "cancelled"] },
-          "payment_method": { "type": "string", "enum": ["credit_card", "debit_card", "pix", "boleto", "whatsapp_pay", "cash_on_delivery", "card_on_delivery"] },
-          "subtotal": { "type": "number", "format": "decimal" },
-          "discount": { "type": "number", "format": "decimal" },
-          "shipping_cost": { "type": "number", "format": "decimal" },
-          "total": { "type": "number", "format": "decimal" },
-          "shipping_address": { "type": "string" },
-          "notes": { "type": "string" },
-          "order_date": { "type": "string", "format": "date-time" },
-          "created_at": { "type": "string", "format": "date-time" }
-        }
-      },
-      "CatalogCategory": {
-        "type": "object",
-        "properties": {
-          "id": { "type": "string", "format": "uuid" },
-          "name": { "type": "string" },
-          "slug": { "type": "string" },
-          "kind": { "type": "string", "enum": ["store_category", "service_category"] },
-          "description": { "type": "string" },
-          "is_active": { "type": "boolean" },
-          "is_system": { "type": "boolean" }
-        }
-      },
-      "ServiceCatalog": {
-        "type": "object",
-        "properties": {
-          "id": { "type": "string", "format": "uuid" },
-          "category_id": { "type": "string", "format": "uuid" },
-          "name": { "type": "string" },
-          "slug": { "type": "string" },
-          "description": { "type": "string" },
-          "is_active": { "type": "boolean" },
-          "is_system": { "type": "boolean" }
-        }
-      },
-      "Promotion": {
-        "type": "object",
-        "properties": {
-          "id": { "type": "string", "format": "uuid" },
-          "company_id": { "type": "string", "format": "uuid" },
-          "name": { "type": "string" },
-          "description": { "type": "string" },
-          "type": { "type": "string", "enum": ["percentage", "fixed_amount", "free_shipping", "buy_x_get_y"] },
-          "status": { "type": "string", "enum": ["draft", "scheduled", "active", "paused", "expired", "cancelled"] },
-          "value": { "type": "number", "format": "decimal" },
-          "minimum_amount": { "type": "number", "format": "decimal" },
-          "starts_at": { "type": "string", "format": "date-time" },
-          "ends_at": { "type": "string", "format": "date-time" },
-          "usage_limit": { "type": "integer" },
-          "usage_count": { "type": "integer" }
-        }
-      },
-      "Coupon": {
-        "type": "object",
-        "properties": {
-          "id": { "type": "string", "format": "uuid" },
-          "company_id": { "type": "string", "format": "uuid" },
-          "code": { "type": "string" },
-          "discount_type": { "type": "string", "enum": ["percentage", "fixed_amount", "free_shipping"] },
-          "discount_value": { "type": "number", "format": "decimal" },
-          "status": { "type": "string", "enum": ["active", "paused", "expired", "exhausted"] },
-          "starts_at": { "type": "string", "format": "date-time" },
-          "ends_at": { "type": "string", "format": "date-time" }
-        }
-      },
-      "Communication": {
-        "type": "object",
-        "properties": {
-          "id": { "type": "string", "format": "uuid" },
-          "company_id": { "type": "string", "format": "uuid" },
-          "title": { "type": "string" },
-          "body": { "type": "string" },
-          "audience": { "type": "string", "enum": ["employees", "customers", "drivers"] },
-          "channel": { "type": "string", "enum": ["in_app", "email", "whatsapp", "sms"] },
-          "priority": { "type": "string", "enum": ["low", "normal", "high", "critical"] },
-          "status": { "type": "string", "enum": ["draft", "scheduled", "sending", "sent", "failed", "cancelled"] },
-          "scheduled_at": { "type": "string", "format": "date-time" }
-        }
-      }
     }
   },
-  "security": [{ "bearerAuth": [] }],
   "paths": {
-    "/health": {
+    "/admin/overview": {
       "get": {
-        "tags": ["Health"],
-        "summary": "Health check",
+        "operationId": "get__admin_overview_1",
+        "summary": "GET /admin/overview",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "responses": {
           "200": {
-            "description": "Servidor saudável",
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/SuccessResponse" }
-              }
-            }
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
           }
         }
       }
     },
-    "/api/docs": {
+    "/admin/stores": {
       "get": {
-        "tags": ["Docs"],
-        "summary": "Documentação Swagger UI"
-      }
-    },
-    "/api/v1/auth/login": {
-      "post": {
-        "tags": ["Auth"],
-        "summary": "Login do usuário",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": ["email", "password"],
-                "properties": {
-                  "email": { "type": "string", "format": "email" },
-                  "password": { "type": "string" }
-                }
-              }
-            }
+        "operationId": "get__admin_stores_1",
+        "summary": "GET /admin/stores",
+        "security": [
+          {
+            "bearerAuth": []
           }
-        },
-        "responses": {
-          "200": { "description": "Login bem-sucedido" },
-          "400": { "description": "Dados inválidos" },
-          "401": { "description": "Credenciais inválidas" }
-        }
-      }
-    },
-    "/api/v1/auth/register": {
-      "post": {
-        "tags": ["Auth"],
-        "summary": "Registro de usuário (requer autenticação admin/manager)",
-        "security": [{ "bearerAuth": [] }],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": ["name", "email", "password"],
-                "properties": {
-                  "name": { "type": "string", "minLength": 2 },
-                  "email": { "type": "string", "format": "email" },
-                  "password": { "type": "string", "minLength": 8 },
-                  "phone": { "type": "string" }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": { "description": "Usuário criado" },
-          "400": { "description": "Dados inválidos" },
-          "401": { "description": "Não autenticado" },
-          "403": { "description": "Sem permissão" },
-          "409": { "description": "E-mail já cadastrado" }
-        }
-      }
-    },
-    "/api/v1/auth/refresh": {
-      "post": {
-        "tags": ["Auth"],
-        "summary": "Refresh token",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": ["refreshToken"],
-                "properties": {
-                  "refreshToken": { "type": "string" }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": { "description": "Tokens renovados" },
-          "400": { "description": "Token inválido" },
-          "401": { "description": "Token expirado/revogdo" }
-        }
-      }
-    },
-    "/api/v1/auth/logout": {
-      "post": {
-        "tags": ["Auth"],
-        "summary": "Logout",
-        "security": [{ "bearerAuth": [] }],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": ["refreshToken"],
-                "properties": { "refreshToken": { "type": "string" } }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": { "description": "Logout realizado" },
-          "401": { "description": "Não autenticado" }
-        }
-      }
-    },
-    "/api/v1/auth/me": {
-      "get": {
-        "tags": ["Auth"],
-        "summary": "Usuário atual",
-        "security": [{ "bearerAuth": [] }],
-        "responses": {
-          "200": { "description": "Dados do usuário" },
-          "401": { "description": "Não autenticado" }
-        }
-      }
-    },
-    "/api/v1/products": {
-      "get": {
-        "tags": ["Products"],
-        "summary": "Listar produtos",
-        "security": [{ "bearerAuth": [] }],
-        "parameters": [
-          { "name": "status", "in": "query", "schema": { "type": "string" } }
         ],
-        "responses": { "200": { "description": "Lista de produtos" }, "401": { "description": "Não autenticado" } }
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
       },
       "post": {
-        "tags": ["Products"],
-        "summary": "Criar produto",
-        "security": [{ "bearerAuth": [] }],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": ["name", "category", "price", "stock", "min_stock"],
-                "properties": {
-                  "name": { "type": "string", "maxLength": 120 },
-                  "description": { "type": "string", "maxLength": 500 },
-                  "category": { "type": "string" },
-                  "price": { "type": "number", "minimum": 0 },
-                  "cost": { "type": "number", "minimum": 0 },
-                  "stock": { "type": "integer", "minimum": 0 },
-                  "min_stock": { "type": "integer", "minimum": 0 },
-                  "image_url": { "type": "string", "format": "uri" }
-                }
-              }
-            }
+        "operationId": "post__admin_stores_2",
+        "summary": "POST /admin/stores",
+        "security": [
+          {
+            "bearerAuth": []
           }
-        },
-        "responses": { "201": { "description": "Produto criado" }, "400": { "description": "Dados inválidos" }, "401": { "description": "Não autenticado" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
       }
     },
-    "/api/v1/products/{id}": {
+    "/admin/payments": {
       "get": {
-        "tags": ["Products"],
-        "summary": "Obter produto",
-        "security": [{ "bearerAuth": [] }],
-        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
-        "responses": { "200": { "description": "Produto encontrado" }, "401": { "description": "Não autenticado" }, "404": { "description": "Produto não encontrado" } }
+        "operationId": "get__admin_payments_1",
+        "summary": "GET /admin/payments",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/admin/plans": {
+      "get": {
+        "operationId": "get__admin_plans_1",
+        "summary": "GET /admin/plans",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/admin/users": {
+      "get": {
+        "operationId": "get__admin_users_1",
+        "summary": "GET /admin/users",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/admin/reseller/overview": {
+      "get": {
+        "operationId": "get__admin_reseller_overview_1",
+        "summary": "GET /admin/reseller/overview",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/admin/reseller/stores": {
+      "get": {
+        "operationId": "get__admin_reseller_stores_1",
+        "summary": "GET /admin/reseller/stores",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      },
+      "post": {
+        "operationId": "post__admin_reseller_stores_2",
+        "summary": "POST /admin/reseller/stores",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/admin/reseller/commissions": {
+      "get": {
+        "operationId": "get__admin_reseller_commissions_1",
+        "summary": "GET /admin/reseller/commissions",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/admin/reseller/payments": {
+      "get": {
+        "operationId": "get__admin_reseller_payments_1",
+        "summary": "GET /admin/reseller/payments",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "operationId": "post__auth_login_1",
+        "summary": "POST /auth/login",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/auth/register-store": {
+      "post": {
+        "operationId": "post__auth_register_store_1",
+        "summary": "POST /auth/register-store",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/auth/register": {
+      "post": {
+        "operationId": "post__auth_register_1",
+        "summary": "POST /auth/register",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/auth/refresh": {
+      "post": {
+        "operationId": "post__auth_refresh_1",
+        "summary": "POST /auth/refresh",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/auth/logout": {
+      "post": {
+        "operationId": "post__auth_logout_1",
+        "summary": "POST /auth/logout",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/auth/me": {
+      "get": {
+        "operationId": "get__auth_me_1",
+        "summary": "GET /auth/me",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/billing": {
+      "get": {
+        "operationId": "get__billing_1",
+        "summary": "GET /billing",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/billing/subscriptions": {
+      "post": {
+        "operationId": "post__billing_subscriptions_1",
+        "summary": "POST /billing/subscriptions",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/billing/payments/confirm": {
+      "post": {
+        "operationId": "post__billing_payments_confirm_1",
+        "summary": "POST /billing/payments/confirm",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/companies": {
+      "get": {
+        "operationId": "get__companies_1",
+        "summary": "GET /companies",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      },
+      "post": {
+        "operationId": "post__companies_2",
+        "summary": "POST /companies",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/companies/:id": {
+      "get": {
+        "operationId": "get__companies_id_1",
+        "summary": "GET /companies/:id",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
       },
       "patch": {
-        "tags": ["Products"],
-        "summary": "Atualizar produto",
-        "security": [{ "bearerAuth": [] }],
-        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
-        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object" } } } },
-        "responses": { "200": { "description": "Produto atualizado" }, "400": { "description": "Dados inválidos" }, "401": { "description": "Não autenticado" }, "404": { "description": "Produto não encontrado" } }
+        "operationId": "patch__companies_id_2",
+        "summary": "PATCH /companies/:id",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
       },
       "delete": {
-        "tags": ["Products"],
-        "summary": "Excluir produto",
-        "security": [{ "bearerAuth": [] }],
-        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
-        "responses": { "200": { "description": "Produto excluído" }, "401": { "description": "Não autenticado" }, "404": { "description": "Produto não encontrado" } }
+        "operationId": "delete__companies_id_3",
+        "summary": "DELETE /companies/:id",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
       }
     },
-    "/api/v1/customers": {
+    "/delivery/settings": {
       "get": {
-        "tags": ["Customers"],
-        "summary": "Listar clientes",
-        "security": [{ "bearerAuth": [] }],
-        "responses": { "200": { "description": "Lista de clientes" }, "401": { "description": "Não autenticado" } }
+        "operationId": "get__delivery_settings_1",
+        "summary": "GET /delivery/settings",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      },
+      "patch": {
+        "operationId": "patch__delivery_settings_2",
+        "summary": "PATCH /delivery/settings",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/delivery/drivers": {
+      "get": {
+        "operationId": "get__delivery_drivers_1",
+        "summary": "GET /delivery/drivers",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
       },
       "post": {
-        "tags": ["Customers"],
-        "summary": "Criar cliente",
-        "security": [{ "bearerAuth": [] }],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": ["name", "email", "phone"],
-                "properties": {
-                  "name": { "type": "string", "maxLength": 120 },
-                  "email": { "type": "string", "format": "email" },
-                  "phone": { "type": "string" },
-                  "segment": { "type": "string", "enum": ["vip", "frequent", "occasional", "new"] },
-                  "status": { "type": "string", "enum": ["active", "inactive"] }
-                }
-              }
-            }
+        "operationId": "post__delivery_drivers_2",
+        "summary": "POST /delivery/drivers",
+        "security": [
+          {
+            "bearerAuth": []
           }
-        },
-        "responses": { "201": { "description": "Cliente criado" }, "400": { "description": "Dados inválidos" }, "401": { "description": "Não autenticado" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
       }
     },
-    "/api/v1/customers/{id}": {
+    "/delivery": {
+      "get": {
+        "operationId": "get__delivery_1",
+        "summary": "GET /delivery",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      },
+      "post": {
+        "operationId": "post__delivery_2",
+        "summary": "POST /delivery",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/delivery/:id": {
+      "get": {
+        "operationId": "get__delivery_id_1",
+        "summary": "GET /delivery/:id",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/delivery/:id/status": {
       "patch": {
-        "tags": ["Customers"],
-        "summary": "Atualizar cliente",
-        "security": [{ "bearerAuth": [] }],
-        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
-        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object" } } } },
-        "responses": { "200": { "description": "Cliente atualizado" }, "400": { "description": "Dados inválidos" }, "401": { "description": "Não autenticado" }, "404": { "description": "Cliente não encontrado" } }
+        "operationId": "patch__delivery_id_status_1",
+        "summary": "PATCH /delivery/:id/status",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/delivery/:id/at-location": {
+      "post": {
+        "operationId": "post__delivery_id_at_location_1",
+        "summary": "POST /delivery/:id/at-location",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/delivery/payments": {
+      "post": {
+        "operationId": "post__delivery_payments_1",
+        "summary": "POST /delivery/payments",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/delivery/payments/:id/confirm": {
+      "post": {
+        "operationId": "post__delivery_payments_id_confirm_1",
+        "summary": "POST /delivery/payments/:id/confirm",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/coupons/validate": {
+      "post": {
+        "operationId": "post__coupons_validate_1",
+        "summary": "POST /coupons/validate",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/coupons/redeem": {
+      "post": {
+        "operationId": "post__coupons_redeem_1",
+        "summary": "POST /coupons/redeem",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/payments/events": {
+      "post": {
+        "operationId": "post__payments_events_1",
+        "summary": "POST /payments/events",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/catalog/categories": {
+      "get": {
+        "operationId": "get__catalog_categories_1",
+        "summary": "GET /catalog/categories",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/catalog/services": {
+      "get": {
+        "operationId": "get__catalog_services_1",
+        "summary": "GET /catalog/services",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/catalog/company/categories": {
+      "get": {
+        "operationId": "get__catalog_company_categories_1",
+        "summary": "GET /catalog/company/categories",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      },
+      "post": {
+        "operationId": "post__catalog_company_categories_2",
+        "summary": "POST /catalog/company/categories",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/catalog/company/services": {
+      "get": {
+        "operationId": "get__catalog_company_services_1",
+        "summary": "GET /catalog/company/services",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      },
+      "post": {
+        "operationId": "post__catalog_company_services_2",
+        "summary": "POST /catalog/company/services",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/customers": {
+      "get": {
+        "operationId": "get__customers_1",
+        "summary": "GET /customers",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      },
+      "post": {
+        "operationId": "post__customers_2",
+        "summary": "POST /customers",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/customers/:id": {
+      "patch": {
+        "operationId": "patch__customers_id_1",
+        "summary": "PATCH /customers/:id",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
       },
       "delete": {
-        "tags": ["Customers"],
-        "summary": "Excluir cliente",
-        "security": [{ "bearerAuth": [] }],
-        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
-        "responses": { "200": { "description": "Cliente excluído" }, "401": { "description": "Não autenticado" }, "404": { "description": "Cliente não encontrado" } }
+        "operationId": "delete__customers_id_2",
+        "summary": "DELETE /customers/:id",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
       }
     },
-    "/api/v1/orders": {
+    "/orders": {
       "get": {
-        "tags": ["Orders"],
-        "summary": "Listar pedidos",
-        "security": [{ "bearerAuth": [] }],
-        "parameters": [{ "name": "status", "in": "query", "schema": { "type": "string" } }],
-        "responses": { "200": { "description": "Lista de pedidos" }, "401": { "description": "Não autenticado" } }
+        "operationId": "get__orders_1",
+        "summary": "GET /orders",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
       },
       "post": {
-        "tags": ["Orders"],
-        "summary": "Criar pedido",
-        "security": [{ "bearerAuth": [] }],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": ["customerId", "paymentMethod", "items"],
-                "properties": {
-                  "customerId": { "type": "string", "format": "uuid" },
-                  "paymentMethod": { "type": "string", "enum": ["credit_card", "debit_card", "pix", "boleto", "whatsapp_pay", "cash_on_delivery", "card_on_delivery"] },
-                  "items": {
-                    "type": "array",
-                    "minItems": 1,
-                    "items": {
-                      "type": "object",
-                      "required": ["productId", "quantity"],
-                      "properties": {
-                        "productId": { "type": "string", "format": "uuid" },
-                        "quantity": { "type": "integer", "minimum": 1 }
-                      }
-                    }
-                  }
-                }
-              }
-            }
+        "operationId": "post__orders_2",
+        "summary": "POST /orders",
+        "security": [
+          {
+            "bearerAuth": []
           }
-        },
-        "responses": { "201": { "description": "Pedido criado" }, "400": { "description": "Dados inválidos/estoque insuficiente" }, "401": { "description": "Não autenticado" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
       }
     },
-    "/api/v1/orders/{id}": {
+    "/orders/:id": {
       "get": {
-        "tags": ["Orders"],
-        "summary": "Obter pedido",
-        "security": [{ "bearerAuth": [] }],
-        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
-        "responses": { "200": { "description": "Pedido encontrado" }, "401": { "description": "Não autenticado" }, "404": { "description": "Pedido não encontrado" } }
+        "operationId": "get__orders_id_1",
+        "summary": "GET /orders/:id",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
       }
     },
-    "/api/v1/catalog/categories": {
-      "get": {
-        "tags": ["Catalog"],
-        "summary": "Listar categorias globais",
-        "parameters": [{ "name": "kind", "in": "query", "schema": { "type": "string", "enum": ["store_category", "service_category"] } }],
-        "responses": { "200": { "description": "Lista de categorias" } }
+    "/orders/:id/status": {
+      "patch": {
+        "operationId": "patch__orders_id_status_1",
+        "summary": "PATCH /orders/:id/status",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
       }
     },
-    "/api/v1/catalog/services": {
+    "/promotions": {
       "get": {
-        "tags": ["Catalog"],
-        "summary": "Listar serviços globais",
-        "parameters": [{ "name": "categoryId", "in": "query", "schema": { "type": "string", "format": "uuid" } }],
-        "responses": { "200": { "description": "Lista de serviços" } }
-      }
-    },
-    "/api/v1/catalog/company/categories": {
-      "get": {
-        "tags": ["Catalog"],
-        "summary": "Listar categorias da loja",
-        "security": [{ "bearerAuth": [] }],
-        "responses": { "200": { "description": "Categorias da loja" }, "401": { "description": "Não autenticado" } }
+        "operationId": "get__promotions_1",
+        "summary": "GET /promotions",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
       },
       "post": {
-        "tags": ["Catalog"],
-        "summary": "Adicionar categoria à loja",
-        "security": [{ "bearerAuth": [] }],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": ["categoryId"],
-                "properties": {
-                  "categoryId": { "type": "string", "format": "uuid" },
-                  "customName": { "type": "string", "maxLength": 120 },
-                  "isPrimary": { "type": "boolean" }
-                }
-              }
-            }
+        "operationId": "post__promotions_2",
+        "summary": "POST /promotions",
+        "security": [
+          {
+            "bearerAuth": []
           }
-        },
-        "responses": { "201": { "description": "Categoria associada" }, "400": { "description": "Dados inválidos" }, "401": { "description": "Não autenticado" }, "404": { "description": "Categoria não encontrada" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
       }
     },
-    "/api/v1/catalog/company/services": {
+    "/promotions/coupons": {
       "get": {
-        "tags": ["Catalog"],
-        "summary": "Listar serviços da loja",
-        "security": [{ "bearerAuth": [] }],
-        "responses": { "200": { "description": "Serviços da loja" }, "401": { "description": "Não autenticado" } }
+        "operationId": "get__promotions_coupons_1",
+        "summary": "GET /promotions/coupons",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
       },
       "post": {
-        "tags": ["Catalog"],
-        "summary": "Adicionar serviço à loja",
-        "security": [{ "bearerAuth": [] }],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": ["serviceId"],
-                "properties": {
-                  "serviceId": { "type": "string", "format": "uuid" },
-                  "customName": { "type": "string", "maxLength": 120 },
-                  "enabled": { "type": "boolean" }
-                }
-              }
-            }
+        "operationId": "post__promotions_coupons_2",
+        "summary": "POST /promotions/coupons",
+        "security": [
+          {
+            "bearerAuth": []
           }
-        },
-        "responses": { "201": { "description": "Serviço associado" }, "400": { "description": "Dados inválidos" }, "401": { "description": "Não autenticado" }, "404": { "description": "Serviço não encontrado" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
       }
     },
-    "/api/v1/catalog/company/customization": {
+    "/company/customization": {
       "get": {
-        "tags": ["Catalog"],
-        "summary": "Obter personalização da loja",
-        "security": [{ "bearerAuth": [] }],
-        "responses": { "200": { "description": "Personalização da loja" }, "401": { "description": "Não autenticado" } }
+        "operationId": "get__company_customization_1",
+        "summary": "GET /company/customization",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
       },
       "patch": {
-        "tags": ["Catalog"],
-        "summary": "Atualizar personalização da loja",
-        "security": [{ "bearerAuth": [] }],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "brandName": { "type": "string", "maxLength": 120 },
-                  "primaryColor": { "type": "string", "pattern": "^#[0-9A-Fa-f]{6}$" },
-                  "secondaryColor": { "type": "string", "pattern": "^#[0-9A-Fa-f]{6}$" },
-                  "logoUrl": { "type": "string", "format": "uri" },
-                  "bannerUrl": { "type": "string", "format": "uri" },
-                  "faviconUrl": { "type": "string", "format": "uri" },
-                  "websiteSlug": { "type": "string", "pattern": "^[a-z0-9-]+$" },
-                  "whatsappGreeting": { "type": "string", "maxLength": 500 },
-                  "whatsappFallback": { "type": "string", "maxLength": 500 },
-                  "storefrontConfig": { "type": "object" },
-                  "botConfig": { "type": "object" }
-                }
-              }
-            }
+        "operationId": "patch__company_customization_2",
+        "summary": "PATCH /company/customization",
+        "security": [
+          {
+            "bearerAuth": []
           }
-        },
-        "responses": { "200": { "description": "Personalização atualizada" }, "400": { "description": "Dados inválidos" }, "401": { "description": "Não autenticado" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
       }
     },
-    "/api/v1/promotions": {
+    "/communications": {
       "get": {
-        "tags": ["Promotions"],
-        "summary": "Listar promoções",
-        "security": [{ "bearerAuth": [] }],
-        "responses": { "200": { "description": "Lista de promoções" }, "401": { "description": "Não autenticado" } }
+        "operationId": "get__communications_1",
+        "summary": "GET /communications",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
       },
       "post": {
-        "tags": ["Promotions"],
-        "summary": "Criar promoção",
-        "security": [{ "bearerAuth": [] }],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": ["name", "type", "value"],
-                "properties": {
-                  "name": { "type": "string", "maxLength": 120 },
-                  "description": { "type": "string", "maxLength": 1000 },
-                  "type": { "type": "string", "enum": ["percentage", "fixed_amount", "free_shipping", "buy_x_get_y"] },
-                  "value": { "type": "number", "minimum": 0 },
-                  "minimumAmount": { "type": "number", "minimum": 0 },
-                  "startsAt": { "type": "string", "format": "date-time" },
-                  "endsAt": { "type": "string", "format": "date-time" },
-                  "usageLimit": { "type": "integer", "minimum": 1 }
-                }
-              }
-            }
+        "operationId": "post__communications_2",
+        "summary": "POST /communications",
+        "security": [
+          {
+            "bearerAuth": []
           }
-        },
-        "responses": { "201": { "description": "Promoção criada" }, "400": { "description": "Dados inválidos" }, "401": { "description": "Não autenticado" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
       }
     },
-    "/api/v1/promotions/coupons": {
+    "/consent": {
+      "post": {
+        "operationId": "post__consent_1",
+        "summary": "POST /consent",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/consent/customer/:customerId": {
       "get": {
-        "tags": ["Promotions"],
-        "summary": "Listar cupons",
-        "security": [{ "bearerAuth": [] }],
-        "responses": { "200": { "description": "Lista de cupons" }, "401": { "description": "Não autenticado" } }
+        "operationId": "get__consent_customer_customerId_1",
+        "summary": "GET /consent/customer/:customerId",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/products": {
+      "get": {
+        "operationId": "get__products_1",
+        "summary": "GET /products",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
       },
       "post": {
-        "tags": ["Promotions"],
-        "summary": "Criar cupom",
-        "security": [{ "bearerAuth": [] }],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": ["code", "discountType", "discountValue"],
-                "properties": {
-                  "promotionId": { "type": "string", "format": "uuid" },
-                  "code": { "type": "string", "minLength": 3, "maxLength": 64 },
-                  "description": { "type": "string", "maxLength": 1000 },
-                  "discountType": { "type": "string", "enum": ["percentage", "fixed_amount", "free_shipping"] },
-                  "discountValue": { "type": "number", "minimum": 0 },
-                  "minimumAmount": { "type": "number", "minimum": 0 },
-                  "maxDiscount": { "type": "number", "minimum": 0 },
-                  "usageLimit": { "type": "integer", "minimum": 1 },
-                  "perCustomerLimit": { "type": "integer", "minimum": 1 },
-                  "startsAt": { "type": "string", "format": "date-time" },
-                  "endsAt": { "type": "string", "format": "date-time" }
-                }
-              }
-            }
+        "operationId": "post__products_2",
+        "summary": "POST /products",
+        "security": [
+          {
+            "bearerAuth": []
           }
-        },
-        "responses": { "201": { "description": "Cupom criado" }, "400": { "description": "Dados inválidos" }, "401": { "description": "Não autenticado" }, "409": { "description": "Código já existe" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
       }
     },
-    "/api/v1/coupons/validate": {
-      "post": {
-        "tags": ["Coupons"],
-        "summary": "Validar cupom",
-        "security": [{ "bearerAuth": [] }],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": ["code", "subtotal"],
-                "properties": {
-                  "code": { "type": "string", "maxLength": 64 },
-                  "customerId": { "type": "string", "format": "uuid" },
-                  "subtotal": { "type": "number", "minimum": 0 }
-                }
-              }
-            }
-          }
-        },
-        "responses": { "200": { "description": "Cupom válido" }, "400": { "description": "Cupom inválido/expirado" }, "401": { "description": "Não autenticado" }, "404": { "description": "Cupom não encontrado" } }
-      }
-    },
-    "/api/v1/coupons/redeem": {
-      "post": {
-        "tags": ["Coupons"],
-        "summary": "Resgatar cupom",
-        "security": [{ "bearerAuth": [] }],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": ["code", "orderId", "subtotal", "discountAmount"],
-                "properties": {
-                  "code": { "type": "string", "maxLength": 64 },
-                  "customerId": { "type": "string", "format": "uuid" },
-                  "orderId": { "type": "string", "format": "uuid" },
-                  "subtotal": { "type": "number", "minimum": 0 },
-                  "discountAmount": { "type": "number", "minimum": 0 }
-                }
-              }
-            }
-          }
-        },
-        "responses": { "201": { "description": "Cupom resgatado" }, "400": { "description": "Cupom inválido/expirado" }, "401": { "description": "Não autenticado" }, "409": { "description": "Cupom já resgatado para este pedido" } }
-      }
-    },
-    "/api/v1/payments/events": {
-      "post": {
-        "tags": ["Payments"],
-        "summary": "Processar evento de pagamento (webhook)",
-        "security": [{ "bearerAuth": [] }],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": ["paymentId", "provider", "providerEventId", "eventType", "signatureValid"],
-                "properties": {
-                  "paymentId": { "type": "string", "format": "uuid" },
-                  "provider": { "type": "string" },
-                  "providerEventId": { "type": "string" },
-                  "eventType": { "type": "string" },
-                  "signatureValid": { "type": "boolean", "const": true },
-                  "providerTimestamp": { "type": "string", "format": "date-time" },
-                  "payloadHash": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
-                }
-              }
-            }
-          }
-        },
-        "responses": { "201": { "description": "Evento processado" }, "400": { "description": "Dados inválidos" }, "401": { "description": "Não autenticado/assinatura inválida" }, "404": { "description": "Pagamento não encontrado" }, "409": { "description": "Evento já processado" } }
-      }
-    },
-    "/api/v1/communications": {
+    "/products/:id": {
       "get": {
-        "tags": ["Communications"],
-        "summary": "Listar comunicações",
-        "security": [{ "bearerAuth": [] }],
-        "responses": { "200": { "description": "Lista de comunicações" }, "401": { "description": "Não autenticado" } }
+        "operationId": "get__products_id_1",
+        "summary": "GET /products/:id",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      },
+      "patch": {
+        "operationId": "patch__products_id_2",
+        "summary": "PATCH /products/:id",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      },
+      "delete": {
+        "operationId": "delete__products_id_3",
+        "summary": "DELETE /products/:id",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/transactions": {
+      "get": {
+        "operationId": "get__transactions_1",
+        "summary": "GET /transactions",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
       },
       "post": {
-        "tags": ["Communications"],
-        "summary": "Criar comunicação",
-        "security": [{ "bearerAuth": [] }],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": ["title", "body", "audience", "channel"],
-                "properties": {
-                  "title": { "type": "string", "maxLength": 160 },
-                  "body": { "type": "string", "maxLength": 10000 },
-                  "audience": { "type": "string", "enum": ["employees", "customers", "drivers"] },
-                  "channel": { "type": "string", "enum": ["in_app", "email", "whatsapp", "sms"] },
-                  "priority": { "type": "string", "enum": ["low", "normal", "high", "critical"] },
-                  "scheduledAt": { "type": "string", "format": "date-time" }
-                }
-              }
-            }
+        "operationId": "post__transactions_2",
+        "summary": "POST /transactions",
+        "security": [
+          {
+            "bearerAuth": []
           }
-        },
-        "responses": { "201": { "description": "Comunicação criada" }, "400": { "description": "Dados inválidos" }, "401": { "description": "Não autenticado" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
       }
     },
-    "/api/v1/consent": {
+    "/whatsapp/webhook/:instanceName": {
       "post": {
-        "tags": ["Consent"],
-        "summary": "Registrar consentimento LGPD",
-        "security": [{ "bearerAuth": [] }],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": ["customerId", "status", "source", "purpose"],
-                "properties": {
-                  "customerId": { "type": "string", "format": "uuid" },
-                  "status": { "type": "string", "enum": ["unknown", "opted_in", "opted_out"] },
-                  "source": { "type": "string", "maxLength": 100 },
-                  "purpose": { "type": "string", "maxLength": 160 },
-                  "retentionUntil": { "type": "string", "format": "date-time" },
-                  "evidenceRef": { "type": "string", "maxLength": 255 }
-                }
-              }
-            }
+        "operationId": "post__whatsapp_webhook_instanceName_1",
+        "summary": "POST /whatsapp/webhook/:instanceName",
+        "security": [
+          {
+            "bearerAuth": []
           }
-        },
-        "responses": { "201": { "description": "Consentimento registrado" }, "400": { "description": "Dados inválidos" }, "401": { "description": "Não autenticado" }, "404": { "description": "Cliente não encontrado" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
       }
     },
-    "/api/v1/consent/customer/{customerId}": {
+    "/whatsapp/numbers": {
       "get": {
-        "tags": ["Consent"],
-        "summary": "Listar consentimentos do cliente",
-        "security": [{ "bearerAuth": [] }],
-        "parameters": [{ "name": "customerId", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
-        "responses": { "200": { "description": "Histórico de consentimentos" }, "401": { "description": "Não autenticado" }, "404": { "description": "Cliente não encontrado" } }
+        "operationId": "get__whatsapp_numbers_1",
+        "summary": "GET /whatsapp/numbers",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
       }
     },
-    "/api/v1/delivery": {
+    "/whatsapp/numbers/connect": {
+      "post": {
+        "operationId": "post__whatsapp_numbers_connect_1",
+        "summary": "POST /whatsapp/numbers/connect",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/whatsapp/numbers/:id/qrcode": {
       "get": {
-        "tags": ["Delivery"],
-        "summary": "Listar entregas",
-        "security": [{ "bearerAuth": [] }],
-        "parameters": [{ "name": "status", "in": "query", "schema": { "type": "string" } }],
-        "responses": { "200": { "description": "Lista de entregas" }, "401": { "description": "Não autenticado" } }
+        "operationId": "get__whatsapp_numbers_id_qrcode_1",
+        "summary": "GET /whatsapp/numbers/:id/qrcode",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/whatsapp/numbers/:id/status": {
+      "get": {
+        "operationId": "get__whatsapp_numbers_id_status_2",
+        "summary": "GET /whatsapp/numbers/:id/status",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/whatsapp/numbers/:id/restart": {
+      "post": {
+        "operationId": "post__whatsapp_numbers_id_restart_1",
+        "summary": "POST /whatsapp/numbers/:id/restart",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/whatsapp/numbers/:id/logout": {
+      "post": {
+        "operationId": "post__whatsapp_numbers_id_logout_1",
+        "summary": "POST /whatsapp/numbers/:id/logout",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/whatsapp/numbers/:id/disconnect": {
+      "post": {
+        "operationId": "post__whatsapp_numbers_id_disconnect_1",
+        "summary": "POST /whatsapp/numbers/:id/disconnect",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/whatsapp/numbers/:id": {
+      "delete": {
+        "operationId": "delete__whatsapp_numbers_id_1",
+        "summary": "DELETE /whatsapp/numbers/:id",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/whatsapp/numbers/:id/profile": {
+      "patch": {
+        "operationId": "patch__whatsapp_numbers_id_profile_1",
+        "summary": "PATCH /whatsapp/numbers/:id/profile",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/whatsapp/numbers/:id/picture": {
+      "patch": {
+        "operationId": "patch__whatsapp_numbers_id_picture_1",
+        "summary": "PATCH /whatsapp/numbers/:id/picture",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/whatsapp/numbers/:id/contacts/profile-picture": {
+      "post": {
+        "operationId": "post__whatsapp_numbers_id_contacts_profile_picture_1",
+        "summary": "POST /whatsapp/numbers/:id/contacts/profile-picture",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/whatsapp/numbers/:id/contacts/profile-name": {
+      "post": {
+        "operationId": "post__whatsapp_numbers_id_contacts_profile_name_1",
+        "summary": "POST /whatsapp/numbers/:id/contacts/profile-name",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/whatsapp/numbers/:id/contacts/profile-status": {
+      "post": {
+        "operationId": "post__whatsapp_numbers_id_contacts_profile_status_1",
+        "summary": "POST /whatsapp/numbers/:id/contacts/profile-status",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/whatsapp/numbers/:id/bot-config": {
+      "get": {
+        "operationId": "get__whatsapp_numbers_id_bot_config_1",
+        "summary": "GET /whatsapp/numbers/:id/bot-config",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      },
+      "patch": {
+        "operationId": "patch__whatsapp_numbers_id_bot_config_2",
+        "summary": "PATCH /whatsapp/numbers/:id/bot-config",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/whatsapp/numbers/:id/catalog": {
+      "get": {
+        "operationId": "get__whatsapp_numbers_id_catalog_1",
+        "summary": "GET /whatsapp/numbers/:id/catalog",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/whatsapp/numbers/:id/notification-logs": {
+      "get": {
+        "operationId": "get__whatsapp_numbers_id_notification_logs_1",
+        "summary": "GET /whatsapp/numbers/:id/notification-logs",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/whatsapp/numbers/:id/message-logs": {
+      "get": {
+        "operationId": "get__whatsapp_numbers_id_message_logs_1",
+        "summary": "GET /whatsapp/numbers/:id/message-logs",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/whatsapp/numbers/:id/linked-groups": {
+      "get": {
+        "operationId": "get__whatsapp_numbers_id_linked_groups_1",
+        "summary": "GET /whatsapp/numbers/:id/linked-groups",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      },
+      "post": {
+        "operationId": "post__whatsapp_numbers_id_linked_groups_2",
+        "summary": "POST /whatsapp/numbers/:id/linked-groups",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/whatsapp/numbers/:id/linked-groups/sync": {
+      "post": {
+        "operationId": "post__whatsapp_numbers_id_linked_groups_sync_1",
+        "summary": "POST /whatsapp/numbers/:id/linked-groups/sync",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/whatsapp/numbers/:id/linked-groups/:lgId": {
+      "patch": {
+        "operationId": "patch__whatsapp_numbers_id_linked_groups_lgId_1",
+        "summary": "PATCH /whatsapp/numbers/:id/linked-groups/:lgId",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      },
+      "delete": {
+        "operationId": "delete__whatsapp_numbers_id_linked_groups_lgId_2",
+        "summary": "DELETE /whatsapp/numbers/:id/linked-groups/:lgId",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/whatsapp/numbers/:id/webhook": {
+      "get": {
+        "operationId": "get__whatsapp_numbers_id_webhook_1",
+        "summary": "GET /whatsapp/numbers/:id/webhook",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/whatsapp/numbers/:id/webhook/setup": {
+      "post": {
+        "operationId": "post__whatsapp_numbers_id_webhook_setup_1",
+        "summary": "POST /whatsapp/numbers/:id/webhook/setup",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/whatsapp/numbers/:id/send": {
+      "post": {
+        "operationId": "post__whatsapp_numbers_id_send_1",
+        "summary": "POST /whatsapp/numbers/:id/send",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/whatsapp/numbers/:id/send-media": {
+      "post": {
+        "operationId": "post__whatsapp_numbers_id_send_media_1",
+        "summary": "POST /whatsapp/numbers/:id/send-media",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/whatsapp/numbers/:id/send-audio": {
+      "post": {
+        "operationId": "post__whatsapp_numbers_id_send_audio_1",
+        "summary": "POST /whatsapp/numbers/:id/send-audio",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/whatsapp/numbers/:id/send-document": {
+      "post": {
+        "operationId": "post__whatsapp_numbers_id_send_document_1",
+        "summary": "POST /whatsapp/numbers/:id/send-document",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/whatsapp/numbers/:id/send-video": {
+      "post": {
+        "operationId": "post__whatsapp_numbers_id_send_video_1",
+        "summary": "POST /whatsapp/numbers/:id/send-video",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/whatsapp/numbers/:id/send-sticker": {
+      "post": {
+        "operationId": "post__whatsapp_numbers_id_send_sticker_1",
+        "summary": "POST /whatsapp/numbers/:id/send-sticker",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/whatsapp/numbers/:id/send-buttons": {
+      "post": {
+        "operationId": "post__whatsapp_numbers_id_send_buttons_1",
+        "summary": "POST /whatsapp/numbers/:id/send-buttons",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/whatsapp/numbers/:id/send-list": {
+      "post": {
+        "operationId": "post__whatsapp_numbers_id_send_list_1",
+        "summary": "POST /whatsapp/numbers/:id/send-list",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/whatsapp/numbers/:id/send-location": {
+      "post": {
+        "operationId": "post__whatsapp_numbers_id_send_location_1",
+        "summary": "POST /whatsapp/numbers/:id/send-location",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/whatsapp/numbers/:id/send-reaction": {
+      "post": {
+        "operationId": "post__whatsapp_numbers_id_send_reaction_1",
+        "summary": "POST /whatsapp/numbers/:id/send-reaction",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/whatsapp/numbers/:id/send-status": {
+      "post": {
+        "operationId": "post__whatsapp_numbers_id_send_status_1",
+        "summary": "POST /whatsapp/numbers/:id/send-status",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/whatsapp/numbers/:id/send-status-media": {
+      "post": {
+        "operationId": "post__whatsapp_numbers_id_send_status_media_1",
+        "summary": "POST /whatsapp/numbers/:id/send-status-media",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/whatsapp/numbers/:id/send-poll": {
+      "post": {
+        "operationId": "post__whatsapp_numbers_id_send_poll_1",
+        "summary": "POST /whatsapp/numbers/:id/send-poll",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/whatsapp/numbers/:id/send-contact": {
+      "post": {
+        "operationId": "post__whatsapp_numbers_id_send_contact_1",
+        "summary": "POST /whatsapp/numbers/:id/send-contact",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/whatsapp/numbers/:id/edit-message": {
+      "post": {
+        "operationId": "post__whatsapp_numbers_id_edit_message_1",
+        "summary": "POST /whatsapp/numbers/:id/edit-message",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/whatsapp/numbers/:id/delete-message": {
+      "post": {
+        "operationId": "post__whatsapp_numbers_id_delete_message_1",
+        "summary": "POST /whatsapp/numbers/:id/delete-message",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/whatsapp/numbers/:id/read": {
+      "post": {
+        "operationId": "post__whatsapp_numbers_id_read_1",
+        "summary": "POST /whatsapp/numbers/:id/read",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/whatsapp/numbers/:id/typing": {
+      "post": {
+        "operationId": "post__whatsapp_numbers_id_typing_1",
+        "summary": "POST /whatsapp/numbers/:id/typing",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/whatsapp/numbers/:id/presence": {
+      "post": {
+        "operationId": "post__whatsapp_numbers_id_presence_1",
+        "summary": "POST /whatsapp/numbers/:id/presence",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/whatsapp/numbers/:id/chats": {
+      "get": {
+        "operationId": "get__whatsapp_numbers_id_chats_1",
+        "summary": "GET /whatsapp/numbers/:id/chats",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/whatsapp/numbers/:id/chats/messages": {
+      "get": {
+        "operationId": "get__whatsapp_numbers_id_chats_messages_1",
+        "summary": "GET /whatsapp/numbers/:id/chats/messages",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/whatsapp/numbers/:id/chats/find": {
+      "post": {
+        "operationId": "post__whatsapp_numbers_id_chats_find_1",
+        "summary": "POST /whatsapp/numbers/:id/chats/find",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/whatsapp/numbers/:id/chats/check-number": {
+      "post": {
+        "operationId": "post__whatsapp_numbers_id_chats_check_number_1",
+        "summary": "POST /whatsapp/numbers/:id/chats/check-number",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/whatsapp/numbers/:id/chats/:chatId/archive": {
+      "post": {
+        "operationId": "post__whatsapp_numbers_id_chats_chatId_archive_1",
+        "summary": "POST /whatsapp/numbers/:id/chats/:chatId/archive",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/whatsapp/numbers/:id/chats/:chatId/unarchive": {
+      "post": {
+        "operationId": "post__whatsapp_numbers_id_chats_chatId_unarchive_1",
+        "summary": "POST /whatsapp/numbers/:id/chats/:chatId/unarchive",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/whatsapp/numbers/:id/chats/:chatId/fetch-all": {
+      "get": {
+        "operationId": "get__whatsapp_numbers_id_chats_chatId_fetch_all_1",
+        "summary": "GET /whatsapp/numbers/:id/chats/:chatId/fetch-all",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/whatsapp/numbers/:id/groups": {
+      "post": {
+        "operationId": "post__whatsapp_numbers_id_groups_1",
+        "summary": "POST /whatsapp/numbers/:id/groups",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      },
+      "get": {
+        "operationId": "get__whatsapp_numbers_id_groups_2",
+        "summary": "GET /whatsapp/numbers/:id/groups",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/whatsapp/numbers/:id/groups/:groupId": {
+      "get": {
+        "operationId": "get__whatsapp_numbers_id_groups_groupId_1",
+        "summary": "GET /whatsapp/numbers/:id/groups/:groupId",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      },
+      "patch": {
+        "operationId": "patch__whatsapp_numbers_id_groups_groupId_2",
+        "summary": "PATCH /whatsapp/numbers/:id/groups/:groupId",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/whatsapp/numbers/:id/groups/:groupId/settings": {
+      "post": {
+        "operationId": "post__whatsapp_numbers_id_groups_groupId_settings_1",
+        "summary": "POST /whatsapp/numbers/:id/groups/:groupId/settings",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/whatsapp/numbers/:id/groups/:groupId/add": {
+      "post": {
+        "operationId": "post__whatsapp_numbers_id_groups_groupId_add_1",
+        "summary": "POST /whatsapp/numbers/:id/groups/:groupId/add",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/whatsapp/numbers/:id/groups/:groupId/remove": {
+      "post": {
+        "operationId": "post__whatsapp_numbers_id_groups_groupId_remove_1",
+        "summary": "POST /whatsapp/numbers/:id/groups/:groupId/remove",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/whatsapp/numbers/:id/groups/:groupId/promote": {
+      "post": {
+        "operationId": "post__whatsapp_numbers_id_groups_groupId_promote_1",
+        "summary": "POST /whatsapp/numbers/:id/groups/:groupId/promote",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/whatsapp/numbers/:id/groups/:groupId/demote": {
+      "post": {
+        "operationId": "post__whatsapp_numbers_id_groups_groupId_demote_1",
+        "summary": "POST /whatsapp/numbers/:id/groups/:groupId/demote",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/whatsapp/numbers/:id/groups/:groupId/invite": {
+      "post": {
+        "operationId": "post__whatsapp_numbers_id_groups_groupId_invite_1",
+        "summary": "POST /whatsapp/numbers/:id/groups/:groupId/invite",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/whatsapp/numbers/:id/groups/:groupId/revoke-invite": {
+      "post": {
+        "operationId": "post__whatsapp_numbers_id_groups_groupId_revoke_invite_1",
+        "summary": "POST /whatsapp/numbers/:id/groups/:groupId/revoke-invite",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/whatsapp/numbers/:id/groups/:groupId/picture": {
+      "post": {
+        "operationId": "post__whatsapp_numbers_id_groups_groupId_picture_1",
+        "summary": "POST /whatsapp/numbers/:id/groups/:groupId/picture",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/whatsapp/numbers/:id/groups/:groupId/leave": {
+      "post": {
+        "operationId": "post__whatsapp_numbers_id_groups_groupId_leave_1",
+        "summary": "POST /whatsapp/numbers/:id/groups/:groupId/leave",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/whatsapp/numbers/:id/groups/accept-invite": {
+      "post": {
+        "operationId": "post__whatsapp_numbers_id_groups_accept_invite_1",
+        "summary": "POST /whatsapp/numbers/:id/groups/accept-invite",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/whatsapp/numbers/:id/status/:statusId": {
+      "get": {
+        "operationId": "get__whatsapp_numbers_id_status_statusId_1",
+        "summary": "GET /whatsapp/numbers/:id/status/:statusId",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/whatsapp/numbers/:id/status/reaction": {
+      "post": {
+        "operationId": "post__whatsapp_numbers_id_status_reaction_1",
+        "summary": "POST /whatsapp/numbers/:id/status/reaction",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/conversations": {
+      "get": {
+        "operationId": "get__conversations_1",
+        "summary": "GET /conversations",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/conversations/:id": {
+      "get": {
+        "operationId": "get__conversations_id_1",
+        "summary": "GET /conversations/:id",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/conversations/:id/messages": {
+      "get": {
+        "operationId": "get__conversations_id_messages_1",
+        "summary": "GET /conversations/:id/messages",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/conversations/:id/status": {
+      "patch": {
+        "operationId": "patch__conversations_id_status_1",
+        "summary": "PATCH /conversations/:id/status",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/conversations/:id/assign": {
+      "post": {
+        "operationId": "post__conversations_id_assign_1",
+        "summary": "POST /conversations/:id/assign",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/conversations/:id/send": {
+      "post": {
+        "operationId": "post__conversations_id_send_1",
+        "summary": "POST /conversations/:id/send",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/automation/flows": {
+      "get": {
+        "operationId": "get__automation_flows_1",
+        "summary": "GET /automation/flows",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      },
+      "post": {
+        "operationId": "post__automation_flows_2",
+        "summary": "POST /automation/flows",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/automation/flows/:id": {
+      "get": {
+        "operationId": "get__automation_flows_id_1",
+        "summary": "GET /automation/flows/:id",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      },
+      "put": {
+        "operationId": "put__automation_flows_id_2",
+        "summary": "PUT /automation/flows/:id",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      },
+      "delete": {
+        "operationId": "delete__automation_flows_id_3",
+        "summary": "DELETE /automation/flows/:id",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/automation/flows/:id/toggle": {
+      "patch": {
+        "operationId": "patch__automation_flows_id_toggle_1",
+        "summary": "PATCH /automation/flows/:id/toggle",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/automation/flows/:id/duplicate": {
+      "post": {
+        "operationId": "post__automation_flows_id_duplicate_1",
+        "summary": "POST /automation/flows/:id/duplicate",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/automation/flows/:id/test": {
+      "post": {
+        "operationId": "post__automation_flows_id_test_1",
+        "summary": "POST /automation/flows/:id/test",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/automation/quick-replies": {
+      "get": {
+        "operationId": "get__automation_quick_replies_1",
+        "summary": "GET /automation/quick-replies",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      },
+      "post": {
+        "operationId": "post__automation_quick_replies_2",
+        "summary": "POST /automation/quick-replies",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/automation/quick-replies/:id": {
+      "put": {
+        "operationId": "put__automation_quick_replies_id_1",
+        "summary": "PUT /automation/quick-replies/:id",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      },
+      "delete": {
+        "operationId": "delete__automation_quick_replies_id_2",
+        "summary": "DELETE /automation/quick-replies/:id",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/automation/quick-replies/:id/use": {
+      "post": {
+        "operationId": "post__automation_quick_replies_id_use_1",
+        "summary": "POST /automation/quick-replies/:id/use",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/notifications": {
+      "get": {
+        "operationId": "get__notifications_1",
+        "summary": "GET /notifications",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/notifications/:id/read": {
+      "patch": {
+        "operationId": "patch__notifications_id_read_1",
+        "summary": "PATCH /notifications/:id/read",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/notifications/read-all": {
+      "post": {
+        "operationId": "post__notifications_read_all_1",
+        "summary": "POST /notifications/read-all",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/notifications/logs": {
+      "get": {
+        "operationId": "get__notifications_logs_1",
+        "summary": "GET /notifications/logs",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/notifications/triggers": {
+      "get": {
+        "operationId": "get__notifications_triggers_1",
+        "summary": "GET /notifications/triggers",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      },
+      "post": {
+        "operationId": "post__notifications_triggers_2",
+        "summary": "POST /notifications/triggers",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/notifications/triggers/:id": {
+      "patch": {
+        "operationId": "patch__notifications_triggers_id_1",
+        "summary": "PATCH /notifications/triggers/:id",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      },
+      "delete": {
+        "operationId": "delete__notifications_triggers_id_2",
+        "summary": "DELETE /notifications/triggers/:id",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/dashboard/overview": {
+      "get": {
+        "operationId": "get__dashboard_overview_1",
+        "summary": "GET /dashboard/overview",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/users": {
+      "get": {
+        "operationId": "get__users_1",
+        "summary": "GET /users",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      },
+      "post": {
+        "operationId": "post__users_2",
+        "summary": "POST /users",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/users/:id": {
+      "get": {
+        "operationId": "get__users_id_1",
+        "summary": "GET /users/:id",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      },
+      "patch": {
+        "operationId": "patch__users_id_2",
+        "summary": "PATCH /users/:id",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      },
+      "delete": {
+        "operationId": "delete__users_id_3",
+        "summary": "DELETE /users/:id",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
       }
     }
   }
