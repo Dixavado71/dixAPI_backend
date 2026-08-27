@@ -6,6 +6,14 @@ import chatbotCache from '../../../infrastructure/cache/chatbotCache.js';
 import { env } from '../../../config/env.js';
 import { extractMessageText, extractMedia } from '../../../shared/whatsapp/extraction.js';
 
+function jidFromPhone(phone) {
+  if (!phone) return null;
+  const p = String(phone);
+  if (p.includes('@')) return p;
+  if (p.endsWith('@g.us') || p.endsWith('@s.whatsapp.net') || p.endsWith('@c.us') || p.endsWith('@lid')) return p;
+  return `${p}@s.whatsapp.net`;
+}
+
 async function syncConversation({ companyId, number, phoneNumber, sender, content, messageType, sentAt }) {
   const channel = 'whatsapp';
   let conversation = await conversationRepo.findConversationByContact(companyId, channel, phoneNumber);
@@ -146,6 +154,7 @@ export async function sendMessage(companyId, numberId, data) {
     whatsapp_number_id: number.id,
     customer_id: contact.customer_id,
     external_message_id: result?.key?.id ?? null,
+    remote_jid: jidFromPhone(data.to),
     direction: 'outbound',
     message_type: 'text',
     content: data.text,
@@ -178,6 +187,7 @@ export async function sendMedia(companyId, numberId, data) {
   await whatsappRepo.createMessage({
     company_id: companyId,
     whatsapp_number_id: number.id,
+    remote_jid: jidFromPhone(data.to),
     direction: 'outbound',
     message_type: data.mediaType,
     content: data.caption ?? data.mediaUrl,
@@ -213,6 +223,7 @@ async function recordOutboundMessage(number, to, content, messageType, externalI
     whatsapp_number_id: number.id,
     customer_id: contact?.customer_id ?? null,
     external_message_id: externalId ?? null,
+    remote_jid: jidFromPhone(to),
     direction: 'outbound',
     message_type: messageType,
     content: content || null,
@@ -342,6 +353,7 @@ function mapChat(chat) {
 }
 
 function mapMessage(msg) {
+  const media = extractMedia(msg.message);
   return {
     id: msg.key?.id ?? msg.id,
     remoteJid: msg.key?.remoteJid ?? '',
@@ -352,6 +364,30 @@ function mapMessage(msg) {
     messageTimestamp: msg.messageTimestamp ? Number(msg.messageTimestamp) * 1000 : null,
     status: msg.status ?? null,
     source: msg.source ?? null,
+    isGroup: (msg.key?.remoteJid ?? '').endsWith('@g.us'),
+    senderName: msg.pushName ?? null,
+    media: media
+      ? { type: media.type, url: media.url, caption: media.caption, mimeType: media.mimeType, fileName: media.fileName }
+      : null,
+  };
+}
+
+function mapDbMessage(m) {
+  return {
+    id: m.external_message_id ?? m.id,
+    remoteJid: m.remote_jid ?? '',
+    fromMe: m.direction === 'outbound',
+    pushName: null,
+    messageType: m.message_type ?? null,
+    content: m.content ?? null,
+    messageTimestamp: m.sent_at ? new Date(m.sent_at).getTime() : null,
+    status: m.status ?? null,
+    source: 'database',
+    isGroup: (m.remote_jid ?? '').endsWith('@g.us'),
+    senderName: null,
+    media: null,
+    reactions: Array.isArray(m.reactions) ? m.reactions : [],
+    fetchedFrom: 'database',
   };
 }
 
@@ -363,22 +399,106 @@ export async function listChats(companyId, numberId) {
   return Array.isArray(chats) ? chats.map(mapChat) : [];
 }
 
+export function parseEvolutionMessage(msg) {
+  const base = mapMessage(msg);
+  const inlineReactions = Array.isArray(msg.message?.reactions)
+    ? msg.message.reactions.map((r) => ({
+        emoji: r.reaction ?? r.text ?? '',
+        author: r.senderId ?? null,
+        at: r.timestamp ? Number(r.timestamp) * 1000 : null,
+      }))
+    : [];
+  return { ...base, reactions: inlineReactions, fetchedFrom: 'evolution' };
+}
+
+export function isReactionMessage(msg) {
+  return Boolean(
+    msg?.message?.reactionMessage
+    || msg?.messageType === 'reaction'
+    || msg?.message?.reactions,
+  );
+}
+
+export function aggregateReactions(messages) {
+  const byId = new Map();
+  const kept = [];
+  for (const m of messages) {
+    if (m.message?.reactionMessage?.key?.id) {
+      const targetId = m.message.reactionMessage.key.id;
+      const reactions = byId.get(targetId) ?? [];
+      reactions.push({
+        emoji: m.message.reactionMessage.text ?? '',
+        author: m.message.reactionMessage.key?.participant ?? m.message.reactionMessage.key?.remoteJid ?? null,
+        at: m.messageTimestamp ? Number(m.messageTimestamp) * 1000 : null,
+      });
+      byId.set(targetId, reactions);
+      continue;
+    }
+    kept.push(m);
+  }
+  return { messages: kept, reactionsByTarget: byId };
+}
+
+export function mergeChatMessages(evolution, database) {
+  const seen = new Set();
+  const merged = [];
+  for (const m of [...evolution, ...database]) {
+    const key = m.id ?? `${m.remoteJid}-${m.messageTimestamp}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    merged.push(m);
+  }
+  return merged.sort((a, b) => (a.messageTimestamp ?? 0) - (b.messageTimestamp ?? 0));
+}
+
 export async function listChatMessages(companyId, numberId, chatId, limit) {
   const number = await whatsappRepo.findNumberById(companyId, numberId);
   if (!number) throw new NotFoundError('Número não encontrado.');
   if (!number.external_account_id) throw new BadRequestError('Número não possui instância EvolutionAPI.');
-  const messages = await whatsappRepo.listMessages(companyId, numberId, { limit: limit || 100 });
-  return messages.map((m) => ({
-    id: m.id,
-    remoteJid: chatId,
-    fromMe: m.direction === 'outbound',
-    pushName: null,
-    messageType: m.message_type,
-    content: m.content,
-    messageTimestamp: m.sent_at ? new Date(m.sent_at).getTime() : null,
-    status: m.status,
-    source: 'database',
-  })).reverse();
+
+  const max = Math.min(Math.max(limit || 100, 1), 200);
+
+  let evolutionRaw = [];
+  try {
+    const fetched = await evolutionApi.fetchChatMessages(number.external_account_id, chatId, max);
+    evolutionRaw = Array.isArray(fetched) ? fetched : [];
+  } catch {
+    evolutionRaw = [];
+  }
+
+  const { messages, reactionsByTarget } = aggregateReactions(evolutionRaw);
+  const evolution = messages.map(parseEvolutionMessage).map((m) => ({
+    ...m,
+    remoteJid: m.remoteJid || chatId,
+    reactions: reactionsByTarget.get(m.id) ?? [],
+  }));
+
+  for (const m of evolution) {
+    if (!m.id) continue;
+    try {
+      await whatsappRepo.upsertMessage(companyId, numberId, {
+        external_message_id: m.id,
+        remote_jid: chatId,
+        direction: m.fromMe ? 'outbound' : 'inbound',
+        message_type: m.messageType ?? 'text',
+        content: m.content ?? null,
+        status: m.status ?? 'received',
+        reactions: m.reactions.length > 0 ? m.reactions : undefined,
+        sent_at: m.messageTimestamp ? new Date(m.messageTimestamp) : new Date(),
+      });
+    } catch {
+      // best-effort cache; não impede o retorno
+    }
+  }
+
+  if (evolution.length === 0) {
+    const dbMessages = await whatsappRepo.listMessages(companyId, numberId, { remoteJid: chatId, limit: max });
+    return dbMessages.map(mapDbMessage);
+  }
+
+  const dbMessages = await whatsappRepo.listMessages(companyId, numberId, { remoteJid: chatId, limit: max })
+    .catch(() => []);
+  return mergeChatMessages(evolution, dbMessages.map(mapDbMessage));
 }
 
 export async function updateProfile(companyId, numberId, data) {
@@ -942,6 +1062,7 @@ export async function handleWebhook(instanceName, payload) {
       whatsapp_number_id: number.id,
       customer_id: contact.customer_id,
       external_message_id: externalId,
+      remote_jid: remoteJid,
       direction: 'inbound',
       message_type: messageType,
       content: messageContent || null,
@@ -1013,6 +1134,7 @@ async function handleGroupMessage({ number, data }) {
     company_id: number.company_id,
     whatsapp_number_id: number.id,
     external_message_id: externalId,
+    remote_jid: remoteJid,
     direction: 'inbound',
     message_type: messageType,
     content: text && text !== '(mídia)' ? text : (media ? media.type : '') || null,
@@ -1061,6 +1183,10 @@ export default {
   setOnlinePresence,
   listChats,
   listChatMessages,
+  parseEvolutionMessage,
+  isReactionMessage,
+  aggregateReactions,
+  mergeChatMessages,
   updateProfile,
   updateProfilePicture,
   restartInstance,

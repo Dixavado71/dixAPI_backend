@@ -1371,10 +1371,12 @@ model WhatsAppMessage {
   whatsapp_number_id  String                   @db.Uuid
   customer_id         String?                  @db.Uuid
   external_message_id String?
+  remote_jid          String?
   direction           WhatsAppMessageDirection
   message_type        String
   content             String?
   status              String?
+  reactions           Json?
   provider_timestamp  DateTime?
   content_hash        String?
   retention_until     DateTime?
@@ -1388,6 +1390,7 @@ model WhatsAppMessage {
   @@unique([whatsapp_number_id, external_message_id])
   @@index([company_id, sent_at])
   @@index([company_id, order_id])
+  @@index([company_id, whatsapp_number_id, remote_jid, sent_at])
   @@map("whatsapp_messages")
 }
 

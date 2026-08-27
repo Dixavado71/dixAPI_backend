@@ -138,6 +138,15 @@ export function createMessage(data) {
   return prisma.whatsAppMessage.create({ data });
 }
 
+export function upsertMessage(companyId, numberId, data) {
+  const { external_message_id: externalId, ...rest } = data;
+  return prisma.whatsAppMessage.upsert({
+    where: { whatsapp_number_id_external_message_id: { whatsapp_number_id: numberId, external_message_id: externalId } },
+    create: { company_id: companyId, whatsapp_number_id: numberId, external_message_id: externalId, ...rest },
+    update: { ...rest },
+  });
+}
+
 export function updateContactMetadata(contactId, metadata) {
   return prisma.whatsAppContact.update({
     where: { id: contactId },
@@ -156,9 +165,13 @@ export function updateMessageStatusByExternalId(externalMessageId, status) {
   });
 }
 
-export function listMessages(companyId, numberId, { limit = 50, cursor } = {}) {
+export function listMessages(companyId, numberId, { remoteJid, limit = 50, cursor } = {}) {
   return prisma.whatsAppMessage.findMany({
-    where: { company_id: companyId, ...(numberId ? { whatsapp_number_id: numberId } : {}) },
+    where: {
+      company_id: companyId,
+      ...(numberId ? { whatsapp_number_id: numberId } : {}),
+      ...(remoteJid ? { remote_jid: remoteJid } : {}),
+    },
     include: { whatsapp_number: { select: { id: true, phone_number: true, display_name: true } } },
     orderBy: { sent_at: 'desc' },
     take: Math.min(Math.max(limit, 1), 200),
@@ -246,6 +259,7 @@ export default {
   getBotConfig,
   updateBotConfig,
   createMessage,
+  upsertMessage,
   updateContactMetadata,
   findMessageByExternalId,
   updateMessageStatusByExternalId,
