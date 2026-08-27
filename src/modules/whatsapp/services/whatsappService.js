@@ -333,7 +333,7 @@ function mapChat(chat) {
     lastMessageType: lastMsg.messageType ?? null,
     lastMessageTime: lastMsg.messageTimestamp ? new Date(lastMsg.messageTimestamp * 1000).toISOString() : chat.updatedAt ?? null,
     unreadCount: chat.unreadCount ?? 0,
-    isGroup: remoteJid.endsWith('@g.us') || remoteJid.endsWith('@lid'),
+    isGroup: remoteJid.endsWith('@g.us'),
     isSaved: chat.isSaved ?? false,
     windowActive: chat.windowActive ?? false,
   };

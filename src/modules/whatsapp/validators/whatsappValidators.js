@@ -6,7 +6,7 @@ export const connectNumberSchema = z.object({
 }).strict();
 
 export const sendMessageSchema = z.object({
-  to: z.string().regex(/^\d{10,15}$/, 'Número de destino inválido.'),
+  to: z.string().min(10, 'Destino inválido.').max(40, 'Destino inválido.'),
   text: z.string().min(1, 'Mensagem não pode estar vazia.').max(4096),
   delay: z.number().int().min(0).max(10000).optional(),
 }).strict();
