@@ -306,39 +306,67 @@ export async function setOnlinePresence(companyId, numberId, data) {
   return { presence: data.presence ?? 'available' };
 }
 
+function extractMessageText(message) {
+  if (!message) return null;
+  if (message.conversation) return message.conversation;
+  if (message.extendedTextMessage?.text) return message.extendedTextMessage.text;
+  if (message.imageMessage?.caption) return message.imageMessage.caption;
+  if (message.videoMessage?.caption) return message.videoMessage.caption;
+  if (message.documentMessage?.title) return message.documentMessage.title;
+  if (message.audioMessage) return '🎵 Áudio';
+  if (message.stickerMessage) return '🖼️ Sticker';
+  if (message.locationMessage) return '📍 Localização';
+  if (message.contactMessage?.displayName) return `👤 ${message.contactMessage.displayName}`;
+  return '(mídia)';
+}
+
+function mapChat(chat) {
+  const remoteJid = chat.remoteJid ?? chat.key?.remoteJid ?? '';
+  const lastMsg = chat.lastMessage ?? {};
+  return {
+    id: remoteJid,
+    remoteJid,
+    name: chat.pushName ?? chat.name ?? remoteJid.replace('@s.whatsapp.net', '').replace('@c.us', '').replace('@lid', ''),
+    pushName: chat.pushName ?? null,
+    profilePicUrl: chat.profilePicUrl ?? null,
+    lastMessage: extractMessageText(lastMsg.message),
+    lastMessageType: lastMsg.messageType ?? null,
+    lastMessageTime: lastMsg.messageTimestamp ? new Date(lastMsg.messageTimestamp * 1000).toISOString() : chat.updatedAt ?? null,
+    unreadCount: chat.unreadCount ?? 0,
+    isGroup: remoteJid.endsWith('@g.us') || remoteJid.endsWith('@lid'),
+    isSaved: chat.isSaved ?? false,
+    windowActive: chat.windowActive ?? false,
+  };
+}
+
+function mapMessage(msg) {
+  return {
+    id: msg.key?.id ?? msg.id,
+    remoteJid: msg.key?.remoteJid ?? '',
+    fromMe: msg.key?.fromMe ?? false,
+    pushName: msg.pushName ?? null,
+    messageType: msg.messageType ?? null,
+    content: extractMessageText(msg.message),
+    messageTimestamp: msg.messageTimestamp ? Number(msg.messageTimestamp) * 1000 : null,
+    status: msg.status ?? null,
+    source: msg.source ?? null,
+  };
+}
+
 export async function listChats(companyId, numberId) {
   const number = await whatsappRepo.findNumberById(companyId, numberId);
   if (!number) throw new NotFoundError('Número não encontrado.');
   if (!number.external_account_id) throw new BadRequestError('Número não possui instância EvolutionAPI.');
-  return evolutionApi.fetchChats(number.external_account_id);
+  const chats = await evolutionApi.fetchChats(number.external_account_id);
+  return Array.isArray(chats) ? chats.map(mapChat) : [];
 }
 
 export async function listChatMessages(companyId, numberId, chatId, limit) {
   const number = await whatsappRepo.findNumberById(companyId, numberId);
   if (!number) throw new NotFoundError('Número não encontrado.');
   if (!number.external_account_id) throw new BadRequestError('Número não possui instância EvolutionAPI.');
-  return evolutionApi.fetchChatMessages(number.external_account_id, chatId, limit);
-}
-
-export async function listContacts(companyId, numberId) {
-  const number = await whatsappRepo.findNumberById(companyId, numberId);
-  if (!number) throw new NotFoundError('Número não encontrado.');
-  if (!number.external_account_id) throw new BadRequestError('Número não possui instância EvolutionAPI.');
-  return evolutionApi.fetchContacts(number.external_account_id);
-}
-
-export async function syncContacts(companyId, numberId) {
-  const number = await whatsappRepo.findNumberById(companyId, numberId);
-  if (!number) throw new NotFoundError('Número não encontrado.');
-  if (!number.external_account_id) throw new BadRequestError('Número não possui instância EvolutionAPI.');
-  return evolutionApi.syncContacts(number.external_account_id);
-}
-
-export async function checkNumber(companyId, numberId, data) {
-  const number = await whatsappRepo.findNumberById(companyId, numberId);
-  if (!number) throw new NotFoundError('Número não encontrado.');
-  if (!number.external_account_id) throw new BadRequestError('Número não possui instância EvolutionAPI.');
-  return evolutionApi.fetchContactInfo(number.external_account_id, data.number);
+  const messages = await evolutionApi.fetchChatMessages(number.external_account_id, chatId, limit);
+  return Array.isArray(messages) ? messages.map(mapMessage) : [];
 }
 
 export async function updateProfile(companyId, numberId, data) {
@@ -475,9 +503,6 @@ export default {
   setOnlinePresence,
   listChats,
   listChatMessages,
-  listContacts,
-  syncContacts,
-  checkNumber,
   updateProfile,
   updateProfilePicture,
   restartInstance,

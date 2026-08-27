@@ -50,8 +50,5 @@ router.post('/numbers/:id/presence', authorize('admin', 'manager'), whatsappCont
 // Chats & contacts
 router.get('/numbers/:id/chats', authorize('admin', 'manager', 'operator'), whatsappController.getChats);
 router.get('/numbers/:id/chats/messages', authorize('admin', 'manager', 'operator'), whatsappController.getChatMessages);
-router.get('/numbers/:id/contacts', authorize('admin', 'manager', 'operator'), whatsappController.getContacts);
-router.post('/numbers/:id/contacts/sync', authorize('admin', 'manager'), whatsappController.syncContacts);
-router.post('/numbers/:id/contacts/check', authorize('admin', 'manager', 'operator'), whatsappController.checkNumber);
 
 export default router;

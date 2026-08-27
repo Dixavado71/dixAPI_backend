@@ -161,11 +161,11 @@ export async function sendContactVcard(instanceName, number, name, phone) {
 /* ===== Chats ===== */
 
 export async function fetchChats(instanceName) {
-  return instanceRequest('GET', instanceName, `/chat/findChats/${instanceName}`);
+  return instanceRequest('POST', instanceName, `/chat/findChats/${instanceName}`, {});
 }
 
 export async function fetchChatMessages(instanceName, chatId, limit = 50) {
-  return instanceRequest('GET', instanceName, `/chat/findMessages/${instanceName}?chatId=${encodeURIComponent(chatId)}&limit=${limit}`);
+  return instanceRequest('POST', instanceName, `/chat/findMessages/${instanceName}`, { chatId, limit });
 }
 
 export async function markMessageAsRead(instanceName, number, messageId) {
@@ -182,30 +182,6 @@ export async function sendPresencePaused(instanceName, number) {
 
 export async function setChatName(instanceName, chatId, name) {
   return instanceRequest('POST', instanceName, `/chat/update/${instanceName}`, { chatId, name });
-}
-
-export async function fetchChatMessagesHistory(instanceName, chatId, limit = 50) {
-  return instanceRequest('GET', instanceName, `/chat/findMessages/${instanceName}?chatId=${encodeURIComponent(chatId)}&limit=${limit}`);
-}
-
-/* ===== Contacts ===== */
-
-export async function fetchContacts(instanceName) {
-  return instanceRequest('GET', instanceName, `/contact/findContacts/${instanceName}`);
-}
-
-export async function syncContacts(instanceName) {
-  return instanceRequest('POST', instanceName, `/contact/syncContacts/${instanceName}`);
-}
-
-export async function fetchContactInfo(instanceName, number) {
-  return instanceRequest('POST', instanceName, `/contact/checkNumber/${instanceName}`, { number });
-}
-
-/* ===== Groups ===== */
-
-export async function createGroup(instanceName, name, participants = []) {
-  return instanceRequest('POST', instanceName, `/group/create/${instanceName}`, { name, participants });
 }
 
 export async function updateGroupSubject(instanceName, groupId, name) {
@@ -284,11 +260,6 @@ export default {
   sendTyping,
   sendPresencePaused,
   setChatName,
-  fetchChatMessagesHistory,
-  fetchContacts,
-  syncContacts,
-  fetchContactInfo,
-  createGroup,
   updateGroupSubject,
   updateGroupDescription,
   addGroupParticipant,

@@ -2,7 +2,7 @@ import * as whatsappService from '../services/whatsappService.js';
 import {
   connectNumberSchema, sendMessageSchema, sendMediaSchema, sendAudioSchema, sendDocumentSchema,
   sendVideoSchema, sendStickerSchema, sendButtonsSchema, sendListSchema, sendLocationSchema,
-  sendReactionSchema, markAsReadSchema, presenceSchema, checkNumberSchema, updateProfileSchema,
+  sendReactionSchema, markAsReadSchema, presenceSchema, updateProfileSchema,
   updateProfilePictureSchema, chatMessagesQuerySchema,
 } from '../validators/whatsappValidators.js';
 import { successResponse, createdResponse } from '../../../shared/utils/response.js';
@@ -112,21 +112,6 @@ export async function getChatMessages(req, res, next) {
   catch (error) { return next(error); }
 }
 
-export async function getContacts(req, res, next) {
-  try { const result = await whatsappService.listContacts(req.tenant.companyId, req.params.id); return successResponse(res, result); }
-  catch (error) { return next(error); }
-}
-
-export async function syncContacts(req, res, next) {
-  try { const result = await whatsappService.syncContacts(req.tenant.companyId, req.params.id); return successResponse(res, result); }
-  catch (error) { return next(error); }
-}
-
-export async function checkNumber(req, res, next) {
-  try { const data = checkNumberSchema.parse(req.body); const result = await whatsappService.checkNumber(req.tenant.companyId, req.params.id, data); return successResponse(res, result); }
-  catch (error) { return next(error); }
-}
-
 export async function updateProfile(req, res, next) {
   try { const data = updateProfileSchema.parse(req.body); const result = await whatsappService.updateProfile(req.tenant.companyId, req.params.id, data); return successResponse(res, result); }
   catch (error) { return next(error); }
@@ -166,6 +151,6 @@ export default {
   listNumbers, connectNumber, getQrCode, getStatus, disconnectNumber, deleteNumber,
   sendMessage, sendMedia, sendAudio, sendDocument, sendVideo, sendSticker,
   sendButtons, sendList, sendLocation, sendReaction, markRead, typing, presence,
-  getChats, getChatMessages, getContacts, syncContacts, checkNumber,
+  getChats, getChatMessages,
   updateProfile, updatePicture, restartNumber, logoutNumber, getWebhook, setupWebhook, webhook,
 };
