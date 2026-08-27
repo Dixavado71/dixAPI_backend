@@ -37,9 +37,24 @@ export const refreshTokenSchema = z.object({
   refreshToken: z.string().min(1, 'Refresh token is required'),
 });
 
+export const forgotPasswordSchema = z.object({
+  email: z.string().email('Digite um e-mail válido.'),
+}).strict();
+
+export const resetPasswordSchema = z.object({
+  token: z.string().min(1, 'Token é obrigatório.'),
+  password: z.string()
+    .min(8, 'A senha deve ter pelo menos 8 caracteres.')
+    .regex(/[A-Z]/, 'Use ao menos uma letra maiúscula.')
+    .regex(/[a-z]/, 'Use ao menos uma letra minúscula.')
+    .regex(/\d/, 'Use ao menos um número.'),
+}).strict();
+
 export default {
   loginSchema,
   registerSchema,
   registerStoreSchema,
   refreshTokenSchema,
+  forgotPasswordSchema,
+  resetPasswordSchema,
 };

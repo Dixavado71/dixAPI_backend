@@ -1,5 +1,5 @@
 import * as authService from '../services/authService.js';
-import { loginSchema, registerSchema, registerStoreSchema, refreshTokenSchema } from '../validators/authValidators.js';
+import { loginSchema, registerSchema, registerStoreSchema, refreshTokenSchema, forgotPasswordSchema, resetPasswordSchema } from '../validators/authValidators.js';
 import { successResponse, createdResponse } from '../../../shared/utils/response.js';
 
 export async function login(req, res, next) {
@@ -68,6 +68,26 @@ export async function getCurrentUser(req, res, next) {
   }
 }
 
+export async function forgotPassword(req, res, next) {
+  try {
+    const { email } = forgotPasswordSchema.parse(req.body);
+    const result = await authService.forgotPassword(email);
+    return successResponse(res, result);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function resetPassword(req, res, next) {
+  try {
+    const { token, password } = resetPasswordSchema.parse(req.body);
+    const result = await authService.resetPassword(token, password);
+    return successResponse(res, result);
+  } catch (error) {
+    next(error);
+  }
+}
+
 export default {
   login,
   registerStore,
@@ -75,4 +95,6 @@ export default {
   refresh,
   logout,
   getCurrentUser,
+  forgotPassword,
+  resetPassword,
 };

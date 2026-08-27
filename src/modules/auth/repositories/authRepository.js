@@ -76,6 +76,14 @@ export function findUserByEmailAndCompany(email, companyId) {
   });
 }
 
+export function findActiveUserByEmail(email) {
+  return prisma.user.findFirst({ where: { email, is_active: true } });
+}
+
+export function updateUserPassword(userId, passwordHash) {
+  return prisma.user.update({ where: { id: userId }, data: { password_hash: passwordHash } });
+}
+
 export function findResellerByAffiliateCode(code) {
   return prisma.affiliateCode.findFirst({
     where: {
@@ -168,4 +176,4 @@ export function createStoreWithSubscription(data) {
   });
 }
 
-export default { findUsersByEmail, findUserById, findActiveMembership, createMembership, createUser, updateUserLastLogin, createRefreshToken, findRefreshToken, revokeRefreshToken, revokeUserRefreshTokens, hashRefreshToken, findUserByEmailAndCompany, findResellerByAffiliateCode, createStoreWithSubscription };
+export default { findUsersByEmail, findUserById, findActiveMembership, createMembership, createUser, updateUserLastLogin, createRefreshToken, findRefreshToken, revokeRefreshToken, revokeUserRefreshTokens, hashRefreshToken, findUserByEmailAndCompany, findResellerByAffiliateCode, createStoreWithSubscription, findActiveUserByEmail, updateUserPassword };

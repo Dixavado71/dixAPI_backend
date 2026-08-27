@@ -1,6 +1,7 @@
-import { UnauthorizedError, ConflictError, BadRequestError } from '../../../shared/errors/AppError.js';
+import { UnauthorizedError, ConflictError, BadRequestError, NotFoundError } from '../../../shared/errors/AppError.js';
 import { hashPassword, comparePassword } from '../../../infrastructure/security/password.js';
-import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from '../../../infrastructure/security/jwt.js';
+import { generateAccessToken, generateRefreshToken, verifyRefreshToken, generatePasswordResetToken, verifyPasswordResetToken } from '../../../infrastructure/security/jwt.js';
+import { env } from '../../../config/env.js';
 import * as authRepository from '../repositories/authRepository.js';
 
 function refreshExpiresAt() {
@@ -163,4 +164,30 @@ export async function getCurrentUser(userId) {
   };
 }
 
-export default { login, registerStore, register, refreshTokens, logout, logoutAll, getCurrentUser };
+export async function forgotPassword(email) {
+  const user = await authRepository.findActiveUserByEmail(email);
+  if (!user) return { sent: true, message: 'Se o e-mail existir, um link de redefinição será enviado.' };
+  const token = generatePasswordResetToken(user.id);
+  const resetUrl = `${env.publicApiUrl}/api/v1/auth/reset-password?token=${token}`;
+  if (env.nodeEnv === 'production') {
+    return { sent: true, message: 'Se o e-mail existir, um link de redefinição será enviado.' };
+  }
+  return { sent: true, message: 'Link de redefinição gerado (ambiente de desenvolvimento).', resetUrl };
+}
+
+export async function resetPassword(token, newPassword) {
+  let userId;
+  try {
+    userId = verifyPasswordResetToken(token);
+  } catch (error) {
+    throw new BadRequestError('Token de redefinição inválido ou expirado.');
+  }
+  const user = await authRepository.findUserById(userId);
+  if (!user || !user.is_active) throw new NotFoundError('Usuário não encontrado.');
+  const passwordHash = await hashPassword(newPassword);
+  await authRepository.updateUserPassword(userId, passwordHash);
+  await authRepository.revokeUserRefreshTokens(userId);
+  return { message: 'Senha redefinida com sucesso.' };
+}
+
+export default { login, registerStore, register, refreshTokens, logout, logoutAll, getCurrentUser, forgotPassword, resetPassword };

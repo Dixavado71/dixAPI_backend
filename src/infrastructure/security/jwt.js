@@ -51,6 +51,26 @@ export function verifyRefreshToken(token) {
   }
 }
 
+export function generatePasswordResetToken(userId) {
+  return jwt.sign({ sub: userId, purpose: 'password_reset' }, env.jwtRefreshSecret, {
+    algorithm: 'HS256',
+    issuer: env.jwtIssuer,
+    audience: env.jwtAudience,
+    jwtid: crypto.randomUUID(),
+    expiresIn: '1h',
+  });
+}
+
+export function verifyPasswordResetToken(token) {
+  const decoded = jwt.verify(token, env.jwtRefreshSecret, {
+    algorithms: ['HS256'],
+    issuer: env.jwtIssuer,
+    audience: env.jwtAudience,
+  });
+  if (decoded.purpose !== 'password_reset' || !decoded.sub) throw new Error('Invalid reset token');
+  return decoded.sub;
+}
+
 export function decodeToken(token) {
   return jwt.decode(token);
 }
