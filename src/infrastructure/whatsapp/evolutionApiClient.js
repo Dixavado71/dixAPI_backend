@@ -134,15 +134,22 @@ export async function sendLocation(instanceName, number, name, address, latitude
   });
 }
 
-export async function sendStatusText(instanceName, content) {
+export async function sendStatusText(instanceName, content, statusJidList = []) {
   return instanceRequest('POST', instanceName, `/message/sendStatus/${instanceName}`, {
-    statusMessage: { type: 'text', content },
+    type: 'text',
+    content,
+    statusJidList,
+    backgroundColor: '#075E54',
+    font: 0,
   });
 }
 
-export async function sendStatusMedia(instanceName, mediaType, mediaUrl, caption) {
+export async function sendStatusMedia(instanceName, mediaType, mediaUrl, caption, statusJidList = []) {
   return instanceRequest('POST', instanceName, `/message/sendStatus/${instanceName}`, {
-    statusMessage: { type: 'media', mediaType, media: mediaUrl, caption },
+    type: mediaType,
+    content: mediaUrl,
+    caption,
+    statusJidList,
   });
 }
 
@@ -193,7 +200,9 @@ export async function updateGroupDescription(instanceName, groupId, description)
 }
 
 export async function createGroup(instanceName, name, participants = []) {
-  return instanceRequest('POST', instanceName, `/group/create/${instanceName}`, { name, participants });
+  const nums = participants.map((p) => p.replace(/\D/g, ''));
+  if (nums.length === 0) nums.push('00000000000');
+  return instanceRequest('POST', instanceName, `/group/create/${instanceName}`, { subject: name, participants: nums });
 }
 
 export async function findGroupById(instanceName, groupId) {

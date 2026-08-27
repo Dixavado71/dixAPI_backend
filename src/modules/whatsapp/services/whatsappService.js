@@ -290,13 +290,15 @@ export async function sendReactionMessage(companyId, numberId, data) {
 
 export async function sendStatus(companyId, numberId, data) {
   const number = await requireConnectedNumber(companyId, numberId);
-  const result = await evolutionApi.sendStatusText(number.external_account_id, data.content);
+  const statusJidList = (data.statusJidList ?? []).map((n) => n.replace(/\D/g, ''));
+  const result = await evolutionApi.sendStatusText(number.external_account_id, data.content, statusJidList);
   return { sent: true, result };
 }
 
 export async function sendStatusMedia(companyId, numberId, data) {
   const number = await requireConnectedNumber(companyId, numberId);
-  const result = await evolutionApi.sendStatusMedia(number.external_account_id, data.mediaType, data.mediaUrl, data.caption);
+  const statusJidList = (data.statusJidList ?? []).map((n) => n.replace(/\D/g, ''));
+  const result = await evolutionApi.sendStatusMedia(number.external_account_id, data.mediaType, data.mediaUrl, data.caption, statusJidList);
   return { sent: true, result };
 }
 
@@ -460,7 +462,15 @@ export async function createGroup(companyId, numberId, data) {
 
 export async function listGroups(companyId, numberId) {
   const number = await requireNumber(companyId, numberId);
-  return evolutionApi.fetchGroups(number.external_account_id);
+  const chats = await evolutionApi.fetchChats(number.external_account_id);
+  return Array.isArray(chats) ? chats.filter((c) => c.remoteJid?.endsWith('@g.us')).map((c) => ({
+    id: c.remoteJid ?? c.id,
+    subject: c.name ?? c.subject ?? c.pushName ?? '',
+    name: c.name ?? c.subject ?? c.pushName ?? '',
+    participants: [],
+    lastMessage: c.lastMessage ?? null,
+    unreadCount: c.unreadCount ?? 0,
+  })) : [];
 }
 
 export async function findGroup(companyId, numberId, groupId) {
@@ -529,7 +539,11 @@ export async function leaveGroup(companyId, numberId, groupId) {
 
 export async function listStatus(companyId, numberId) {
   const number = await requireNumber(companyId, numberId);
-  return evolutionApi.fetchStatus(number.external_account_id);
+  try {
+    return await evolutionApi.fetchStatus(number.external_account_id);
+  } catch {
+    return [];
+  }
 }
 
 export async function getStatusById(companyId, numberId, statusId) {
@@ -571,7 +585,11 @@ export async function fetchAllMessages(companyId, numberId, chatId) {
 
 export async function checkNumber(companyId, numberId, data) {
   const number = await requireNumber(companyId, numberId);
-  return evolutionApi.checkNumber(number.external_account_id, data.number);
+  try {
+    return await evolutionApi.checkNumber(number.external_account_id, data.number);
+  } catch {
+    return { exists: null, reason: 'não suportado nesta versão da EvolutionAPI' };
+  }
 }
 
 /* ===== Messages (advanced) ===== */

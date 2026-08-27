@@ -111,12 +111,14 @@ export const chatMessagesQuerySchema = z.object({
 
 export const sendStatusSchema = z.object({
   content: z.string().min(1, 'Conteúdo do status obrigatório.').max(4096),
+  statusJidList: z.array(z.string().min(10)).optional(),
 }).strict();
 
 export const sendStatusMediaSchema = z.object({
   mediaType: z.enum(['image', 'video', 'audio', 'document']),
   mediaUrl: z.string().url('URL da mídia inválida.'),
   caption: z.string().max(1024).optional(),
+  statusJidList: z.array(z.string().min(10)).optional(),
 }).strict();
 
 export const createGroupSchema = z.object({
