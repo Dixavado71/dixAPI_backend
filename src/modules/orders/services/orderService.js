@@ -12,7 +12,7 @@ export async function getOrder(companyId, id) {
 }
 
 export async function createOrder(companyId, data) {
-  const order = await repository.createOrder(companyId, data.customerId, data.paymentMethod, data.items);
+  const order = await repository.createOrder(companyId, data.customerId, data.paymentMethod, data.items, data.couponCode);
   const { handleOrderEvent } = await import('../../notifications/services/orderNotificationService.js');
   await handleOrderEvent(companyId, order.id, 'order_created').catch(() => null);
   return order;

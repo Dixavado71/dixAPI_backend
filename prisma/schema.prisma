@@ -1095,6 +1095,8 @@ model DeliverySettings {
   updated_at            DateTime @updatedAt
 
   company Company @relation(fields: [company_id], references: [id], onDelete: Cascade)
+
+  @@map("delivery_settings")
 }
 
 model DeliveryZone {
