@@ -365,13 +365,18 @@ export async function listChatMessages(companyId, numberId, chatId, limit) {
   const number = await whatsappRepo.findNumberById(companyId, numberId);
   if (!number) throw new NotFoundError('Número não encontrado.');
   if (!number.external_account_id) throw new BadRequestError('Número não possui instância EvolutionAPI.');
-  const messages = await evolutionApi.fetchChatMessages(number.external_account_id, chatId, limit || 100);
-  const raw = Array.isArray(messages) ? messages : [];
-  const filtered = raw.filter((m) => {
-    const jid = m.key?.remoteJid ?? '';
-    return jid === chatId || jid.replace('@lid', '@s.whatsapp.net') === chatId || jid === chatId.replace('@s.whatsapp.net', '@lid');
-  });
-  return filtered.map(mapMessage);
+  const messages = await whatsappRepo.listMessages(companyId, numberId, { limit: limit || 100 });
+  return messages.map((m) => ({
+    id: m.id,
+    remoteJid: chatId,
+    fromMe: m.direction === 'outbound',
+    pushName: null,
+    messageType: m.message_type,
+    content: m.content,
+    messageTimestamp: m.sent_at ? new Date(m.sent_at).getTime() : null,
+    status: m.status,
+    source: 'database',
+  })).reverse();
 }
 
 export async function updateProfile(companyId, numberId, data) {
