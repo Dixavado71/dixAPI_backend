@@ -176,7 +176,10 @@ function matchStepForText(steps, text) {
 
 export async function processIncomingMessage({ companyId, number, from, text, contact }) {
   if (!number.is_bot_enabled) return null;
-  const flow = await automationRepo.findActiveFlowByType(companyId, 'vendas');
+
+  const flow = await automationRepo.findActiveFlowByType(companyId, 'vendas')
+    ?? await automationRepo.findActiveFlowByType(companyId, 'suporte')
+    ?? await automationRepo.findActiveFlowByType(companyId, 'marketing');
   if (!flow) return null;
 
   const config = flow.config_json ?? {};
@@ -190,13 +193,13 @@ export async function processIncomingMessage({ companyId, number, from, text, co
 
   let nextStep = null;
 
-  // 1) Gatilhos têm prioridade: "Olá" / "olá" / "OLA" / "menu" / "pedido" reiniciam o fluxo
+  // 1) Gatilhos têm prioridade
   const matchedTrigger = triggers.find((t) => normalizedText.includes(normalize(t.keyword)));
   if (matchedTrigger) {
     nextStep = steps.find((s) => s.id === matchedTrigger.step) ?? null;
   }
 
-  // 2) Se não houve gatilho, resolve o passo atual (pergunta com opções)
+  // 2) Se não houve gatilho, resolve o passo atual
   if (!nextStep && currentStepId) {
     const currentStep = steps.find((s) => s.id === currentStepId);
     if (currentStep?.type === 'question' && currentStep.options) {
@@ -232,7 +235,7 @@ export async function processIncomingMessage({ companyId, number, from, text, co
     await updateContactFlowState(contact.id, { flowId: flow.id, flowStep: nextStep.id });
   } else if (nextStep.type === 'action' && nextStep.action === 'transfer_to_human') {
     await sendFlowMessage(number, from, 'Um atendente vai te responder em instantes. Por favor, aguarde.');
-    await updateContactFlowState(contact.id, { flowId: null, flowStep: null });
+    await updateContactFlowState(contact.id, { flowId: null, flowStep: null, transferredToHuman: true, transferredAt: new Date().toISOString() });
   }
 
   return { flowId: flow.id, stepId: nextStep.id };
