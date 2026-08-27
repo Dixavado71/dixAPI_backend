@@ -194,7 +194,6 @@ export async function processIncomingMessage({ companyId, number, from, text, co
   const contact = await whatsappRepo.findContactByPhone(companyId, number.id, from);
   const currentState = contact?.metadata ?? {};
   const currentStepId = currentState?.flowStep;
-  console.log(`[BOT] company=${companyId.slice(0,8)} numId=${number.id?.slice(0,8)} from=${from} contact=${contact ? 'FOUND' : 'NULL'} stepId="${currentStepId ?? 'none'}"`);
 
   let nextStep = null;
 
@@ -202,23 +201,18 @@ export async function processIncomingMessage({ companyId, number, from, text, co
   const matchedTrigger = triggers.find((t) => normalizedText.includes(normalize(t.keyword)));
   if (matchedTrigger) {
     nextStep = steps.find((s) => s.id === matchedTrigger.step) ?? null;
-    console.log(`[BOT] trigger "${matchedTrigger.keyword}" -> ${nextStep?.id ?? 'none'}`);
   }
 
   // 2) Se não houve gatilho, resolve o passo atual
   if (!nextStep && currentStepId) {
     const currentStep = steps.find((s) => s.id === currentStepId);
-    console.log(`[BOT] resolving step "${currentStepId}" type=${currentStep?.type}`);
     if (currentStep?.type === 'question' && currentStep.options) {
       const matched = currentStep.options.find(
         (o) => normalize(o.label) === normalizedText || normalize(o.value) === normalizedText,
       );
       if (matched) {
         nextStep = steps.find((s) => s.id === matched.next) ?? null;
-        console.log(`[BOT] option matched "${matched.label}" -> ${nextStep?.id ?? 'none'}`);
       } else {
-        const labels = currentStep.options.map((o) => `"${normalize(o.label)}"`).join(', ');
-        console.log(`[BOT-DEBUG] step=${currentStepId} text="${normalizedText}" options=[${labels}] no match`);
         nextStep = currentStep;
         await sendFlowMessage(number, from, 'Desculpe, não entendi. Escolha uma das opções abaixo:');
       }
@@ -230,11 +224,9 @@ export async function processIncomingMessage({ companyId, number, from, text, co
   // 3) Fallback para o passo padrão
   if (!nextStep) {
     nextStep = steps.find((s) => s.id === config.defaultStep) ?? steps[0];
-    console.log(`[BOT] fallback -> ${nextStep?.id ?? 'none'}`);
   }
 
   if (!nextStep) return null;
-  console.log(`[BOT] executing step "${nextStep.id}" type=${nextStep.type} action=${nextStep.action ?? 'none'}`);
 
   await automationRepo.incrementMessagesCount(flow.id);
 
