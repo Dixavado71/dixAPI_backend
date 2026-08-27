@@ -16,6 +16,14 @@ vi.mock('../src/modules/automation/services/templateEngine.js', () => ({
   fillTemplate: (t, vars) => String(t).replace(/{nome}/g, vars?.nome ?? ''),
 }));
 
+const mockPrisma = {
+  whatsAppNumber: { findFirst: vi.fn() },
+};
+const mockEvolution = { sendText: vi.fn() };
+vi.mock('../src/config/env.js', () => ({ env: {} }));
+vi.mock('../src/infrastructure/database/prismaClient.js', () => ({ default: mockPrisma }));
+vi.mock('../src/infrastructure/whatsapp/evolutionApiClient.js', () => mockEvolution);
+
 const service = await import('../src/modules/notifications/services/notificationService.js');
 
 const C1 = '00000000-0000-0000-0000-000000000001';
@@ -67,5 +75,32 @@ describe('dispatchEvent', () => {
     const result = await service.createTrigger(C1, 'u1', { event: 'stock_low', template: 'Estoque baixo' });
     expect(repo.createTrigger).toHaveBeenCalledWith(expect.objectContaining({ company_id: C1, event: 'stock_low', channel: 'app', is_active: true }));
     expect(result.id).toBe('t2');
+  });
+
+  it('sends WhatsApp message for whatsapp-channel trigger', async () => {
+    repo.listTriggers.mockResolvedValue([
+      { id: 't3', event: 'order_created', channel: 'whatsapp', is_active: true, template: 'Olá {nome}', recipient_rule: { mode: 'fixed', phone: '5511999999999' } },
+    ]);
+    mockPrisma.whatsAppNumber.findFirst.mockResolvedValue({ external_account_id: 'inst1' });
+    mockEvolution.sendText.mockResolvedValue({});
+
+    const result = await service.dispatchEvent({ companyId: C1, event: 'order_created', vars: { nome: 'Maria' } });
+
+    expect(mockEvolution.sendText).toHaveBeenCalledWith('inst1', '5511999999999', 'Olá Maria', 500);
+    expect(repo.createNotification).not.toHaveBeenCalled();
+    expect(result.dispatched).toBe(1);
+    expect(result.results[0].channel).toBe('whatsapp');
+  });
+
+  it('skips WhatsApp send when no connected number', async () => {
+    repo.listTriggers.mockResolvedValue([
+      { id: 't4', event: 'order_created', channel: 'whatsapp', is_active: true, template: 'Oi', recipient_rule: { mode: 'fixed', phone: '5511999999999' } },
+    ]);
+    mockPrisma.whatsAppNumber.findFirst.mockResolvedValue(null);
+
+    const result = await service.dispatchEvent({ companyId: C1, event: 'order_created' });
+
+    expect(mockEvolution.sendText).not.toHaveBeenCalled();
+    expect(result.dispatched).toBe(0);
   });
 });
