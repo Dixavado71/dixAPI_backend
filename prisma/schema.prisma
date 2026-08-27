@@ -557,6 +557,7 @@ model Customer {
   @@unique([company_id, id])
   @@index([company_id])
   @@index([company_id, segment, status])
+  @@index([company_id, status])
   @@index([company_id, email, phone])
   @@index([segment])
   @@index([status])
@@ -667,6 +668,8 @@ model Conversation {
 
   @@unique([company_id, id])
   @@index([company_id])
+  @@index([company_id, channel])
+  @@index([company_id, status])
   @@index([channel])
   @@index([status])
   @@index([assigned_to])
