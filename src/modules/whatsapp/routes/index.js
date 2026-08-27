@@ -27,6 +27,12 @@ router.patch('/numbers/:id/profile', authorize('admin', 'manager'), whatsappCont
 router.patch('/numbers/:id/picture', authorize('admin', 'manager'), whatsappController.updatePicture);
 router.post('/numbers/:id/contacts/profile-picture', authorize('admin', 'manager', 'operator'), whatsappController.getProfilePicture);
 router.post('/numbers/:id/contacts/profile-name', authorize('admin', 'manager', 'operator'), whatsappController.getProfileName);
+router.post('/numbers/:id/contacts/profile-status', authorize('admin', 'manager'), whatsappController.updateProfileStatus);
+
+// Bot config & catalog
+router.get('/numbers/:id/bot-config', authorize('admin', 'manager'), whatsappController.getBotConfig);
+router.patch('/numbers/:id/bot-config', authorize('admin', 'manager'), whatsappController.updateBotConfig);
+router.get('/numbers/:id/catalog', authorize('admin', 'manager', 'operator'), whatsappController.getCatalog);
 
 // Webhook management
 router.get('/numbers/:id/webhook', authorize('admin', 'manager'), whatsappController.getWebhook);

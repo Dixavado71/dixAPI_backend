@@ -6,9 +6,8 @@ import {
   updateProfilePictureSchema, chatMessagesQuerySchema, sendStatusSchema, sendStatusMediaSchema,
   createGroupSchema, updateGroupSchema, groupActionSchema, inviteCodeSchema, groupPictureSchema,
   reactStatusSchema, findChatSchema, createChatSchema, checkNumberSchema, sendPollSchema,
-  editMessageSchema, deleteMessageSchema, linkPreviewSchema, sendBase64Schema, sendBulkSchema,
-  typewriterSchema, sendContactSchema, profilePictureSchema, profileNameSchema,
-  requestPairingSchema, changeNumberSchema,
+  editMessageSchema, deleteMessageSchema, sendContactSchema, profilePictureSchema, profileNameSchema,
+  botConfigSchema, updateProfileStatusSchema, catalogQuerySchema,
 } from '../validators/whatsappValidators.js';
 import { successResponse, createdResponse } from '../../../shared/utils/response.js';
 
@@ -277,6 +276,26 @@ export async function getProfileName(req, res, next) {
   catch (error) { return next(error); }
 }
 
+export async function updateProfileStatus(req, res, next) {
+  try { const data = updateProfileStatusSchema.parse(req.body); const result = await whatsappService.updateProfileStatus(req.tenant.companyId, req.params.id, data); return successResponse(res, result); }
+  catch (error) { return next(error); }
+}
+
+export async function getBotConfig(req, res, next) {
+  try { const result = await whatsappService.getBotConfig(req.tenant.companyId, req.params.id); return successResponse(res, result); }
+  catch (error) { return next(error); }
+}
+
+export async function updateBotConfig(req, res, next) {
+  try { const data = botConfigSchema.parse(req.body); const result = await whatsappService.updateBotConfig(req.tenant.companyId, req.params.id, data); return successResponse(res, result); }
+  catch (error) { return next(error); }
+}
+
+export async function getCatalog(req, res, next) {
+  try { const query = catalogQuerySchema.parse(req.query); const result = await whatsappService.getCatalog(req.tenant.companyId, req.params.id, query.limit); return successResponse(res, result); }
+  catch (error) { return next(error); }
+}
+
 export async function updateProfile(req, res, next) {
   try { const data = updateProfileSchema.parse(req.body); const result = await whatsappService.updateProfile(req.tenant.companyId, req.params.id, data); return successResponse(res, result); }
   catch (error) { return next(error); }
@@ -323,6 +342,6 @@ export default {
   getStories, getStoryById, reactStory,
   findChat, archiveChat, unarchiveChat, fetchAllMessages, checkNumber,
   sendPoll, editMessage, deleteMessage, sendContact,
-  getProfilePicture, getProfileName,
+  getProfilePicture, getProfileName, updateProfileStatus, getBotConfig, updateBotConfig, getCatalog,
   updateProfile, updatePicture, restartNumber, logoutNumber, getWebhook, setupWebhook, webhook,
 };

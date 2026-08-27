@@ -631,6 +631,71 @@ export async function getProfileName(companyId, numberId, data) {
   return evolutionApi.fetchProfile(number.external_account_id, data.number);
 }
 
+export async function updateProfileStatus(companyId, numberId, data) {
+  const number = await requireNumber(companyId, numberId);
+  return evolutionApi.updateProfileStatus(number.external_account_id, data.status);
+}
+
+/* ===== Bot config & catalog ===== */
+
+export async function getBotConfig(companyId, numberId) {
+  await requireNumber(companyId, numberId);
+  const config = await whatsappRepo.getBotConfig(companyId);
+  const defaults = { mode: 'public', greeting: null };
+  return { ...defaults, ...(config ?? {}) };
+}
+
+export async function updateBotConfig(companyId, numberId, data) {
+  await requireNumber(companyId, numberId);
+  const current = (await whatsappRepo.getBotConfig(companyId)) ?? {};
+  const next = { ...current, ...data };
+  await whatsappRepo.updateBotConfig(companyId, next);
+  return { ...next };
+}
+
+export async function getCatalog(companyId, numberId, limit) {
+  await requireNumber(companyId, numberId);
+  const products = await whatsappRepo.listActiveProducts(companyId, limit);
+  return products.map((p) => ({
+    id: p.id,
+    name: p.name,
+    description: p.description,
+    category: p.category,
+    price: Number(p.price),
+    stock: p.stock,
+    image_url: p.image_url,
+  }));
+}
+
+/* ===== Bot contact validation ===== */
+
+async function isContactAllowed(companyId, phone) {
+  const customer = await whatsappRepo.findCustomerByPhone(companyId, phone);
+  return !!customer;
+}
+
+async function isContactSaved(companyId, numberId, phone) {
+  const contact = await whatsappRepo.findContactByPhone(companyId, numberId, phone);
+  return contact?.isSaved === true;
+}
+
+export async function shouldBotRespond(companyId, numberId, phone) {
+  const config = (await whatsappRepo.getBotConfig(companyId)) ?? {};
+  const mode = config.mode ?? 'public';
+  if (mode === 'public') return { allowed: true, reason: 'public' };
+  if (mode === 'customers_only') {
+    const allowed = await isContactAllowed(companyId, phone);
+    return { allowed, reason: allowed ? 'customer' : 'not_customer' };
+  }
+  if (mode === 'private') {
+    const isCustomer = await isContactAllowed(companyId, phone);
+    const isSaved = await isContactSaved(companyId, numberId, phone);
+    const allowed = isCustomer || isSaved;
+    return { allowed, reason: allowed ? (isCustomer ? 'customer' : 'saved_contact') : 'not_known' };
+  }
+  return { allowed: true, reason: 'public' };
+}
+
 export async function handleWebhook(instanceName, payload) {
   if (!payload?.event || !payload?.data) return;
 
@@ -720,7 +785,10 @@ export async function handleWebhook(instanceName, payload) {
 
     if (number.is_bot_enabled && messageContent) {
       const { processIncomingMessage } = await import('../../automation/services/automationService.js');
-      await processIncomingMessage({ companyId: number.company_id, number, from: phoneNumber, text: messageContent, contact }).catch(() => null);
+      const check = await shouldBotRespond(number.company_id, number.id, phoneNumber);
+      if (check.allowed) {
+        await processIncomingMessage({ companyId: number.company_id, number, from: phoneNumber, text: messageContent, contact }).catch(() => null);
+      }
     }
   }
 }
@@ -783,5 +851,10 @@ export default {
   sendContact,
   getProfilePicture,
   getProfileName,
+  updateProfileStatus,
+  getBotConfig,
+  updateBotConfig,
+  getCatalog,
+  shouldBotRespond,
   handleWebhook,
 };

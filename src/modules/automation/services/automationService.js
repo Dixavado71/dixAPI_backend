@@ -3,6 +3,7 @@ import * as automationRepo from '../repositories/automationRepository.js';
 import * as whatsappRepo from '../../whatsapp/repositories/whatsappRepository.js';
 import * as conversationRepo from '../../conversations/repositories/conversationRepository.js';
 import * as evolutionApi from '../../../infrastructure/whatsapp/evolutionApiClient.js';
+import chatbotCache from '../../../infrastructure/cache/chatbotCache.js';
 
 export async function listFlows(companyId, filters) {
   return automationRepo.listFlows(companyId, filters);
@@ -176,7 +177,7 @@ function matchStepForText(steps, text) {
   return null;
 }
 
-export async function processIncomingMessage({ companyId, number, from, text, contact: _contact }) {
+export async function processIncomingMessage({ companyId, number, from, text }) {
   if (!number.is_bot_enabled) return null;
 
   const flow = await automationRepo.findActiveFlowByType(companyId, 'vendas')
@@ -191,9 +192,13 @@ export async function processIncomingMessage({ companyId, number, from, text, co
   const normalizedText = normalize(text);
   const triggers = Array.isArray(config.triggers) ? [...config.triggers].sort((a, b) => normalize(b.keyword).length - normalize(a.keyword).length) : [];
 
+  // Estado do fluxo: Redis primeiro (cache), depois banco (fallback)
   const contact = await whatsappRepo.findContactByPhone(companyId, number.id, from);
-  const currentState = contact?.metadata ?? {};
+  const cachedState = await chatbotCache.getFlowState(companyId, from);
+  const dbState = contact?.metadata ?? {};
+  const currentState = cachedState ?? dbState;
   const currentStepId = currentState?.flowStep;
+  const cacheRead = !!cachedState;
 
   let nextStep = null;
 
@@ -230,19 +235,34 @@ export async function processIncomingMessage({ companyId, number, from, text, co
 
   await automationRepo.incrementMessagesCount(flow.id);
 
+  // Passo catálogo: consulta produtos reais da loja
+  if (nextStep.type === 'catalog') {
+    const products = await whatsappRepo.listActiveProducts(companyId, 10);
+    const catalogText = products.length > 0
+      ? `${nextStep.content ?? 'Confira nossos produtos:'}\n\n${products.map((p) => `• *${p.name}* — R$ ${Number(p.price).toFixed(2).replace('.', ',')}\n  ${p.description ?? ''}`).join('\n')}`
+      : (nextStep.content ?? 'Confira nossos produtos:') + '\n\n*Catálogo em atualização.*';
+    await sendFlowMessage(number, from, catalogText);
+    if (contact?.id) await updateContactFlowState(contact.id, { flowId: flow.id, flowStep: nextStep.next ?? null });
+    await chatbotCache.setFlowState(companyId, from, { flowId: flow.id, flowStep: nextStep.next ?? null });
+    return { flowId: flow.id, stepId: nextStep.id, cacheRead };
+  }
+
   if (nextStep.type === 'message') {
     await sendFlowMessage(number, from, nextStep.content);
     if (contact?.id) await updateContactFlowState(contact.id, { flowId: flow.id, flowStep: nextStep.next ?? null });
+    await chatbotCache.setFlowState(companyId, from, { flowId: flow.id, flowStep: nextStep.next ?? null });
   } else if (nextStep.type === 'question') {
     const optionsText = nextStep.options.map((o) => `*${o.label}*`).join('\n');
     await sendFlowMessage(number, from, `${nextStep.content ?? ''}\n\n${optionsText}`);
     if (contact?.id) await updateContactFlowState(contact.id, { flowId: flow.id, flowStep: nextStep.id });
+    await chatbotCache.setFlowState(companyId, from, { flowId: flow.id, flowStep: nextStep.id });
   } else if (nextStep.type === 'action' && nextStep.action === 'transfer_to_human') {
     await sendFlowMessage(number, from, 'Um atendente vai te responder em instantes. Por favor, aguarde.');
     if (contact?.id) await updateContactFlowState(contact.id, { flowId: null, flowStep: null, transferredToHuman: true, transferredAt: new Date().toISOString() });
+    await chatbotCache.clearFlowState(companyId, from);
   }
 
-  return { flowId: flow.id, stepId: nextStep.id };
+  return { flowId: flow.id, stepId: nextStep.id, cacheRead };
 }
 
 export default {

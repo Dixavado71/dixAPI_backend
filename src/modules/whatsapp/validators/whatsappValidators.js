@@ -230,6 +230,19 @@ export const changeNumberSchema = z.object({
   number: z.string().min(10),
 }).strict();
 
+export const botConfigSchema = z.object({
+  mode: z.enum(['public', 'private', 'customers_only']).optional(),
+  greeting: z.string().max(500).optional(),
+}).strict();
+
+export const updateProfileStatusSchema = z.object({
+  status: z.string().min(1).max(255),
+}).strict();
+
+export const catalogQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(50).optional(),
+}).strict();
+
 export default {
   connectNumberSchema,
   sendMessageSchema,
@@ -261,13 +274,10 @@ export default {
   sendPollSchema,
   editMessageSchema,
   deleteMessageSchema,
-  linkPreviewSchema,
-  sendBase64Schema,
-  sendBulkSchema,
-  typewriterSchema,
   sendContactSchema,
   profilePictureSchema,
   profileNameSchema,
-  requestPairingSchema,
-  changeNumberSchema,
+  botConfigSchema,
+  updateProfileStatusSchema,
+  catalogQuerySchema,
 };

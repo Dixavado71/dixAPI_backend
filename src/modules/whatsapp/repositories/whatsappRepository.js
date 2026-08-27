@@ -97,6 +97,43 @@ export function findContactById(contactId) {
   return prisma.whatsAppContact.findUnique({ where: { id: contactId } });
 }
 
+export function findCustomerByPhone(companyId, phone) {
+  return prisma.customer.findFirst({ where: { company_id: companyId, phone } });
+}
+
+export function listActiveProducts(companyId, limit = 10) {
+  return prisma.product.findMany({
+    where: { company_id: companyId, status: 'active' },
+    orderBy: { total_sales: 'desc' },
+    take: Math.min(Math.max(limit, 1), 50),
+  });
+}
+
+export function getCompanyCustomization(companyId) {
+  return prisma.companyCustomization.findUnique({ where: { company_id: companyId } });
+}
+
+export function updateCompanyCustomization(companyId, data) {
+  return prisma.companyCustomization.upsert({
+    where: { company_id: companyId },
+    create: { company_id: companyId, ...data },
+    update: data,
+  });
+}
+
+export function getBotConfig(companyId) {
+  return prisma.companyCustomization.findUnique({ where: { company_id: companyId } })
+    .then((c) => c?.bot_config ?? null);
+}
+
+export function updateBotConfig(companyId, config) {
+  return prisma.companyCustomization.upsert({
+    where: { company_id: companyId },
+    create: { company_id: companyId, bot_config: config },
+    update: { bot_config: config },
+  });
+}
+
 export function createMessage(data) {
   return prisma.whatsAppMessage.create({ data });
 }
@@ -142,6 +179,12 @@ export default {
   upsertContact,
   findContactByPhone,
   findContactById,
+  findCustomerByPhone,
+  listActiveProducts,
+  getCompanyCustomization,
+  updateCompanyCustomization,
+  getBotConfig,
+  updateBotConfig,
   createMessage,
   updateContactMetadata,
   findMessageByExternalId,
