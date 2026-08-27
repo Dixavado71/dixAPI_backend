@@ -475,7 +475,17 @@ export async function listGroups(companyId, numberId) {
 
 export async function findGroup(companyId, numberId, groupId) {
   const number = await requireNumber(companyId, numberId);
-  return evolutionApi.findGroupById(number.external_account_id, groupId);
+  const chats = await evolutionApi.fetchChats(number.external_account_id);
+  const found = Array.isArray(chats) ? chats.find((c) => c.remoteJid === groupId || c.id === groupId) : null;
+  if (!found) throw new NotFoundError('Grupo não encontrado.');
+  return {
+    id: found.remoteJid ?? found.id,
+    subject: found.name ?? found.subject ?? found.pushName ?? '',
+    name: found.name ?? found.subject ?? found.pushName ?? '',
+    participants: [],
+    lastMessage: found.lastMessage ?? null,
+    unreadCount: found.unreadCount ?? 0,
+  };
 }
 
 export async function updateGroup(companyId, numberId, groupId, data) {
