@@ -21,8 +21,6 @@ router.post('/numbers/:id/restart', authorize('admin', 'manager'), whatsappContr
 router.post('/numbers/:id/logout', authorize('admin', 'manager'), whatsappController.logoutNumber);
 router.post('/numbers/:id/disconnect', authorize('admin', 'manager'), whatsappController.disconnectNumber);
 router.delete('/numbers/:id', authorize('admin', 'manager'), whatsappController.deleteNumber);
-router.post('/numbers/:id/request-pairing-code', authorize('admin', 'manager'), whatsappController.requestPairingCode);
-router.post('/numbers/:id/change-number', authorize('admin', 'manager'), whatsappController.changeNumber);
 
 // Profile
 router.patch('/numbers/:id/profile', authorize('admin', 'manager'), whatsappController.updateProfile);
@@ -50,10 +48,6 @@ router.post('/numbers/:id/send-status-media', authorize('admin', 'manager', 'ope
 
 // Messaging (advanced)
 router.post('/numbers/:id/send-poll', authorize('admin', 'manager', 'operator'), whatsappController.sendPoll);
-router.post('/numbers/:id/send-link-preview', authorize('admin', 'manager', 'operator'), whatsappController.sendLinkPreview);
-router.post('/numbers/:id/send-base64', authorize('admin', 'manager', 'operator'), whatsappController.sendBase64);
-router.post('/numbers/:id/send-bulk', authorize('admin', 'manager', 'operator'), whatsappController.sendBulk);
-router.post('/numbers/:id/send-typewriter', authorize('admin', 'manager', 'operator'), whatsappController.sendTypewriter);
 router.post('/numbers/:id/send-contact', authorize('admin', 'manager', 'operator'), whatsappController.sendContact);
 router.post('/numbers/:id/edit-message', authorize('admin', 'manager', 'operator'), whatsappController.editMessage);
 router.post('/numbers/:id/delete-message', authorize('admin', 'manager', 'operator'), whatsappController.deleteMessage);
@@ -67,7 +61,6 @@ router.post('/numbers/:id/presence', authorize('admin', 'manager'), whatsappCont
 router.get('/numbers/:id/chats', authorize('admin', 'manager', 'operator'), whatsappController.getChats);
 router.get('/numbers/:id/chats/messages', authorize('admin', 'manager', 'operator'), whatsappController.getChatMessages);
 router.post('/numbers/:id/chats/find', authorize('admin', 'manager', 'operator'), whatsappController.findChat);
-router.post('/numbers/:id/chats/create', authorize('admin', 'manager', 'operator'), whatsappController.createChat);
 router.post('/numbers/:id/chats/check-number', authorize('admin', 'manager', 'operator'), whatsappController.checkNumber);
 router.post('/numbers/:id/chats/:chatId/archive', authorize('admin', 'manager', 'operator'), whatsappController.archiveChat);
 router.post('/numbers/:id/chats/:chatId/unarchive', authorize('admin', 'manager', 'operator'), whatsappController.unarchiveChat);
