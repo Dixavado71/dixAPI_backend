@@ -190,4 +190,25 @@ export async function resetPassword(token, newPassword) {
   return { message: 'Senha redefinida com sucesso.' };
 }
 
-export default { login, registerStore, register, refreshTokens, logout, logoutAll, getCurrentUser, forgotPassword, resetPassword };
+export async function switchCompany(userId, companyId) {
+  const user = await authRepository.findUserById(userId);
+  if (!user || !user.is_active) throw new UnauthorizedError('Invalid credentials');
+  const membership = await authRepository.findActiveMembership(user.id, companyId);
+  if (!membership || !membership.company || membership.company.status !== 'active') {
+    throw new UnauthorizedError('Você não possui acesso ativo a esta loja.');
+  }
+  const activeMemberships = user.UserCompany.filter((m) => m.status === 'active' && !m.removed_at);
+  const company = membership.company;
+  return {
+    user: {
+      id: user.id, name: user.name, email: user.email, phone: user.phone,
+      avatar_url: user.avatar_url, role: effectiveRole(user, membership), language: user.language,
+      timezone: user.timezone,
+      company: { id: company.id, name: company.name, trade_name: company.trade_name, logo_url: company.logo_url },
+    },
+    companies: collectCompanies(activeMemberships),
+    tokens: await issueTokens(user, membership),
+  };
+}
+
+export default { login, registerStore, register, refreshTokens, logout, logoutAll, getCurrentUser, forgotPassword, resetPassword, switchCompany };

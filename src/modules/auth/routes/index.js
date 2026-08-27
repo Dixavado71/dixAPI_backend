@@ -19,6 +19,7 @@ router.post('/refresh', refreshRateLimit, authController.refresh);
 router.post('/logout', logoutRateLimit, authenticate, authController.logout);
 router.post('/forgot-password', passwordResetRateLimit, authController.forgotPassword);
 router.post('/reset-password', passwordResetRateLimit, authController.resetPassword);
+router.post('/switch-company', authenticate, authController.switchCompany);
 router.get('/me', authenticate, authController.getCurrentUser);
 
 export default router;

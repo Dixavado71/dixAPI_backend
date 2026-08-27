@@ -50,6 +50,10 @@ export const resetPasswordSchema = z.object({
     .regex(/\d/, 'Use ao menos um número.'),
 }).strict();
 
+export const switchCompanySchema = z.object({
+  companyId: z.string().uuid('ID da loja inválido.'),
+}).strict();
+
 export default {
   loginSchema,
   registerSchema,
@@ -57,4 +61,5 @@ export default {
   refreshTokenSchema,
   forgotPasswordSchema,
   resetPasswordSchema,
+  switchCompanySchema,
 };

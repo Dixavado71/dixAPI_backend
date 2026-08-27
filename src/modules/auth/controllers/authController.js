@@ -1,5 +1,5 @@
 import * as authService from '../services/authService.js';
-import { loginSchema, registerSchema, registerStoreSchema, refreshTokenSchema, forgotPasswordSchema, resetPasswordSchema } from '../validators/authValidators.js';
+import { loginSchema, registerSchema, registerStoreSchema, refreshTokenSchema, forgotPasswordSchema, resetPasswordSchema, switchCompanySchema } from '../validators/authValidators.js';
 import { successResponse, createdResponse } from '../../../shared/utils/response.js';
 
 export async function login(req, res, next) {
@@ -88,6 +88,16 @@ export async function resetPassword(req, res, next) {
   }
 }
 
+export async function switchCompany(req, res, next) {
+  try {
+    const { companyId } = switchCompanySchema.parse(req.body);
+    const result = await authService.switchCompany(req.user.id, companyId);
+    return successResponse(res, result);
+  } catch (error) {
+    next(error);
+  }
+}
+
 export default {
   login,
   registerStore,
@@ -97,4 +107,5 @@ export default {
   getCurrentUser,
   forgotPassword,
   resetPassword,
+  switchCompany,
 };

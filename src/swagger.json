@@ -590,6 +590,34 @@
         }
       }
     },
+    "/auth/switch-company": {
+      "post": {
+        "operationId": "post__auth_switch_company_1",
+        "summary": "POST /auth/switch-company",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
     "/auth/me": {
       "get": {
         "operationId": "get__auth_me_1",
