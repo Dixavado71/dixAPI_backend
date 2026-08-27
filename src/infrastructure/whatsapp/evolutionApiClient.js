@@ -28,7 +28,7 @@ async function instanceRequest(method, instanceName, path, body) {
   return data;
 }
 
-/* ===== Instance ===== */
+/* ===== Instance (v2.3.7) ===== */
 
 export async function createInstance(instanceName) {
   const webhookUrl = `${env.publicApiUrl}/api/v1/whatsapp/webhook/${instanceName}`;
@@ -57,7 +57,7 @@ export async function deleteInstance(instanceName) {
 }
 
 export async function logoutInstance(instanceName) {
-  return instanceRequest('POST', instanceName, `/instance/logout/${instanceName}`);
+  return instanceRequest('DELETE', instanceName, `/instance/logout/${instanceName}`);
 }
 
 export async function restartInstance(instanceName) {
@@ -68,23 +68,7 @@ export async function setPresence(instanceName, presence = 'available') {
   return instanceRequest('POST', instanceName, `/instance/setPresence/${instanceName}`, { presence });
 }
 
-export async function updateProfileName(instanceName, name) {
-  return instanceRequest('POST', instanceName, `/instance/updateProfileName/${instanceName}`, { name });
-}
-
-export async function updateProfilePicture(instanceName, pictureBase64) {
-  return instanceRequest('POST', instanceName, `/instance/updateProfilePicture/${instanceName}`, { picture: pictureBase64 });
-}
-
-export async function getInstanceInfo(instanceName) {
-  return instanceRequest('POST', instanceName, `/instance/connectionState/${instanceName}`);
-}
-
-export async function fetchInstanceSessions(instanceName) {
-  return instanceRequest('POST', instanceName, `/instance/fetchSessions/${instanceName}`);
-}
-
-/* ===== Message sending ===== */
+/* ===== Message (v2.3.7) ===== */
 
 export async function sendText(instanceName, number, text, delay = 1000) {
   return instanceRequest('POST', instanceName, `/message/sendText/${instanceName}`, { number, text, delay });
@@ -96,8 +80,12 @@ export async function sendMedia(instanceName, number, mediaType, mediaUrl, capti
   });
 }
 
-export async function sendAudio(instanceName, number, audioUrl, delay = 1000) {
-  return instanceRequest('POST', instanceName, `/message/sendAudio/${instanceName}`, { number, audio: audioUrl, delay });
+export async function sendWhatsAppAudio(instanceName, number, audioUrl, delay = 1000) {
+  return instanceRequest('POST', instanceName, `/message/sendWhatsAppAudio/${instanceName}`, { number, audio: audioUrl, delay });
+}
+
+export async function sendPtv(instanceName, number, videoUrl, caption, delay = 1000) {
+  return instanceRequest('POST', instanceName, `/message/sendPtv/${instanceName}`, { number, ptv: videoUrl, caption, delay });
 }
 
 export async function sendDocument(instanceName, number, documentUrl, caption, fileName, delay = 1000) {
@@ -154,18 +142,22 @@ export async function sendStatusMedia(instanceName, mediaType, mediaUrl, caption
 }
 
 export async function sendReaction(instanceName, number, messageId, reaction) {
-  return instanceRequest('POST', instanceName, `/message/sendReaction/${instanceName}`, {
-    number, messageId, reaction,
-  });
+  return instanceRequest('POST', instanceName, `/message/sendReaction/${instanceName}`, { number, messageId, reaction });
 }
 
 export async function sendContactVcard(instanceName, number, name, phone) {
-  return instanceRequest('POST', instanceName, `/message/sendContact/${instanceName}`, {
-    number, name, phone,
-  });
+  return instanceRequest('POST', instanceName, `/message/sendContact/${instanceName}`, { number, name, phone });
 }
 
-/* ===== Chats ===== */
+export async function sendPoll(instanceName, number, name, values) {
+  return instanceRequest('POST', instanceName, `/message/sendPoll/${instanceName}`, { number, name, values });
+}
+
+export async function sendTemplate(instanceName, number, template) {
+  return instanceRequest('POST', instanceName, `/message/sendTemplate/${instanceName}`, { number, template });
+}
+
+/* ===== Chat (v2.3.7) ===== */
 
 export async function fetchChats(instanceName) {
   return instanceRequest('POST', instanceName, `/chat/findChats/${instanceName}`, {});
@@ -173,6 +165,10 @@ export async function fetchChats(instanceName) {
 
 export async function fetchChatMessages(instanceName, chatId, limit = 50) {
   return instanceRequest('POST', instanceName, `/chat/findMessages/${instanceName}`, { chatId, limit });
+}
+
+export async function findChatByRemoteJid(instanceName, chatId) {
+  return instanceRequest('GET', instanceName, `/chat/findChatByRemoteJid/${instanceName}?chatId=${encodeURIComponent(chatId)}`);
 }
 
 export async function markMessageAsRead(instanceName, number, messageId) {
@@ -187,170 +183,132 @@ export async function sendPresencePaused(instanceName, number) {
   return instanceRequest('POST', instanceName, `/chat/sendPresence/${instanceName}`, { number, presence: 'paused', delay: 1000 });
 }
 
-export async function setChatName(instanceName, chatId, name) {
-  return instanceRequest('POST', instanceName, `/chat/update/${instanceName}`, { chatId, name });
-}
-
-export async function updateGroupSubject(instanceName, groupId, name) {
-  return instanceRequest('PUT', instanceName, `/group/update/${instanceName}`, { groupId, name });
-}
-
-export async function updateGroupDescription(instanceName, groupId, description) {
-  return instanceRequest('PUT', instanceName, `/group/update/${instanceName}`, { groupId, description });
-}
-
-export async function createGroup(instanceName, name, participants = []) {
-  const nums = participants.map((p) => p.replace(/\D/g, ''));
-  if (nums.length === 0) nums.push('00000000000');
-  return instanceRequest('POST', instanceName, `/group/create/${instanceName}`, { subject: name, participants: nums });
-}
-
-export async function findGroupById(instanceName, groupId) {
-  return instanceRequest('POST', instanceName, `/group/findGroupInfos/${instanceName}`, { groupId });
-}
-
-export async function findGroupByName(instanceName, name) {
-  return instanceRequest('GET', instanceName, `/group/findGroupByName/${instanceName}/${encodeURIComponent(name)}`);
-}
-
-export async function updateGroupSetting(instanceName, groupId, action, value) {
-  return instanceRequest('POST', instanceName, `/group/updateSetting/${instanceName}`, { groupId, action, value });
-}
-
-export async function fetchInviteLink(instanceName, groupId) {
-  return instanceRequest('POST', instanceName, `/group/fetchInviteLink/${instanceName}`, { groupId });
-}
-
-export async function revokeInviteLink(instanceName, groupId) {
-  return instanceRequest('POST', instanceName, `/group/revokeInviteLink/${instanceName}`, { groupId });
-}
-
-export async function acceptInviteCode(instanceName, code) {
-  return instanceRequest('POST', instanceName, `/group/acceptInviteCode/${instanceName}`, { code });
-}
-
-export async function updateGroupPicture(instanceName, groupId, pictureBase64) {
-  return instanceRequest('POST', instanceName, `/group/updatePicture/${instanceName}`, { groupId, picture: pictureBase64 });
-}
-
-export async function addGroupParticipant(instanceName, groupId, phone) {
-  return instanceRequest('POST', instanceName, `/group/addParticipant/${instanceName}`, { groupId, phone });
-}
-
-export async function removeGroupParticipant(instanceName, groupId, phone) {
-  return instanceRequest('POST', instanceName, `/group/removeParticipant/${instanceName}`, { groupId, phone });
-}
-
-export async function promoteGroupParticipant(instanceName, groupId, phone) {
-  return instanceRequest('POST', instanceName, `/group/promoteParticipant/${instanceName}`, { groupId, phone });
-}
-
-export async function demoteGroupParticipant(instanceName, groupId, phone) {
-  return instanceRequest('POST', instanceName, `/group/demoteParticipant/${instanceName}`, { groupId, phone });
-}
-
-export async function leaveGroup(instanceName, groupId) {
-  return instanceRequest('POST', instanceName, `/group/leave/${instanceName}`, { groupId });
-}
-
-export async function fetchGroups(instanceName) {
-  return instanceRequest('GET', instanceName, `/group/findGroups/${instanceName}`);
-}
-
-/* ===== Status / Stories ===== */
-
-export async function fetchStatus(instanceName) {
-  return instanceRequest('GET', instanceName, `/status/findStatus/${instanceName}`);
-}
-
-export async function fetchStatusById(instanceName, statusId) {
-  return instanceRequest('GET', instanceName, `/status/findStatusById/${instanceName}/${statusId}`);
-}
-
-export async function reactionStatus(instanceName, statusId, reaction) {
-  return instanceRequest('POST', instanceName, `/status/reactionStatus/${instanceName}`, { statusId, reaction });
-}
-
-/* ===== Chats (extra) ===== */
-
-export async function findChat(instanceName, chatId) {
-  return instanceRequest('POST', instanceName, `/chat/findChat/${instanceName}`, { chatId });
-}
-
-export async function createChat(instanceName, number) {
-  return instanceRequest('POST', instanceName, `/chat/create/${instanceName}`, { number });
-}
-
 export async function archiveChat(instanceName, chatId) {
-  return instanceRequest('POST', instanceName, `/chat/archive/${instanceName}`, { chatId });
+  return instanceRequest('POST', instanceName, `/chat/archiveChat/${instanceName}`, { chatId });
 }
 
-export async function unarchiveChat(instanceName, chatId) {
-  return instanceRequest('POST', instanceName, `/chat/unarchive/${instanceName}`, { chatId });
+export async function markChatUnread(instanceName, chatId) {
+  return instanceRequest('POST', instanceName, `/chat/markChatUnread/${instanceName}`, { chatId });
 }
 
-export async function fetchAllMessages(instanceName, chatId) {
-  return instanceRequest('POST', instanceName, `/chat/fetchAllMessages/${instanceName}`, { chatId });
-}
-
-export async function checkNumber(instanceName, number) {
-  return instanceRequest('POST', instanceName, `/chat/checkNumber/${instanceName}`, { number });
-}
-
-/* ===== Messages (advanced) ===== */
-
-export async function sendPoll(instanceName, number, name, values) {
-  return instanceRequest('POST', instanceName, `/message/sendPoll/${instanceName}`, { number, name, values });
-}
-
-export async function editMessage(instanceName, number, messageId, text) {
-  return instanceRequest('POST', instanceName, `/message/edit/${instanceName}`, { number, messageId, text });
-}
-
-export async function deleteMessage(instanceName, number, messageId) {
-  return instanceRequest('POST', instanceName, `/message/delete/${instanceName}`, { number, messageId });
+export async function updateMessage(instanceName, number, messageId, text) {
+  return instanceRequest('POST', instanceName, `/chat/updateMessage/${instanceName}`, { number, messageId, text });
 }
 
 export async function deleteMessageForEveryone(instanceName, number, messageId) {
-  return instanceRequest('POST', instanceName, `/message/deleteMessageForEveryone/${instanceName}`, { number, messageId });
+  return instanceRequest('DELETE', instanceName, `/chat/deleteMessageForEveryone/${instanceName}`, { number, messageId });
 }
 
-export async function sendLinkPreview(instanceName, number, url, title, description, image) {
-  return instanceRequest('POST', instanceName, `/message/sendLinkPreview/${instanceName}`, { number, url, title, description, image });
+export async function fetchProfilePictureUrl(instanceName, number) {
+  return instanceRequest('POST', instanceName, `/chat/fetchProfilePictureUrl/${instanceName}`, { number });
 }
 
-export async function sendFileFromBase64(instanceName, number, base64, fileName) {
-  return instanceRequest('POST', instanceName, `/message/sendFileFromBase64/${instanceName}`, { number, base64, fileName });
+export async function fetchProfile(instanceName, number) {
+  return instanceRequest('POST', instanceName, `/chat/fetchProfile/${instanceName}`, { number });
 }
 
-export async function sendAudioFromBase64(instanceName, number, base64, fileName) {
-  return instanceRequest('POST', instanceName, `/message/sendAudioFromBase64/${instanceName}`, { number, base64, fileName });
+export async function findContacts(instanceName, where = {}) {
+  return instanceRequest('POST', instanceName, `/chat/findContacts/${instanceName}`, { where });
 }
 
-export async function sendTextBulk(instanceName, messages) {
-  return instanceRequest('POST', instanceName, `/message/sendTextBulk/${instanceName}`, messages);
+export async function whatsappNumbers(instanceName, numbers) {
+  return instanceRequest('POST', instanceName, `/chat/whatsappNumbers/${instanceName}`, { numbers });
 }
 
-export async function sendTypewriter(instanceName, number, text) {
-  return instanceRequest('POST', instanceName, `/message/sendTypewriter/${instanceName}`, { number, text });
+export async function findStatusMessage(instanceName, chatId, limit = 50) {
+  return instanceRequest('POST', instanceName, `/chat/findStatusMessage/${instanceName}`, { chatId, limit });
 }
 
-/* ===== Profile / Instance ===== */
-
-export async function getProfilePicture(instanceName, number) {
-  return instanceRequest('POST', instanceName, `/contact/getProfilePicture/${instanceName}`, { number });
+export async function updateProfileName(instanceName, name) {
+  return instanceRequest('POST', instanceName, `/chat/updateProfileName/${instanceName}`, { name });
 }
 
-export async function getProfileName(instanceName, number) {
-  return instanceRequest('POST', instanceName, `/contact/getProfileName/${instanceName}`, { number });
+export async function updateProfileStatus(instanceName, status) {
+  return instanceRequest('POST', instanceName, `/chat/updateProfileStatus/${instanceName}`, { status });
 }
 
-export async function requestPairingCode(instanceName, phone) {
-  return instanceRequest('POST', instanceName, `/instance/requestPairingCode/${instanceName}`, { phone });
+export async function updateProfilePicture(instanceName, image) {
+  return instanceRequest('POST', instanceName, `/chat/updateProfilePicture/${instanceName}`, { image });
 }
 
-export async function changeNumber(instanceName, number) {
-  return instanceRequest('POST', instanceName, `/instance/changeNumber/${instanceName}`, { number });
+export async function removeProfilePicture(instanceName) {
+  return instanceRequest('DELETE', instanceName, `/chat/removeProfilePicture/${instanceName}`);
+}
+
+export async function updateBlockStatus(instanceName, number, action) {
+  return instanceRequest('POST', instanceName, `/chat/updateBlockStatus/${instanceName}`, { number, action });
+}
+
+export async function fetchBusinessProfile(instanceName, number) {
+  return instanceRequest('POST', instanceName, `/chat/fetchBusinessProfile/${instanceName}`, { number });
+}
+
+/* ===== Group (v2.3.7) ===== */
+
+export async function createGroup(instanceName, subject, participants = [], description) {
+  return instanceRequest('POST', instanceName, `/group/create/${instanceName}`, {
+    subject, participants, description,
+  });
+}
+
+export async function updateGroupSubject(instanceName, groupJid, subject) {
+  return instanceRequest('POST', instanceName, `/group/updateGroupSubject/${instanceName}`, { groupJid, subject });
+}
+
+export async function updateGroupDescription(instanceName, groupJid, description) {
+  return instanceRequest('POST', instanceName, `/group/updateGroupDescription/${instanceName}`, { groupJid, description });
+}
+
+export async function updateGroupPicture(instanceName, groupJid, image) {
+  return instanceRequest('POST', instanceName, `/group/updateGroupPicture/${instanceName}`, { groupJid, image });
+}
+
+export async function findGroupInfos(instanceName, groupJid) {
+  return instanceRequest('GET', instanceName, `/group/findGroupInfos/${instanceName}?groupJid=${encodeURIComponent(groupJid)}`);
+}
+
+export async function fetchAllGroups(instanceName) {
+  return instanceRequest('GET', instanceName, `/group/fetchAllGroups/${instanceName}`);
+}
+
+export async function groupParticipants(instanceName, groupJid) {
+  return instanceRequest('GET', instanceName, `/group/participants/${instanceName}?groupJid=${encodeURIComponent(groupJid)}`);
+}
+
+export async function groupInviteCode(instanceName, groupJid) {
+  return instanceRequest('GET', instanceName, `/group/inviteCode/${instanceName}?groupJid=${encodeURIComponent(groupJid)}`);
+}
+
+export async function groupInviteInfo(instanceName, inviteCode) {
+  return instanceRequest('GET', instanceName, `/group/inviteInfo/${instanceName}?inviteCode=${encodeURIComponent(inviteCode)}`);
+}
+
+export async function acceptInviteCode(instanceName, inviteCode) {
+  return instanceRequest('GET', instanceName, `/group/acceptInviteCode/${instanceName}?inviteCode=${encodeURIComponent(inviteCode)}`);
+}
+
+export async function sendGroupInvite(instanceName, groupJid, numbers, description) {
+  return instanceRequest('POST', instanceName, `/group/sendInvite/${instanceName}`, { groupJid, numbers, description });
+}
+
+export async function revokeInviteCode(instanceName, groupJid) {
+  return instanceRequest('POST', instanceName, `/group/revokeInviteCode/${instanceName}`, { groupJid });
+}
+
+export async function updateParticipant(instanceName, groupJid, action, participants) {
+  return instanceRequest('POST', instanceName, `/group/updateParticipant/${instanceName}`, { groupJid, action, participants });
+}
+
+export async function updateGroupSetting(instanceName, groupJid, action) {
+  return instanceRequest('POST', instanceName, `/group/updateSetting/${instanceName}`, { groupJid, action });
+}
+
+export async function toggleEphemeral(instanceName, groupJid, expiration) {
+  return instanceRequest('POST', instanceName, `/group/toggleEphemeral/${instanceName}`, { groupJid, expiration });
+}
+
+export async function leaveGroup(instanceName, groupJid) {
+  return instanceRequest('DELETE', instanceName, `/group/leaveGroup/${instanceName}`, { groupJid });
 }
 
 /* ===== Webhook ===== */
@@ -362,7 +320,7 @@ export async function setWebhook(instanceName, webhookUrl, events = ['MESSAGES_U
 }
 
 export async function getWebhook(instanceName) {
-  return instanceRequest('POST', instanceName, `/webhook/find/${instanceName}`);
+  return instanceRequest('POST', instanceName, `/webhook/find/${instanceName}`).catch(() => ({ webhook: null }));
 }
 
 export default {
@@ -374,13 +332,10 @@ export default {
   logoutInstance,
   restartInstance,
   setPresence,
-  updateProfileName,
-  updateProfilePicture,
-  getInstanceInfo,
-  fetchInstanceSessions,
   sendText,
   sendMedia,
-  sendAudio,
+  sendWhatsAppAudio,
+  sendPtv,
   sendDocument,
   sendVideo,
   sendSticker,
@@ -391,50 +346,45 @@ export default {
   sendStatusMedia,
   sendReaction,
   sendContactVcard,
+  sendPoll,
+  sendTemplate,
   fetchChats,
   fetchChatMessages,
+  findChatByRemoteJid,
   markMessageAsRead,
   sendTyping,
   sendPresencePaused,
-  setChatName,
+  archiveChat,
+  markChatUnread,
+  updateMessage,
+  deleteMessageForEveryone,
+  fetchProfilePictureUrl,
+  fetchProfile,
+  findContacts,
+  whatsappNumbers,
+  findStatusMessage,
+  updateProfileName,
+  updateProfileStatus,
+  updateProfilePicture,
+  removeProfilePicture,
+  updateBlockStatus,
+  fetchBusinessProfile,
   createGroup,
-  findGroupById,
-  findGroupByName,
-  updateGroupSetting,
-  fetchInviteLink,
-  revokeInviteLink,
-  acceptInviteCode,
-  updateGroupPicture,
   updateGroupSubject,
   updateGroupDescription,
-  addGroupParticipant,
-  removeGroupParticipant,
-  promoteGroupParticipant,
-  demoteGroupParticipant,
+  updateGroupPicture,
+  findGroupInfos,
+  fetchAllGroups,
+  groupParticipants,
+  groupInviteCode,
+  groupInviteInfo,
+  acceptInviteCode,
+  sendGroupInvite,
+  revokeInviteCode,
+  updateParticipant,
+  updateGroupSetting,
+  toggleEphemeral,
   leaveGroup,
-  fetchGroups,
-  fetchStatus,
-  fetchStatusById,
-  reactionStatus,
-  findChat,
-  createChat,
-  archiveChat,
-  unarchiveChat,
-  fetchAllMessages,
-  checkNumber,
-  sendPoll,
-  editMessage,
-  deleteMessage,
-  deleteMessageForEveryone,
-  sendLinkPreview,
-  sendFileFromBase64,
-  sendAudioFromBase64,
-  sendTextBulk,
-  sendTypewriter,
-  getProfilePicture,
-  getProfileName,
-  requestPairingCode,
-  changeNumber,
   setWebhook,
   getWebhook,
 };

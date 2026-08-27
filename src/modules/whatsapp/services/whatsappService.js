@@ -230,7 +230,7 @@ async function recordOutboundMessage(number, to, content, messageType, externalI
 
 export async function sendAudioMessage(companyId, numberId, data) {
   const number = await requireConnectedNumber(companyId, numberId);
-  const result = await evolutionApi.sendAudio(number.external_account_id, data.to, data.audioUrl, data.delay);
+  const result = await evolutionApi.sendWhatsAppAudio(number.external_account_id, data.to, data.audioUrl, data.delay);
   await recordOutboundMessage(number, data.to, null, 'audio', result?.key?.id ?? null);
   return { sent: true, externalMessageId: result?.key?.id ?? null };
 }
@@ -492,42 +492,42 @@ export async function updateGroup(companyId, numberId, groupId, data) {
   const number = await requireNumber(companyId, numberId);
   if (data.name) return evolutionApi.updateGroupSubject(number.external_account_id, groupId, data.name);
   if (data.description) return evolutionApi.updateGroupDescription(number.external_account_id, groupId, data.description);
-  return evolutionApi.updateGroupSetting(number.external_account_id, groupId, data.action, data.value);
+  return evolutionApi.updateGroupSetting(number.external_account_id, groupId, data.action);
 }
 
 export async function groupSettings(companyId, numberId, groupId, data) {
   const number = await requireNumber(companyId, numberId);
-  return evolutionApi.updateGroupSetting(number.external_account_id, groupId, data.action, data.value);
+  return evolutionApi.updateGroupSetting(number.external_account_id, groupId, data.action);
 }
 
 export async function addParticipant(companyId, numberId, groupId, data) {
   const number = await requireNumber(companyId, numberId);
-  return evolutionApi.addGroupParticipant(number.external_account_id, groupId, data.phone);
+  return evolutionApi.updateParticipant(number.external_account_id, groupId, 'add', [data.phone]);
 }
 
 export async function removeParticipant(companyId, numberId, groupId, data) {
   const number = await requireNumber(companyId, numberId);
-  return evolutionApi.removeGroupParticipant(number.external_account_id, groupId, data.phone);
+  return evolutionApi.updateParticipant(number.external_account_id, groupId, 'remove', [data.phone]);
 }
 
 export async function promoteParticipant(companyId, numberId, groupId, data) {
   const number = await requireNumber(companyId, numberId);
-  return evolutionApi.promoteGroupParticipant(number.external_account_id, groupId, data.phone);
+  return evolutionApi.updateParticipant(number.external_account_id, groupId, 'promote', [data.phone]);
 }
 
 export async function demoteParticipant(companyId, numberId, groupId, data) {
   const number = await requireNumber(companyId, numberId);
-  return evolutionApi.demoteGroupParticipant(number.external_account_id, groupId, data.phone);
+  return evolutionApi.updateParticipant(number.external_account_id, groupId, 'demote', [data.phone]);
 }
 
 export async function inviteLink(companyId, numberId, groupId) {
   const number = await requireNumber(companyId, numberId);
-  return evolutionApi.fetchInviteLink(number.external_account_id, groupId);
+  return evolutionApi.groupInviteCode(number.external_account_id, groupId);
 }
 
 export async function revokeInvite(companyId, numberId, groupId) {
   const number = await requireNumber(companyId, numberId);
-  return evolutionApi.revokeInviteLink(number.external_account_id, groupId);
+  return evolutionApi.revokeInviteCode(number.external_account_id, groupId);
 }
 
 export async function acceptInvite(companyId, numberId, data) {
@@ -550,7 +550,7 @@ export async function leaveGroup(companyId, numberId, groupId) {
 export async function listStatus(companyId, numberId) {
   const number = await requireNumber(companyId, numberId);
   try {
-    return await evolutionApi.fetchStatus(number.external_account_id);
+    return await evolutionApi.findStatusMessage(number.external_account_id, 'status@broadcast');
   } catch {
     return [];
   }
@@ -558,24 +558,19 @@ export async function listStatus(companyId, numberId) {
 
 export async function getStatusById(companyId, numberId, statusId) {
   const number = await requireNumber(companyId, numberId);
-  return evolutionApi.fetchStatusById(number.external_account_id, statusId);
+  return evolutionApi.findStatusMessage(number.external_account_id, statusId);
 }
 
 export async function reactStatus(companyId, numberId, data) {
   const number = await requireNumber(companyId, numberId);
-  return evolutionApi.reactionStatus(number.external_account_id, data.statusId, data.reaction);
+  return evolutionApi.sendReaction(number.external_account_id, data.number, data.statusId, data.reaction);
 }
 
 /* ===== Chats (extra) ===== */
 
 export async function findChat(companyId, numberId, data) {
   const number = await requireNumber(companyId, numberId);
-  return evolutionApi.findChat(number.external_account_id, data.chatId);
-}
-
-export async function createChat(companyId, numberId, data) {
-  const number = await requireNumber(companyId, numberId);
-  return evolutionApi.createChat(number.external_account_id, data.number);
+  return evolutionApi.findChatByRemoteJid(number.external_account_id, data.chatId);
 }
 
 export async function archiveChat(companyId, numberId, chatId) {
@@ -585,20 +580,20 @@ export async function archiveChat(companyId, numberId, chatId) {
 
 export async function unarchiveChat(companyId, numberId, chatId) {
   const number = await requireNumber(companyId, numberId);
-  return evolutionApi.unarchiveChat(number.external_account_id, chatId);
+  return evolutionApi.markChatUnread(number.external_account_id, chatId);
 }
 
 export async function fetchAllMessages(companyId, numberId, chatId) {
   const number = await requireNumber(companyId, numberId);
-  return evolutionApi.fetchAllMessages(number.external_account_id, chatId);
+  return evolutionApi.findChatByRemoteJid(number.external_account_id, chatId);
 }
 
 export async function checkNumber(companyId, numberId, data) {
   const number = await requireNumber(companyId, numberId);
   try {
-    return await evolutionApi.checkNumber(number.external_account_id, data.number);
+    return await evolutionApi.whatsappNumbers(number.external_account_id, [data.number]);
   } catch {
-    return { exists: null, reason: 'não suportado nesta versão da EvolutionAPI' };
+    return { exists: null, reason: 'não foi possível verificar' };
   }
 }
 
@@ -611,37 +606,12 @@ export async function sendPoll(companyId, numberId, data) {
 
 export async function editMessage(companyId, numberId, data) {
   const number = await requireConnectedNumber(companyId, numberId);
-  return evolutionApi.editMessage(number.external_account_id, data.number, data.messageId, data.text);
+  return evolutionApi.updateMessage(number.external_account_id, data.number, data.messageId, data.text);
 }
 
 export async function deleteMessage(companyId, numberId, data) {
   const number = await requireConnectedNumber(companyId, numberId);
-  if (data.forEveryone) return evolutionApi.deleteMessageForEveryone(number.external_account_id, data.number, data.messageId);
-  return evolutionApi.deleteMessage(number.external_account_id, data.number, data.messageId);
-}
-
-export async function sendLinkPreview(companyId, numberId, data) {
-  const number = await requireConnectedNumber(companyId, numberId);
-  return evolutionApi.sendLinkPreview(number.external_account_id, data.number, data.url, data.title, data.description, data.image);
-}
-
-export async function sendBase64(companyId, numberId, data) {
-  const number = await requireConnectedNumber(companyId, numberId);
-  if (data.mediaType === 'audio') return evolutionApi.sendAudioFromBase64(number.external_account_id, data.number, data.base64, data.fileName);
-  return evolutionApi.sendFileFromBase64(number.external_account_id, data.number, data.base64, data.fileName);
-}
-
-export async function sendBulk(companyId, numberId, data) {
-  const number = await requireConnectedNumber(companyId, numberId);
-  const messages = (data.messages ?? []).map((m) => ({
-    number: m.number.replace(/\D/g, ''), text: m.text, delay: m.delay ?? 1000,
-  }));
-  return evolutionApi.sendTextBulk(number.external_account_id, messages);
-}
-
-export async function sendTypewriter(companyId, numberId, data) {
-  const number = await requireConnectedNumber(companyId, numberId);
-  return evolutionApi.sendTypewriter(number.external_account_id, data.number, data.text);
+  return evolutionApi.deleteMessageForEveryone(number.external_account_id, data.number, data.messageId);
 }
 
 export async function sendContact(companyId, numberId, data) {
@@ -653,24 +623,12 @@ export async function sendContact(companyId, numberId, data) {
 
 export async function getProfilePicture(companyId, numberId, data) {
   const number = await requireNumber(companyId, numberId);
-  return evolutionApi.getProfilePicture(number.external_account_id, data.number);
+  return evolutionApi.fetchProfilePictureUrl(number.external_account_id, data.number);
 }
 
 export async function getProfileName(companyId, numberId, data) {
   const number = await requireNumber(companyId, numberId);
-  return evolutionApi.getProfileName(number.external_account_id, data.number);
-}
-
-export async function requestPairingCode(companyId, numberId, data) {
-  const number = await requireNumber(companyId, numberId);
-  return evolutionApi.requestPairingCode(number.external_account_id, data.phone);
-}
-
-export async function changeNumber(companyId, numberId, data) {
-  const number = await requireNumber(companyId, numberId);
-  const result = await evolutionApi.changeNumber(number.external_account_id, data.number);
-  await whatsappRepo.updateNumberById(number.id, { phone_number: data.number.replace(/\D/g, '') });
-  return { changed: true, result };
+  return evolutionApi.fetchProfile(number.external_account_id, data.number);
 }
 
 export async function handleWebhook(instanceName, payload) {
@@ -815,7 +773,6 @@ export default {
   getStatusById,
   reactStatus,
   findChat,
-  createChat,
   archiveChat,
   unarchiveChat,
   fetchAllMessages,
@@ -823,14 +780,8 @@ export default {
   sendPoll,
   editMessage,
   deleteMessage,
-  sendLinkPreview,
-  sendBase64,
-  sendBulk,
-  sendTypewriter,
   sendContact,
   getProfilePicture,
   getProfileName,
-  requestPairingCode,
-  changeNumber,
   handleWebhook,
 };

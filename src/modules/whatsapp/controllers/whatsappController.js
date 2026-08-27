@@ -223,11 +223,6 @@ export async function findChat(req, res, next) {
   catch (error) { return next(error); }
 }
 
-export async function createChat(req, res, next) {
-  try { const data = createChatSchema.parse(req.body); const result = await whatsappService.createChat(req.tenant.companyId, req.params.id, data); return createdResponse(res, result); }
-  catch (error) { return next(error); }
-}
-
 export async function archiveChat(req, res, next) {
   try { const result = await whatsappService.archiveChat(req.tenant.companyId, req.params.id, req.params.chatId); return successResponse(res, result); }
   catch (error) { return next(error); }
@@ -265,26 +260,6 @@ export async function deleteMessage(req, res, next) {
   catch (error) { return next(error); }
 }
 
-export async function sendLinkPreview(req, res, next) {
-  try { const data = linkPreviewSchema.parse(req.body); const result = await whatsappService.sendLinkPreview(req.tenant.companyId, req.params.id, data); return createdResponse(res, result); }
-  catch (error) { return next(error); }
-}
-
-export async function sendBase64(req, res, next) {
-  try { const data = sendBase64Schema.parse(req.body); const result = await whatsappService.sendBase64(req.tenant.companyId, req.params.id, data); return createdResponse(res, result); }
-  catch (error) { return next(error); }
-}
-
-export async function sendBulk(req, res, next) {
-  try { const data = sendBulkSchema.parse(req.body); const result = await whatsappService.sendBulk(req.tenant.companyId, req.params.id, data); return createdResponse(res, result); }
-  catch (error) { return next(error); }
-}
-
-export async function sendTypewriter(req, res, next) {
-  try { const data = typewriterSchema.parse(req.body); const result = await whatsappService.sendTypewriter(req.tenant.companyId, req.params.id, data); return createdResponse(res, result); }
-  catch (error) { return next(error); }
-}
-
 export async function sendContact(req, res, next) {
   try { const data = sendContactSchema.parse(req.body); const result = await whatsappService.sendContact(req.tenant.companyId, req.params.id, data); return createdResponse(res, result); }
   catch (error) { return next(error); }
@@ -299,16 +274,6 @@ export async function getProfilePicture(req, res, next) {
 
 export async function getProfileName(req, res, next) {
   try { const data = profileNameSchema.parse(req.body); const result = await whatsappService.getProfileName(req.tenant.companyId, req.params.id, data); return successResponse(res, result); }
-  catch (error) { return next(error); }
-}
-
-export async function requestPairingCode(req, res, next) {
-  try { const data = requestPairingSchema.parse(req.body); const result = await whatsappService.requestPairingCode(req.tenant.companyId, req.params.id, data); return successResponse(res, result); }
-  catch (error) { return next(error); }
-}
-
-export async function changeNumber(req, res, next) {
-  try { const data = changeNumberSchema.parse(req.body); const result = await whatsappService.changeNumber(req.tenant.companyId, req.params.id, data); return successResponse(res, result); }
   catch (error) { return next(error); }
 }
 
@@ -356,8 +321,8 @@ export default {
   promoteGroupParticipant, demoteGroupParticipant, getInviteLink, revokeInviteLink, acceptInviteCode,
   updateGroupPicture, leaveGroup,
   getStories, getStoryById, reactStory,
-  findChat, createChat, archiveChat, unarchiveChat, fetchAllMessages, checkNumber,
-  sendPoll, editMessage, deleteMessage, sendLinkPreview, sendBase64, sendBulk, sendTypewriter, sendContact,
-  getProfilePicture, getProfileName, requestPairingCode, changeNumber,
+  findChat, archiveChat, unarchiveChat, fetchAllMessages, checkNumber,
+  sendPoll, editMessage, deleteMessage, sendContact,
+  getProfilePicture, getProfileName,
   updateProfile, updatePicture, restartNumber, logoutNumber, getWebhook, setupWebhook, webhook,
 };
