@@ -14,6 +14,7 @@ router.get('/', controller.deliveries);
 router.post('/', controller.createDelivery);
 router.get('/:id', controller.showDelivery);
 router.patch('/:id/status', authorize('admin', 'manager', 'operator'), controller.updateStatus);
+router.post('/:id/at-location', authorize('admin', 'manager', 'operator'), controller.markAtLocation);
 router.post('/payments', authorize('admin', 'manager', 'operator'), controller.createPayment);
 router.post('/payments/:id/confirm', authorize('admin', 'manager', 'operator'), controller.confirmPayment);
 

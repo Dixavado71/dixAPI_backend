@@ -223,6 +223,7 @@ enum DeliveryStatus {
   assigned
   picked_up
   in_transit
+  at_location
   delivered
   cancelled
   failed
@@ -466,6 +467,7 @@ model Company {
   notification_events   NotificationEvent[]
   payment_events        PaymentEvent[]
   driver_payouts        DriverPayout[]
+  order_notification_logs OrderNotificationLog[]
 
   @@index([cnpj])
   @@index([is_active])
@@ -763,6 +765,27 @@ model Notification {
   @@index([is_read])
   @@index([type])
   @@map("notifications")
+}
+
+model OrderNotificationLog {
+  id              String   @id @default(uuid()) @db.Uuid
+  company_id      String   @db.Uuid
+  order_id        String?  @db.Uuid
+  delivery_id     String?  @db.Uuid
+  event           String
+  recipient       String
+  recipient_phone String
+  message         String
+  status          String   @default("sent")
+  error           String?
+  created_at      DateTime @default(now())
+
+  company Company @relation(fields: [company_id], references: [id], onDelete: Cascade)
+
+  @@unique([company_id, id])
+  @@index([company_id, created_at])
+  @@index([company_id, event])
+  @@map("order_notification_logs")
 }
 
 model UserCompany {

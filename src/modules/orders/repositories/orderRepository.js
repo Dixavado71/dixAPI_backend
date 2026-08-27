@@ -61,3 +61,11 @@ export async function createOrder(companyId, customerId, paymentMethod, itemsDat
     return order;
   });
 }
+
+export function updateOrder(companyId, id, data) {
+  return prisma.order.updateMany({ where: { id, company_id: companyId }, data });
+}
+
+export function findUpdatedOrder(companyId, id) {
+  return prisma.order.findFirst({ where: { id, company_id: companyId }, include: { customer: true, order_items: { include: { product: true } } } });
+}

@@ -296,6 +296,15 @@ export async function getCatalog(req, res, next) {
   catch (error) { return next(error); }
 }
 
+export async function getNotificationLogs(req, res, next) {
+  try {
+    const { listOrderNotificationLogs } = await import('../../notifications/repositories/notificationRepository.js');
+    const limit = parseInt(req.query.limit, 10) || 50;
+    const result = await listOrderNotificationLogs(req.tenant.companyId, { limit });
+    return successResponse(res, result);
+  } catch (error) { return next(error); }
+}
+
 export async function updateProfile(req, res, next) {
   try { const data = updateProfileSchema.parse(req.body); const result = await whatsappService.updateProfile(req.tenant.companyId, req.params.id, data); return successResponse(res, result); }
   catch (error) { return next(error); }
@@ -342,6 +351,6 @@ export default {
   getStories, getStoryById, reactStory,
   findChat, archiveChat, unarchiveChat, fetchAllMessages, checkNumber,
   sendPoll, editMessage, deleteMessage, sendContact,
-  getProfilePicture, getProfileName, updateProfileStatus, getBotConfig, updateBotConfig, getCatalog,
+  getProfilePicture, getProfileName, updateProfileStatus, getBotConfig, updateBotConfig, getCatalog, getNotificationLogs,
   updateProfile, updatePicture, restartNumber, logoutNumber, getWebhook, setupWebhook, webhook,
 };

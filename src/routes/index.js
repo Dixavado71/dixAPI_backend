@@ -18,6 +18,7 @@ import transactionRoutes from '../modules/transactions/routes/index.js';
 import { whatsappRoutes } from '../modules/whatsapp/index.js';
 import { conversationRoutes } from '../modules/conversations/index.js';
 import { automationRoutes } from '../modules/automation/index.js';
+import { notificationRoutes } from '../modules/notifications/index.js';
 
 const router = Router();
 
@@ -40,5 +41,6 @@ router.use('/transactions', transactionRoutes);
 router.use('/whatsapp', whatsappRoutes);
 router.use('/conversations', conversationRoutes);
 router.use('/automation', automationRoutes);
+router.use('/notifications', notificationRoutes);
 
 export default router;

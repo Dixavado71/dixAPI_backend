@@ -232,7 +232,16 @@ export const changeNumberSchema = z.object({
 
 export const botConfigSchema = z.object({
   mode: z.enum(['public', 'private', 'customers_only']).optional(),
-  greeting: z.string().max(500).optional(),
+  greeting: z.string().max(500).nullable().optional(),
+  forwardTo: z.string().max(20).nullable().optional(),
+  forwardMessage: z.string().max(500).nullable().optional(),
+  segment: z.enum(['delivery_food', 'retail', 'services']).optional(),
+  ownerPhone: z.string().max(20).nullable().optional(),
+  kitchenPhone: z.string().max(20).nullable().optional(),
+  templates: z.record(z.string(), z.object({
+    to: z.string().optional(),
+    message: z.string().optional(),
+  })).optional(),
 }).strict();
 
 export const updateProfileStatusSchema = z.object({

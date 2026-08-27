@@ -785,9 +785,32 @@ export async function handleWebhook(instanceName, payload) {
 
     if (number.is_bot_enabled && messageContent) {
       const { processIncomingMessage } = await import('../../automation/services/automationService.js');
+      const { notifyAttendants } = await import('../../notifications/services/notificationService.js');
+      const { handleOrderEvent } = await import('../../notifications/services/orderNotificationService.js');
       const check = await shouldBotRespond(number.company_id, number.id, phoneNumber);
       if (check.allowed) {
         await processIncomingMessage({ companyId: number.company_id, number, from: phoneNumber, text: messageContent, contact }).catch(() => null);
+      } else if (check.reason === 'not_customer' || check.reason === 'not_known') {
+        const config = (await whatsappRepo.getBotConfig(number.company_id)) ?? {};
+        const conv = await conversationRepo.findConversationByContact(number.company_id, 'whatsapp', phoneNumber);
+        if (conv) {
+          await conversationRepo.updateConversation(conv.id, { status: 'waiting' }).catch(() => null);
+        }
+        await notifyAttendants({
+          companyId: number.company_id,
+          title: 'Novo contato desconhecido',
+          message: `${data.pushName || phoneNumber} enviou: "${messageContent}"`,
+          type: 'message',
+          relatedEntityType: 'conversation',
+          relatedEntityId: conv?.id ?? null,
+        }).catch(() => null);
+        if (config.forwardTo) {
+          const forwardMsg = (config.forwardMessage || '📩 Novo contato: {nome} ({phone}) — {mensagem}')
+            .replace(/{nome}/g, data.pushName || phoneNumber)
+            .replace(/{phone}/g, phoneNumber)
+            .replace(/{mensagem}/g, messageContent);
+          await evolutionApi.sendText(number.external_account_id, config.forwardTo.replace(/\D/g, ''), forwardMsg, 500).catch(() => null);
+        }
       }
     }
   }

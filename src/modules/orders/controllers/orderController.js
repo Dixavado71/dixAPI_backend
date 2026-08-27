@@ -18,3 +18,14 @@ export async function create(req, res, next) {
     return next(error);
   }
 }
+
+export async function updateStatus(req, res, next) {
+  try {
+    const order = await service.updateOrderStatus(req.tenant.companyId, req.params.id, req.body.status);
+    return successResponse(res, order);
+  } catch (error) {
+    return next(error);
+  }
+}
+
+export default { list, get, create, updateStatus };

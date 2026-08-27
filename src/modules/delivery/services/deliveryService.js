@@ -40,7 +40,8 @@ const transitions = {
   ready_for_pickup: ['assigned', 'cancelled'],
   assigned: ['picked_up', 'cancelled'],
   picked_up: ['in_transit', 'delivered', 'failed'],
-  in_transit: ['delivered', 'failed'],
+  in_transit: ['at_location', 'delivered', 'failed'],
+  at_location: ['delivered', 'failed'],
   delivered: [],
   cancelled: [],
   failed: [],
@@ -57,7 +58,17 @@ export async function updateStatus(companyId, id, data) {
     ...(data.status === 'delivered' ? { delivered_at: new Date() } : {}),
   });
   if (!result.count) throw new NotFoundError('Delivery');
+
+  if (['assigned', 'in_transit', 'at_location', 'delivered'].includes(data.status)) {
+    const { handleOrderEvent } = await import('../../notifications/services/orderNotificationService.js');
+    await handleOrderEvent(companyId, delivery.order_id, `delivery_${data.status}`).catch(() => null);
+  }
+
   return getDelivery(companyId, id);
+}
+
+export async function markAtLocation(companyId, id) {
+  return updateStatus(companyId, id, { status: 'at_location' });
 }
 
 export async function registerPayment(companyId, data) {

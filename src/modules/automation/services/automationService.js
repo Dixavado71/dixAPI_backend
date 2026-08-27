@@ -260,6 +260,17 @@ export async function processIncomingMessage({ companyId, number, from, text }) 
     await sendFlowMessage(number, from, 'Um atendente vai te responder em instantes. Por favor, aguarde.');
     if (contact?.id) await updateContactFlowState(contact.id, { flowId: null, flowStep: null, transferredToHuman: true, transferredAt: new Date().toISOString() });
     await chatbotCache.clearFlowState(companyId, from);
+    const conv = await conversationRepo.findConversationByContact(companyId, 'whatsapp', from);
+    if (conv) await conversationRepo.updateConversation(conv.id, { status: 'waiting' }).catch(() => null);
+    const { notifyAttendants } = await import('../../notifications/services/notificationService.js');
+    await notifyAttendants({
+      companyId,
+      title: 'Cliente pediu atendente',
+      message: `${from} solicitou atendimento humano: "${text}"`,
+      type: 'message',
+      relatedEntityType: 'conversation',
+      relatedEntityId: conv?.id ?? null,
+    }).catch(() => null);
   }
 
   return { flowId: flow.id, stepId: nextStep.id, cacheRead };

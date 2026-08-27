@@ -33,6 +33,7 @@ router.post('/numbers/:id/contacts/profile-status', authorize('admin', 'manager'
 router.get('/numbers/:id/bot-config', authorize('admin', 'manager'), whatsappController.getBotConfig);
 router.patch('/numbers/:id/bot-config', authorize('admin', 'manager'), whatsappController.updateBotConfig);
 router.get('/numbers/:id/catalog', authorize('admin', 'manager', 'operator'), whatsappController.getCatalog);
+router.get('/numbers/:id/notification-logs', authorize('admin', 'manager'), whatsappController.getNotificationLogs);
 
 // Webhook management
 router.get('/numbers/:id/webhook', authorize('admin', 'manager'), whatsappController.getWebhook);
