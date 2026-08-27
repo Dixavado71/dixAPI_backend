@@ -20,7 +20,11 @@ vi.mock('../src/infrastructure/whatsapp/evolutionApiClient.js', () => ({
   sendText: vi.fn(),
 }));
 vi.mock('../src/infrastructure/cache/chatbotCache.js', () => ({ default: { getFlowState: vi.fn(), setFlowState: vi.fn(), clearFlowState: vi.fn() } }));
-vi.mock('../src/config/env.js', () => ({ env: { evolutionApiUrl: 'http://evolution' } }));
+vi.mock('../src/config/env.js', () => ({ env: { evolutionApiUrl: 'http://evolution', logLevel: 'silent' } }));
+vi.mock('../src/config/logger.js', () => ({
+  logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
+  default: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
+}));
 
 const { parseEvolutionMessage, isReactionMessage, aggregateReactions, mergeChatMessages, listChatMessages } = await import('../src/modules/whatsapp/services/whatsappService.js');
 const evolutionApi = await import('../src/infrastructure/whatsapp/evolutionApiClient.js');

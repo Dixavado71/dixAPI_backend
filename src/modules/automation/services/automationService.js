@@ -7,6 +7,7 @@ import chatbotCache from '../../../infrastructure/cache/chatbotCache.js';
 import { fillTemplate } from './templateEngine.js';
 import { evaluateExpression } from './expressionEvaluator.js';
 import { extractMessageText as extractMessageTextFromShared } from '../../../shared/whatsapp/extraction.js';
+import { logger } from '../../../config/logger.js';
 
 export async function listFlows(companyId, filters) {
   return automationRepo.listFlows(companyId, filters);
@@ -260,9 +261,10 @@ async function resolveFlow(companyId, number, group, text) {
       if (bound && bound.is_active) return bound;
     }
   }
-  return automationRepo.findActiveFlowByType(companyId, 'vendas')
-    ?? automationRepo.findActiveFlowByType(companyId, 'suporte')
-    ?? automationRepo.findActiveFlowByType(companyId, 'marketing');
+  const flow = await automationRepo.findActiveFlowByType(companyId, 'vendas')
+    ?? await automationRepo.findActiveFlowByType(companyId, 'suporte')
+    ?? await automationRepo.findActiveFlowByType(companyId, 'marketing');
+  return flow;
 }
 
 function buildFlowContext({ number, from, text, state, flow, group }) {
@@ -454,11 +456,17 @@ export async function processIncomingMessage({ companyId, number, from, text, co
   if (!number.is_bot_enabled) return null;
 
   const flow = await resolveFlow(companyId, number, group, text);
-  if (!flow) return null;
+  if (!flow) {
+    logger.warn({ companyId, from, text }, 'bot: nenhum fluxo ativo encontrado (vendas/suporte/marketing)');
+    return null;
+  }
 
   const config = flow.config_json ?? {};
   const steps = Array.isArray(config.steps) ? config.steps : [];
-  if (steps.length === 0) return null;
+  if (steps.length === 0) {
+    logger.warn({ companyId, from, flowId: flow.id }, 'bot: fluxo sem steps');
+    return null;
+  }
 
   const normalizedText = normalize(text);
   const triggers = Array.isArray(config.triggers) ? [...config.triggers].sort((a, b) => normalize(b.keyword).length - normalize(a.keyword).length) : [];
@@ -475,6 +483,9 @@ export async function processIncomingMessage({ companyId, number, from, text, co
   const matchedTrigger = triggers.find((t) => normalizedText.includes(normalize(t.keyword)));
   if (matchedTrigger) {
     nextStep = steps.find((s) => s.id === matchedTrigger.step) ?? null;
+    if (nextStep) {
+      logger.info({ companyId, from, text, keyword: matchedTrigger.keyword, stepId: nextStep.id, flowId: flow.id }, 'bot: trigger matched');
+    }
   }
 
   if (!nextStep && currentStepId) {

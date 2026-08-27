@@ -5,6 +5,7 @@ import * as evolutionApi from '../../../infrastructure/whatsapp/evolutionApiClie
 import chatbotCache from '../../../infrastructure/cache/chatbotCache.js';
 import { env } from '../../../config/env.js';
 import { extractMessageText, extractMedia } from '../../../shared/whatsapp/extraction.js';
+import { logger } from '../../../config/logger.js';
 
 function jidFromPhone(phone) {
   if (!phone) return null;
@@ -1080,14 +1081,27 @@ export async function handleWebhook(instanceName, payload) {
       sentAt: new Date((data.messageTimestamp || 0) * 1000),
     }).catch(() => null);
 
+    if (!number.is_bot_enabled && messageContent) {
+      logger.info({ companyId: number.company_id, from: phoneNumber }, 'bot desabilitado — mensagem ignorada');
+    }
+
     if (number.is_bot_enabled && messageContent) {
       const { processIncomingMessage } = await import('../../automation/services/automationService.js');
       const { notifyAttendants } = await import('../../notifications/services/notificationService.js');
       const { handleOrderEvent } = await import('../../notifications/services/orderNotificationService.js');
       const check = await shouldBotRespond(number.company_id, number.id, phoneNumber);
       if (check.allowed) {
-        await processIncomingMessage({ companyId: number.company_id, number, from: phoneNumber, text: messageContent, contact }).catch(() => null);
-      } else if (check.reason === 'not_customer' || check.reason === 'not_known') {
+        try {
+          const result = await processIncomingMessage({ companyId: number.company_id, number, from: phoneNumber, text: messageContent, contact });
+          if (result) {
+            logger.info({ companyId: number.company_id, from: phoneNumber, text: messageContent, flowId: result.flowId, stepId: result.stepId }, 'bot respondeu');
+          } else {
+            logger.warn({ companyId: number.company_id, from: phoneNumber, text: messageContent }, 'bot nao respondeu — processIncomingMessage retornou null (sem fluxo ativo ou sem steps)');
+          }
+        } catch (err) {
+          logger.error({ companyId: number.company_id, from: phoneNumber, text: messageContent, err: err.message }, 'bot falhou ao processar mensagem');
+        }
+      } else {
         const config = (await whatsappRepo.getBotConfig(number.company_id)) ?? {};
         const conv = await conversationRepo.findConversationByContact(number.company_id, 'whatsapp', phoneNumber);
         if (conv) {
