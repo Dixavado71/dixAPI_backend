@@ -1,5 +1,36 @@
 # Registro de Análise e Progresso
 
+## Atualização — 2026-08-27 — correções de CI, segurança e qualidade de código
+
+### Correções aplicadas
+
+- **CI**: separada suíte em `test:unit` (63 testes, 16 arquivos) + integração; workflow GitHub Actions agora provisiona PostgreSQL 16 via service container, roda migrations (`prisma migrate deploy`) e executa ambas as suítes.
+- **SSRF**: `downloadMedia` valida protocolo, host e desabilita redirecionamentos.
+- **Webhook rate limit**: 120 req/min dedicado + validação opcional de `x-webhook-secret` se `EVOLUTION_WEBHOOK_SECRET` configurado.
+- **Validação de flow**: `createFlow`/`updateFlow` rejeitam steps com referências a ids inexistentes.
+- **Helper compartilhado**: `extractMessageText`/`extractMedia` extraídos para `src/shared/whatsapp/extraction.js`; removida duplicação entre whatsappService e automationService.
+- **Testes novos**: 7 testes de forward rules (fixed/operator/group/round_robin) + 5 testes de dispatchEvent (app, duplicidade, regras de destinatário).
+- 160 arquivos JS verificados, 63 testes unitários, prisma validate aprovado, rotas carregadas.
+
+## Atualização — 2026-08-27 — chatbot, suporte humano e notificações
+
+### Entregas
+
+- **Chatbot (`5fbe122`)**: cache Redis de estado de fluxo (`infrastructure/cache/chatbotCache.js`), modos público/privado/clientes, catálogo de produtos no fluxo e status de perfil (`src/modules/whatsapp/services/whatsappService.js`).
+- **Suporte humano + notificações (`5c8f46e`)**: status `at_location` no Delivery, tabela `order_notification_logs` (migration `20260827000100`), módulo `notifications` completo (list, mark read, logs), `forwardTo` no bot e triggers de evento em orders/delivery (`orderNotificationService.js`).
+
+### Validações de hoje
+
+- `npx prisma validate`: aprovado.
+- `npm run lint` e `npm run typecheck`: 144 arquivos JS verificados.
+- `npm test` (unitários, excluindo integração): 34 aprovados em 12 arquivos.
+- Banco Railway não alcançável deste ambiente (`P1001` no `prisma migrate status`); a migration `20260827000100` será aplicada automaticamente no próximo deploy via `npm run db:deploy`.
+
+### Documentação
+
+- Criado diretório central `C:\DixAPI_Backend\docs\` com relatórios de visão geral, arquitetura, banco, funcionalidades, progresso, segurança, expansões, possibilidades, melhorias, correções, inventário de rotas (154) e guias (backend, dashboard, chatbot).
+- Criada skill `project-guide` e atualizadas as skills de projeto para referenciar `docs/`.
+
 ## Atualização — 2026-08-25 — seed demo multi-loja
 
 - Seed backend ampliado para criar uma estrutura demo com duas lojas, administrador com membership nas duas lojas, gerente, dois funcionários, dois entregadores e dados operacionais.

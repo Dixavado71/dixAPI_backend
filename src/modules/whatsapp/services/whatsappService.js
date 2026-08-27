@@ -2,7 +2,9 @@ import { BadRequestError, NotFoundError, ConflictError } from '../../../shared/e
 import * as whatsappRepo from '../repositories/whatsappRepository.js';
 import * as conversationRepo from '../../conversations/repositories/conversationRepository.js';
 import * as evolutionApi from '../../../infrastructure/whatsapp/evolutionApiClient.js';
+import chatbotCache from '../../../infrastructure/cache/chatbotCache.js';
 import { env } from '../../../config/env.js';
+import { extractMessageText, extractMedia } from '../../../shared/whatsapp/extraction.js';
 
 async function syncConversation({ companyId, number, phoneNumber, sender, content, messageType, sentAt }) {
   const channel = 'whatsapp';
@@ -320,20 +322,6 @@ export async function setOnlinePresence(companyId, numberId, data) {
   return { presence: data.presence ?? 'available' };
 }
 
-function extractMessageText(message) {
-  if (!message) return null;
-  if (message.conversation) return message.conversation;
-  if (message.extendedTextMessage?.text) return message.extendedTextMessage.text;
-  if (message.imageMessage?.caption) return message.imageMessage.caption;
-  if (message.videoMessage?.caption) return message.videoMessage.caption;
-  if (message.documentMessage?.title) return message.documentMessage.title;
-  if (message.audioMessage) return '🎵 Áudio';
-  if (message.stickerMessage) return '🖼️ Sticker';
-  if (message.locationMessage) return '📍 Localização';
-  if (message.contactMessage?.displayName) return `👤 ${message.contactMessage.displayName}`;
-  return '(mídia)';
-}
-
 function mapChat(chat) {
   const remoteJid = chat.remoteJid ?? chat.key?.remoteJid ?? '';
   const lastMsg = chat.lastMessage ?? {};
@@ -545,6 +533,188 @@ export async function leaveGroup(companyId, numberId, groupId) {
   return evolutionApi.leaveGroup(number.external_account_id, groupId);
 }
 
+/* ===== Media proxy ===== */
+
+async function sendMediaToTarget(number, to, media, caption, fileName) {
+  if (!media?.url) return null;
+  const base64 = await evolutionApi.downloadMedia(number.external_account_id, media.url);
+  switch (media.type) {
+    case 'document':
+      return evolutionApi.sendDocument(number.external_account_id, to, base64, caption, fileName, 800);
+    case 'audio':
+      return evolutionApi.sendWhatsAppAudio(number.external_account_id, to, base64, 800);
+    case 'video':
+      return evolutionApi.sendVideo(number.external_account_id, to, base64, caption, 800);
+    case 'sticker':
+      return evolutionApi.sendSticker(number.external_account_id, to, base64, 800);
+    case 'image':
+    default:
+      return evolutionApi.sendMedia(number.external_account_id, to, 'image', base64, caption, 800);
+  }
+}
+
+export async function resolveForwardTarget(companyId, number, linkedGroup) {
+  const rule = linkedGroup.forward_rule ?? {};
+  const mode = rule.mode ?? 'fixed';
+  const clean = (p) => (p ? String(p).replace(/\D/g, '') : null);
+  if (mode === 'fixed') return clean(rule.phone);
+  if (mode === 'operator') {
+    const membership = rule.attendantId ? await whatsappRepo.findMembershipByUser(companyId, rule.attendantId) : null;
+    return clean(membership?.user?.phone);
+  }
+  if (mode === 'group') {
+    const attendants = await whatsappRepo.listAttendants(companyId, [rule.attendantRole || 'operator']);
+    const target = attendants.find((a) => a.user?.phone);
+    return clean(target?.user?.phone);
+  }
+  if (mode === 'round_robin') {
+    const roles = rule.roles && rule.roles.length > 0 ? rule.roles : ['operator'];
+    const attendants = await whatsappRepo.listAttendants(companyId, roles);
+    const withPhone = attendants.filter((a) => a.user?.phone);
+    if (withPhone.length === 0) return null;
+    const index = await chatbotCache.nextRoundRobin(companyId, linkedGroup.id, withPhone.length);
+    return clean(withPhone[index]?.user?.phone);
+  }
+  return null;
+}
+
+async function forwardGroupMessage(number, linkedGroup, { senderJid, senderName, text, media }) {
+  const target = await resolveForwardTarget(number.company_id, number, linkedGroup);
+  if (!target) return null;
+
+  const rawText = text && text !== '(mídia)' ? text : (media ? `📎 ${media.type}` : '(mídia)');
+  const message = (linkedGroup.forward_prefix || '📢 [{grupo}] {nome}: {mensagem}')
+    .replace(/{grupo}/g, linkedGroup.subject || linkedGroup.remote_jid)
+    .replace(/{nome}/g, senderName || senderJid)
+    .replace(/{mensagem}/g, rawText);
+
+  try {
+    let result = null;
+    if (media && linkedGroup.forward_media !== false) {
+      result = await sendMediaToTarget(number, target, media, media.caption ?? null, media.fileName ?? null);
+      if (text && text !== '(mídia)') {
+        result = await evolutionApi.sendText(number.external_account_id, target, message, 400).catch(() => result);
+      }
+    } else {
+      result = await evolutionApi.sendText(number.external_account_id, target, message, 500);
+    }
+    await whatsappRepo.createMessageLog({
+      company_id: number.company_id,
+      whatsapp_number_id: number.id,
+      event: media ? 'media_forward' : 'group_forward',
+      direction: 'forward',
+      message_type: media ? media.type : 'text',
+      content: message,
+      media_url: media?.url ?? null,
+      recipient: target,
+      remote_jid: linkedGroup.remote_jid,
+      status: 'sent',
+    });
+    return result;
+  } catch (error) {
+    await whatsappRepo.createMessageLog({
+      company_id: number.company_id,
+      whatsapp_number_id: number.id,
+      event: media ? 'media_forward' : 'group_forward',
+      direction: 'forward',
+      message_type: media ? media.type : 'text',
+      content: message,
+      media_url: media?.url ?? null,
+      recipient: target,
+      remote_jid: linkedGroup.remote_jid,
+      status: 'failed',
+      error: error.message,
+    });
+    return null;
+  }
+}
+
+/* ===== Linked groups ===== */
+
+export async function listLinkedGroups(companyId, numberId) {
+  await requireNumber(companyId, numberId);
+  return whatsappRepo.listLinkedGroups(companyId, numberId);
+}
+
+export async function linkGroup(companyId, numberId, data) {
+  const number = await requireNumber(companyId, numberId);
+  const existing = await whatsappRepo.findLinkedGroupByRemoteJid(number.id, data.remoteJid);
+  if (existing) throw new ConflictError('Grupo já vinculado a este número.');
+  return whatsappRepo.createLinkedGroup({
+    company_id: companyId,
+    whatsapp_number_id: number.id,
+    remote_jid: data.remoteJid,
+    subject: data.subject ?? null,
+    description: data.description ?? null,
+    is_active: data.isActive ?? true,
+    flow_id: data.flowId ?? null,
+    forward_rule: data.forwardRule ?? null,
+    forward_media: data.forwardMedia ?? true,
+    forward_prefix: data.forwardPrefix ?? null,
+  });
+}
+
+export async function updateLinkedGroup(companyId, numberId, groupId, data) {
+  await requireNumber(companyId, numberId);
+  const existing = await whatsappRepo.findLinkedGroupById(companyId, groupId);
+  if (!existing) throw new NotFoundError('Grupo vinculado não encontrado.');
+
+  const patch = {};
+  if (data.remoteJid !== undefined) patch.remote_jid = data.remoteJid;
+  if (data.subject !== undefined) patch.subject = data.subject;
+  if (data.description !== undefined) patch.description = data.description;
+  if (data.isActive !== undefined) patch.is_active = data.isActive;
+  if (data.flowId !== undefined) patch.flow_id = data.flowId;
+  if (data.forwardRule !== undefined) patch.forward_rule = data.forwardRule;
+  if (data.forwardMedia !== undefined) patch.forward_media = data.forwardMedia;
+  if (data.forwardPrefix !== undefined) patch.forward_prefix = data.forwardPrefix;
+
+  await whatsappRepo.updateLinkedGroup(companyId, groupId, patch);
+  return whatsappRepo.listLinkedGroups(companyId, numberId).then((list) => list.find((g) => g.id === groupId) ?? null);
+}
+
+export async function unlinkGroup(companyId, numberId, groupId) {
+  await requireNumber(companyId, numberId);
+  const existing = await whatsappRepo.findLinkedGroupById(companyId, groupId);
+  if (!existing) throw new NotFoundError('Grupo vinculado não encontrado.');
+  await whatsappRepo.deleteLinkedGroup(companyId, groupId);
+  return { deleted: true };
+}
+
+export async function syncLinkedGroups(companyId, numberId, data) {
+  const number = await requireNumber(companyId, numberId);
+  const groups = Array.isArray(data?.groups) && data.groups.length > 0
+    ? data.groups
+    : await evolutionApi.fetchAllGroups(number.external_account_id).catch(() => []);
+  const synced = [];
+  for (const g of groups) {
+    const remoteJid = g.id ?? g.remoteJid ?? g.jid ?? g.groupJid;
+    if (!remoteJid) continue;
+    const subject = g.name ?? g.subject ?? g.pushName ?? null;
+    const existing = await whatsappRepo.findLinkedGroupByRemoteJid(number.id, remoteJid);
+    if (existing) {
+      if (subject && !existing.subject) await whatsappRepo.updateLinkedGroup(companyId, existing.id, { subject });
+      synced.push(existing);
+    } else {
+      const created = await whatsappRepo.createLinkedGroup({
+        company_id: companyId,
+        whatsapp_number_id: number.id,
+        remote_jid: remoteJid,
+        subject,
+        is_active: true,
+        forward_media: true,
+      });
+      synced.push(created);
+    }
+  }
+  return { synced: synced.length, groups: synced };
+}
+
+export async function listMessageLogs(companyId, numberId, query) {
+  await requireNumber(companyId, numberId);
+  return whatsappRepo.listMessageLogs(companyId, query);
+}
+
 /* ===== Status / Stories ===== */
 
 export async function listStatus(companyId, numberId) {
@@ -746,7 +916,13 @@ export async function handleWebhook(instanceName, payload) {
   }
 
   if (event === 'MESSAGES_UPSERT' && data.key?.fromMe === false) {
-    const remoteJid = data.key.remoteJid;
+    const remoteJid = data.key.remoteJid || '';
+
+    if (remoteJid.endsWith('@g.us')) {
+      await handleGroupMessage({ number, data }).catch(() => null);
+      return;
+    }
+
     const phoneNumber = String(remoteJid).replace('@c.us', '').replace('@s.whatsapp.net', '');
     const externalId = data.key.id;
     const messageContent = data.message?.conversation || data.message?.extendedTextMessage?.text || '';
@@ -816,6 +992,51 @@ export async function handleWebhook(instanceName, payload) {
   }
 }
 
+async function handleGroupMessage({ number, data }) {
+  const remoteJid = data.key.remoteJid;
+  const externalId = data.key.id;
+  const participant = data.key.participant || data.remoteJid || '';
+  const senderJid = String(participant).replace('@s.whatsapp.net', '').replace('@c.us', '').replace('@lid', '');
+  const messageType = data.messageType === 'conversation' ? 'text' : data.messageType;
+  const media = extractMedia(data.message);
+  const text = extractMessageText(data.message);
+
+  const existing = await whatsappRepo.findMessageByExternalId(number.id, externalId);
+  if (existing) return;
+
+  const linkedGroup = await whatsappRepo.findLinkedGroupByRemoteJid(number.id, remoteJid);
+  if (!linkedGroup || !linkedGroup.is_active) return;
+
+  const senderName = data.pushName || senderJid;
+
+  await whatsappRepo.createMessage({
+    company_id: number.company_id,
+    whatsapp_number_id: number.id,
+    external_message_id: externalId,
+    direction: 'inbound',
+    message_type: messageType,
+    content: text && text !== '(mídia)' ? text : (media ? media.type : '') || null,
+    status: 'received',
+    sent_at: new Date((data.messageTimestamp || 0) * 1000),
+  });
+
+  const hasForwardRule = linkedGroup.forward_rule && Object.keys(linkedGroup.forward_rule).length > 0;
+  if (hasForwardRule) {
+    await forwardGroupMessage(number, linkedGroup, { senderJid, senderName, text, media }).catch(() => null);
+  }
+
+  if (linkedGroup.flow_id && number.is_bot_enabled && text) {
+    const { processIncomingMessage } = await import('../../automation/services/automationService.js');
+    await processIncomingMessage({
+      companyId: number.company_id,
+      number,
+      from: remoteJid,
+      text,
+      group: { remoteJid, participant: senderJid, senderName },
+    }).catch(() => null);
+  }
+}
+
 export default {
   listNumbers,
   connectNumber,
@@ -860,6 +1081,14 @@ export default {
   acceptInvite,
   groupPicture,
   leaveGroup,
+  extractMedia,
+  listLinkedGroups,
+  linkGroup,
+  updateLinkedGroup,
+  unlinkGroup,
+  syncLinkedGroups,
+  listMessageLogs,
+  resolveForwardTarget,
   listStatus,
   getStatusById,
   reactStatus,

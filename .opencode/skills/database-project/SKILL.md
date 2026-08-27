@@ -20,6 +20,9 @@ Antes de qualquer alteração, ler:
 - `package.json`;
 - `logs/database_report.md`;
 - `logs/analysis_report.md`;
+- `C:\DixAPI_Backend\docs\03_banco_de_dados.md`;
+- `C:\DixAPI_Backend\docs\05_progresso.md`;
+- `C:\DixAPI_Backend\docs\10_correcoes.md`;
 - `database_especifications.md`;
 - `prompt.md`;
 - repositories e services que consultam os modelos afetados.

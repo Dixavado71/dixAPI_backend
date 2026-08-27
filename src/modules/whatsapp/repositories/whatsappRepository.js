@@ -166,6 +166,66 @@ export function listMessages(companyId, numberId, { limit = 50, cursor } = {}) {
   });
 }
 
+/* ===== Linked groups ===== */
+
+export function listLinkedGroups(companyId, numberId) {
+  return prisma.whatsAppLinkedGroup.findMany({
+    where: { company_id: companyId, ...(numberId ? { whatsapp_number_id: numberId } : {}) },
+    orderBy: { created_at: 'desc' },
+  });
+}
+
+export function findLinkedGroupById(companyId, id) {
+  return prisma.whatsAppLinkedGroup.findFirst({ where: { id, company_id: companyId } });
+}
+
+export function findLinkedGroupByRemoteJid(whatsappNumberId, remoteJid) {
+  return prisma.whatsAppLinkedGroup.findFirst({ where: { whatsapp_number_id: whatsappNumberId, remote_jid: remoteJid } });
+}
+
+export function createLinkedGroup(data) {
+  return prisma.whatsAppLinkedGroup.create({ data });
+}
+
+export function updateLinkedGroup(companyId, id, data) {
+  return prisma.whatsAppLinkedGroup.updateMany({ where: { id, company_id: companyId }, data });
+}
+
+export function deleteLinkedGroup(companyId, id) {
+  return prisma.whatsAppLinkedGroup.deleteMany({ where: { id, company_id: companyId } });
+}
+
+/* ===== Message logs ===== */
+
+export function createMessageLog(data) {
+  return prisma.messageLog.create({ data });
+}
+
+export function listMessageLogs(companyId, { limit = 50, event, status } = {}) {
+  return prisma.messageLog.findMany({
+    where: { company_id: companyId, ...(event ? { event } : {}), ...(status ? { status } : {}) },
+    orderBy: { created_at: 'desc' },
+    take: Math.min(Math.max(limit, 1), 200),
+  });
+}
+
+/* ===== Attendants ===== */
+
+export function listAttendants(companyId, roles = ['admin', 'manager', 'operator']) {
+  return prisma.userCompany.findMany({
+    where: { company_id: companyId, status: 'active', role: { in: roles } },
+    include: { user: { select: { id: true, name: true, phone: true } } },
+    orderBy: { created_at: 'asc' },
+  });
+}
+
+export function findMembershipByUser(companyId, userId) {
+  return prisma.userCompany.findFirst({
+    where: { company_id: companyId, user_id: userId, status: 'active' },
+    include: { user: { select: { id: true, name: true, phone: true } } },
+  });
+}
+
 export default {
   findNumberById,
   findNumberByPhone,
@@ -190,4 +250,14 @@ export default {
   findMessageByExternalId,
   updateMessageStatusByExternalId,
   listMessages,
+  listLinkedGroups,
+  findLinkedGroupById,
+  findLinkedGroupByRemoteJid,
+  createLinkedGroup,
+  updateLinkedGroup,
+  deleteLinkedGroup,
+  createMessageLog,
+  listMessageLogs,
+  listAttendants,
+  findMembershipByUser,
 };

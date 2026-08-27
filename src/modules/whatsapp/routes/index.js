@@ -1,13 +1,31 @@
 import { Router } from 'express';
+import rateLimit from 'express-rate-limit';
 import * as whatsappController from '../controllers/whatsappController.js';
 import { authenticate } from '../../../infrastructure/http/middlewares/authenticate.js';
 import { authorize } from '../../../infrastructure/http/middlewares/authorize.js';
 import ensureTenant from '../../../infrastructure/http/middlewares/tenant.js';
+import { env } from '../../../config/env.js';
 
 const router = Router();
 
 // Public webhook — called by EvolutionAPI (no JWT). Instance name acts as the routing key.
-router.post('/webhook/:instanceName', whatsappController.webhook);
+const webhookLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  limit: 120,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+});
+
+function requireWebhookSecret(req, res, next) {
+  if (!env.evolutionWebhookSecret) return next();
+  const provided = req.headers['x-webhook-secret'];
+  if (!provided || provided !== env.evolutionWebhookSecret) {
+    return res.status(401).json({ success: false, error: { code: 'UNAUTHORIZED', message: 'Segredo do webhook inválido.' } });
+  }
+  return next();
+}
+
+router.post('/webhook/:instanceName', webhookLimiter, requireWebhookSecret, whatsappController.webhook);
 
 // Authenticated routes
 router.use(authenticate, ensureTenant());
@@ -34,6 +52,14 @@ router.get('/numbers/:id/bot-config', authorize('admin', 'manager'), whatsappCon
 router.patch('/numbers/:id/bot-config', authorize('admin', 'manager'), whatsappController.updateBotConfig);
 router.get('/numbers/:id/catalog', authorize('admin', 'manager', 'operator'), whatsappController.getCatalog);
 router.get('/numbers/:id/notification-logs', authorize('admin', 'manager'), whatsappController.getNotificationLogs);
+router.get('/numbers/:id/message-logs', authorize('admin', 'manager'), whatsappController.getMessageLogs);
+
+// Linked groups (chatbot group forwarding)
+router.get('/numbers/:id/linked-groups', authorize('admin', 'manager'), whatsappController.getLinkedGroups);
+router.post('/numbers/:id/linked-groups', authorize('admin', 'manager'), whatsappController.createLinkedGroup);
+router.post('/numbers/:id/linked-groups/sync', authorize('admin', 'manager'), whatsappController.syncLinkedGroups);
+router.patch('/numbers/:id/linked-groups/:lgId', authorize('admin', 'manager'), whatsappController.updateLinkedGroup);
+router.delete('/numbers/:id/linked-groups/:lgId', authorize('admin', 'manager'), whatsappController.removeLinkedGroup);
 
 // Webhook management
 router.get('/numbers/:id/webhook', authorize('admin', 'manager'), whatsappController.getWebhook);

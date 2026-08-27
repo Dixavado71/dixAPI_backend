@@ -8,6 +8,7 @@ import {
   reactStatusSchema, findChatSchema, createChatSchema, checkNumberSchema, sendPollSchema,
   editMessageSchema, deleteMessageSchema, sendContactSchema, profilePictureSchema, profileNameSchema,
   botConfigSchema, updateProfileStatusSchema, catalogQuerySchema,
+  linkGroupSchema, updateLinkedGroupSchema, syncLinkedGroupsSchema, messageLogsQuerySchema,
 } from '../validators/whatsappValidators.js';
 import { successResponse, createdResponse } from '../../../shared/utils/response.js';
 
@@ -305,6 +306,36 @@ export async function getNotificationLogs(req, res, next) {
   } catch (error) { return next(error); }
 }
 
+export async function getLinkedGroups(req, res, next) {
+  try { const result = await whatsappService.listLinkedGroups(req.tenant.companyId, req.params.id); return successResponse(res, result); }
+  catch (error) { return next(error); }
+}
+
+export async function createLinkedGroup(req, res, next) {
+  try { const data = linkGroupSchema.parse(req.body); const result = await whatsappService.linkGroup(req.tenant.companyId, req.params.id, data); return createdResponse(res, result); }
+  catch (error) { return next(error); }
+}
+
+export async function updateLinkedGroup(req, res, next) {
+  try { const data = updateLinkedGroupSchema.parse(req.body); const result = await whatsappService.updateLinkedGroup(req.tenant.companyId, req.params.id, req.params.lgId, data); return successResponse(res, result); }
+  catch (error) { return next(error); }
+}
+
+export async function removeLinkedGroup(req, res, next) {
+  try { const result = await whatsappService.unlinkGroup(req.tenant.companyId, req.params.id, req.params.lgId); return successResponse(res, result); }
+  catch (error) { return next(error); }
+}
+
+export async function syncLinkedGroups(req, res, next) {
+  try { const data = syncLinkedGroupsSchema.parse(req.body ?? {}); const result = await whatsappService.syncLinkedGroups(req.tenant.companyId, req.params.id, data); return successResponse(res, result); }
+  catch (error) { return next(error); }
+}
+
+export async function getMessageLogs(req, res, next) {
+  try { const query = messageLogsQuerySchema.parse(req.query); const result = await whatsappService.listMessageLogs(req.tenant.companyId, req.params.id, query); return successResponse(res, result); }
+  catch (error) { return next(error); }
+}
+
 export async function updateProfile(req, res, next) {
   try { const data = updateProfileSchema.parse(req.body); const result = await whatsappService.updateProfile(req.tenant.companyId, req.params.id, data); return successResponse(res, result); }
   catch (error) { return next(error); }
@@ -352,5 +383,6 @@ export default {
   findChat, archiveChat, unarchiveChat, fetchAllMessages, checkNumber,
   sendPoll, editMessage, deleteMessage, sendContact,
   getProfilePicture, getProfileName, updateProfileStatus, getBotConfig, updateBotConfig, getCatalog, getNotificationLogs,
+  getLinkedGroups, createLinkedGroup, updateLinkedGroup, removeLinkedGroup, syncLinkedGroups, getMessageLogs,
   updateProfile, updatePicture, restartNumber, logoutNumber, getWebhook, setupWebhook, webhook,
 };

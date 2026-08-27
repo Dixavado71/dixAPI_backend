@@ -39,4 +39,17 @@ export async function clearFlowState(companyId, phone) {
   }
 }
 
-export default { setFlowState, getFlowState, clearFlowState };
+export async function nextRoundRobin(companyId, groupId, size) {
+  if (size <= 0) return 0;
+  try {
+    const rrKey = `chatbot:rr:${companyId}:${groupId}`;
+    const current = Number(await redis.get(rrKey)) || 0;
+    await redis.set(rrKey, String((current + 1) % size), { EX: TTL_SECONDS });
+    return current % size;
+  } catch (error) {
+    logger.error({ error: error.message }, 'Redis nextRoundRobin failed');
+    return Math.floor(Math.random() * size);
+  }
+}
+
+export default { setFlowState, getFlowState, clearFlowState, nextRoundRobin };

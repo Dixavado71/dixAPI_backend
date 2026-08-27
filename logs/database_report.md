@@ -1,5 +1,14 @@
 # Relatório Completo de Auditoria do Banco de Dados
 
+## Atualização — 2026-08-27 — migration at_location + order_notification_logs
+
+- Migration `20260827000100_add_at_location_and_notification_logs` adicionada:
+  - `ALTER TYPE "DeliveryStatus" ADD VALUE 'at_location'`.
+  - Tabela `order_notification_logs` (id, company_id, order_id?, delivery_id?, event, recipient, recipient_phone, message, status, error?, created_at) com PK, unicidade `(company_id, id)`, índices `(company_id, created_at)` e `(company_id, event)` e FK tenant-safe para `companies`.
+- Schema Prisma sincronizado com os modelos `OrderNotificationLog` e o enum `DeliveryStatus.at_location`.
+- **Status**: migration commitada; banco Railway não alcançável deste ambiente (`P1001`). Aplicação automática prevista no próximo deploy (`npm run db:deploy`). Nenhuma operação destrutiva foi executada.
+- `npx prisma validate`: aprovado. Schema com 54 modelos e 53 enums.
+
 ## Atualização — 2026-08-25 — seed demo multi-loja
 
 - `prisma/seed.js` substituído por seed idempotente para ambiente demo/desenvolvimento.

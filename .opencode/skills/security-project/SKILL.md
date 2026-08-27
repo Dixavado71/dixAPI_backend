@@ -14,7 +14,9 @@ Atuar como profissional de AppSec, Cloud Security e segurança de dados para tod
 
 Antes de qualquer alteração, ler:
 
-- `README.md`;
+- `C:\DixAPI_Backend\docs\06_seguranca.md`;
+- `C:\DixAPI_Backend\docs\02_arquitetura.md`;
+- `C:\DixAPI_Backend\docs\README.md`;
 - `package.json`;
 - `.env.example` e arquivos de configuração sem expor segredos;
 - `src/app.js`, `src/server.js` e `src/config/**`;

@@ -15,6 +15,7 @@
     "dev": "node --watch src/server.js",
     "start": "node src/server.js",
     "test": "vitest run",
+    "test:unit": "vitest run --exclude \"tests/api.integration.test.js\"",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "typecheck": "node scripts/typecheck.mjs",

@@ -1,5 +1,5 @@
 import * as automationService from '../services/automationService.js';
-import { createFlowSchema, updateFlowSchema } from '../validators/automationValidators.js';
+import { createFlowSchema, updateFlowSchema, testFlowSchema } from '../validators/automationValidators.js';
 import { successResponse, createdResponse } from '../../../shared/utils/response.js';
 
 export async function list(req, res, next) {
@@ -50,4 +50,19 @@ export async function toggle(req, res, next) {
   } catch (error) { return next(error); }
 }
 
-export default { list, create, getById, update, remove, toggle };
+export async function duplicate(req, res, next) {
+  try {
+    const result = await automationService.duplicateFlow(req.tenant.companyId, req.params.id);
+    return createdResponse(res, result);
+  } catch (error) { return next(error); }
+}
+
+export async function test(req, res, next) {
+  try {
+    const data = testFlowSchema.parse(req.body ?? {});
+    const result = await automationService.testFlow(req.tenant.companyId, req.params.id, data);
+    return successResponse(res, result);
+  } catch (error) { return next(error); }
+}
+
+export default { list, create, getById, update, remove, toggle, duplicate, test };

@@ -1,5 +1,28 @@
 # Relatório de Segurança
 
+## Atualização — 2026-08-27 — correções SSRF, rate limit webhook e CI
+
+### Correções implementadas
+
+- **SSRF no proxy de mídia**: `evolutionApiClient.downloadMedia` agora valida protocolo (http/https), host (mesmo host da EvolutionAPI ou localhost) e desabilita redirecionamentos (`redirect: 'error'`). Bloqueia URLs externas arbitrárias.
+- **Rate limit dedicado no webhook**: `POST /whatsapp/webhook/:instanceName` recebeu limite de 120 requisições por minuto (antes usava só o global de 100/15min).
+- **Validação opcional de segredo**: se `EVOLUTION_WEBHOOK_SECRET` estiver configurado, o webhook passa a exigir header `x-webhook-secret` correspondente (seguro retroativamente — não quebra setup atual).
+- **CI com PostgreSQL**: workflow provisiona banco de serviço para suíte de integração, reduzindo risco de deploy sem validação de banco.
+- `validateEnv` mantido inalterado (JWT 32+ chars, CORS sem `*`, TLS obrigatório em produção).
+
+### Estado de qualidade verificado
+
+- `prisma validate` aprovado; lint/typecheck em 160 arquivos; **63 testes unitários** aprovados em 16 arquivos.
+- Banco Railway inacessível deste ambiente (`P1001`); migrations `20260827000100` e `20260827000200` pendentes de aplicação no deploy (aditivas, sem risco destrutivo).
+- Nenhum segredo, token ou dado pessoal foi registrado em documentação ou relatórios.
+- Cobertura de segurança permanece: JWT issuer/audience/HS256, refresh SHA-256 com rotação/revogação, membership como autoridade, TLS obrigatório em produção, logs minimizados, rate limits por endpoint de autenticação.
+
+### Riscos remanescentes (inalterados)
+- Rotação de credenciais do `.env` local (pendente — ação manual no provedor).
+- BOLA cross-tenant incompleto (requer 2º tenant).
+- Consolidação `UserCompany` (migration em staging).
+- Backup/restauração, alertas operacionais, rollback testado.
+
 ## Atualização — 2026-08-25 — correção de execução Prisma no deploy
 
 - Logs Railway identificaram referência fixa inexistente a `node_modules/prisma/build/index.js` no estágio de produção com dependências omitidas.

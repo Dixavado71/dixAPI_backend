@@ -47,6 +47,35 @@ export function listOrderNotificationLogs(companyId, { limit = 50 } = {}) {
   });
 }
 
+/* ===== Notification triggers ===== */
+
+export function listTriggers(companyId) {
+  return prisma.notificationTrigger.findMany({
+    where: { company_id: companyId },
+    orderBy: { created_at: 'asc' },
+  });
+}
+
+export function findTriggerById(companyId, id) {
+  return prisma.notificationTrigger.findFirst({ where: { id, company_id: companyId } });
+}
+
+export function createTrigger(data) {
+  return prisma.notificationTrigger.create({ data });
+}
+
+export function updateTrigger(companyId, id, data) {
+  return prisma.notificationTrigger.updateMany({ where: { id, company_id: companyId }, data });
+}
+
+export function deleteTrigger(companyId, id) {
+  return prisma.notificationTrigger.deleteMany({ where: { id, company_id: companyId } });
+}
+
+export function findTriggerByEvent(companyId, event, channel) {
+  return prisma.notificationTrigger.findFirst({ where: { company_id: companyId, event, channel, is_active: true } });
+}
+
 export default {
   listNotifications,
   countUnread,
@@ -57,4 +86,10 @@ export default {
   listAttendantUsers,
   createOrderNotificationLog,
   listOrderNotificationLogs,
+  listTriggers,
+  findTriggerById,
+  createTrigger,
+  updateTrigger,
+  deleteTrigger,
+  findTriggerByEvent,
 };

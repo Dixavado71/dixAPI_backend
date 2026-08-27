@@ -19,6 +19,8 @@ import { whatsappRoutes } from '../modules/whatsapp/index.js';
 import { conversationRoutes } from '../modules/conversations/index.js';
 import { automationRoutes } from '../modules/automation/index.js';
 import { notificationRoutes } from '../modules/notifications/index.js';
+import dashboardRoutes from '../modules/dashboard/routes/index.js';
+import userRoutes from '../modules/users/routes/index.js';
 
 const router = Router();
 
@@ -42,5 +44,7 @@ router.use('/whatsapp', whatsappRoutes);
 router.use('/conversations', conversationRoutes);
 router.use('/automation', automationRoutes);
 router.use('/notifications', notificationRoutes);
+router.use('/dashboard', dashboardRoutes);
+router.use('/users', userRoutes);
 
 export default router;

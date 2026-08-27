@@ -28,6 +28,34 @@ async function instanceRequest(method, instanceName, path, body) {
   return data;
 }
 
+function isAllowedMediaUrl(mediaUrl) {
+  let parsed;
+  try {
+    parsed = new URL(mediaUrl);
+  } catch {
+    return false;
+  }
+  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return false;
+  if (parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1') return true;
+  try {
+    const base = new URL(BASE_URL);
+    return parsed.hostname === base.hostname;
+  } catch {
+    return false;
+  }
+}
+
+export async function downloadMedia(instanceName, mediaUrl) {
+  if (!isAllowedMediaUrl(mediaUrl)) {
+    throw new Error('URL de mídia não permitida.');
+  }
+  const opts = { headers: { ...headers(), apikey: env.evolutionApiKey }, redirect: 'error' };
+  const res = await fetch(mediaUrl, opts);
+  if (!res.ok) throw new Error(`EvolutionAPI media download failed: ${res.status}`);
+  const buffer = Buffer.from(await res.arrayBuffer());
+  return buffer.toString('base64');
+}
+
 /* ===== Instance (v2.3.7) ===== */
 
 export async function createInstance(instanceName) {
@@ -332,6 +360,7 @@ export default {
   logoutInstance,
   restartInstance,
   setPresence,
+  downloadMedia,
   sendText,
   sendMedia,
   sendWhatsAppAudio,

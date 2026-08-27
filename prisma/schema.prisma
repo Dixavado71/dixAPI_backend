@@ -398,6 +398,33 @@ enum CommunicationTargetStatus {
   cancelled
 }
 
+enum ForwardRuleMode {
+  fixed
+  operator
+  group
+  round_robin
+}
+
+enum MessageLogDirection {
+  inbound
+  outbound
+  forward
+}
+
+enum MessageLogEvent {
+  group_forward
+  media_forward
+  flow_action
+  alert
+  unknown
+}
+
+enum NotificationTriggerChannel {
+  app
+  whatsapp
+  both
+}
+
 // Models
 model Company {
   id                 String        @id @default(uuid()) @db.Uuid
@@ -428,46 +455,49 @@ model Company {
   created_at         DateTime      @default(now())
   updated_at         DateTime      @updatedAt
 
-  users                 User[]
-  customers             Customer[]
-  products              Product[]
-  orders                Order[]
-  conversations         Conversation[]
-  automation_flows      AutomationFlow[]
-  transactions          Transaction[]
-  quick_replies         QuickReply[]
-  notifications         Notification[]
-  memberships           UserCompany[]
-  reseller              Reseller?              @relation("ResellerCompanies", fields: [reseller_id], references: [id], onDelete: SetNull)
-  subscription          CompanySubscription?
-  platform_transactions PlatformTransaction[]
-  commissions           Commission[]
-  status_history        CompanyStatusHistory[]
-  audit_logs            AuditLog[]
-  delivery_settings     DeliverySettings?
-  delivery_zones        DeliveryZone[]
-  delivery_drivers      DeliveryDriver[]
-  deliveries            Delivery[]
-  payments              PaymentRecord[]
-  whatsapp_numbers      WhatsAppNumber[]
-  whatsapp_contacts     WhatsAppContact[]
-  consent_history       CustomerConsent[]
-  whatsapp_messages     WhatsAppMessage[]
-  cash_registers        CashRegister[]
-  affiliate_sales       AffiliateSale[]
-  driver_links          DriverCompany[]
-  CashMovement          CashMovement[]
-  category_links        CompanyCategory[]
-  service_links         CompanyService[]
-  customization         CompanyCustomization?
-  promotions            Promotion[]
-  coupons               Coupon[]
-  communications        Communication[]
-  communication_targets CommunicationTarget[]
-  notification_events   NotificationEvent[]
-  payment_events        PaymentEvent[]
-  driver_payouts        DriverPayout[]
+  users                   User[]
+  customers               Customer[]
+  products                Product[]
+  orders                  Order[]
+  conversations           Conversation[]
+  automation_flows        AutomationFlow[]
+  transactions            Transaction[]
+  quick_replies           QuickReply[]
+  notifications           Notification[]
+  memberships             UserCompany[]
+  reseller                Reseller?              @relation("ResellerCompanies", fields: [reseller_id], references: [id], onDelete: SetNull)
+  subscription            CompanySubscription?
+  platform_transactions   PlatformTransaction[]
+  commissions             Commission[]
+  status_history          CompanyStatusHistory[]
+  audit_logs              AuditLog[]
+  delivery_settings       DeliverySettings?
+  delivery_zones          DeliveryZone[]
+  delivery_drivers        DeliveryDriver[]
+  deliveries              Delivery[]
+  payments                PaymentRecord[]
+  whatsapp_numbers        WhatsAppNumber[]
+  whatsapp_contacts       WhatsAppContact[]
+  consent_history         CustomerConsent[]
+  whatsapp_messages       WhatsAppMessage[]
+  cash_registers          CashRegister[]
+  affiliate_sales         AffiliateSale[]
+  driver_links            DriverCompany[]
+  CashMovement            CashMovement[]
+  category_links          CompanyCategory[]
+  service_links           CompanyService[]
+  customization           CompanyCustomization?
+  promotions              Promotion[]
+  coupons                 Coupon[]
+  communications          Communication[]
+  communication_targets   CommunicationTarget[]
+  notification_events     NotificationEvent[]
+  payment_events          PaymentEvent[]
+  driver_payouts          DriverPayout[]
   order_notification_logs OrderNotificationLog[]
+  NotificationTrigger     NotificationTrigger[]
+  WhatsAppLinkedGroup     WhatsAppLinkedGroup[]
+  MessageLog              MessageLog[]
 
   @@index([cnpj])
   @@index([is_active])
@@ -786,6 +816,25 @@ model OrderNotificationLog {
   @@index([company_id, created_at])
   @@index([company_id, event])
   @@map("order_notification_logs")
+}
+
+model NotificationTrigger {
+  id             String                     @id @default(uuid()) @db.Uuid
+  company_id     String                     @db.Uuid
+  event          String
+  channel        NotificationTriggerChannel @default(app)
+  recipient_rule Json?
+  template       String?
+  is_active      Boolean                    @default(true)
+  created_by     String?                    @db.Uuid
+  created_at     DateTime                   @default(now())
+  updated_at     DateTime                   @updatedAt
+
+  company Company @relation(fields: [company_id], references: [id], onDelete: Cascade)
+
+  @@unique([company_id, event, channel])
+  @@index([company_id, is_active])
+  @@map("notification_triggers")
 }
 
 model UserCompany {
@@ -1267,21 +1316,23 @@ model CashMovement {
 }
 
 model WhatsAppNumber {
-  id                  String               @id @default(uuid()) @db.Uuid
-  company_id          String               @db.Uuid
+  id                  String                @id @default(uuid()) @db.Uuid
+  company_id          String                @db.Uuid
   phone_number        String
   display_name        String?
   provider            String?
   external_account_id String?
-  status              WhatsAppNumberStatus @default(pending)
-  is_bot_enabled      Boolean              @default(true)
-  webhook_verified    Boolean              @default(false)
+  status              WhatsAppNumberStatus  @default(pending)
+  is_bot_enabled      Boolean               @default(true)
+  webhook_verified    Boolean               @default(false)
   last_connected_at   DateTime?
-  created_at          DateTime             @default(now())
-  updated_at          DateTime             @updatedAt
-  company             Company              @relation(fields: [company_id], references: [id], onDelete: Cascade)
+  created_at          DateTime              @default(now())
+  updated_at          DateTime              @updatedAt
+  company             Company               @relation(fields: [company_id], references: [id], onDelete: Cascade)
   contacts            WhatsAppContact[]
   messages            WhatsAppMessage[]
+  WhatsAppLinkedGroup WhatsAppLinkedGroup[]
+  MessageLog          MessageLog[]
 
   @@unique([company_id, phone_number])
   @@index([company_id, status])
@@ -1337,6 +1388,55 @@ model WhatsAppMessage {
   @@index([company_id, sent_at])
   @@index([company_id, order_id])
   @@map("whatsapp_messages")
+}
+
+model WhatsAppLinkedGroup {
+  id                 String   @id @default(uuid()) @db.Uuid
+  company_id         String   @db.Uuid
+  whatsapp_number_id String   @db.Uuid
+  remote_jid         String
+  subject            String?
+  description        String?
+  is_active          Boolean  @default(true)
+  flow_id            String?  @db.Uuid
+  forward_rule       Json?
+  forward_media      Boolean  @default(true)
+  forward_prefix     String?
+  created_at         DateTime @default(now())
+  updated_at         DateTime @updatedAt
+
+  company Company        @relation(fields: [company_id], references: [id], onDelete: Cascade)
+  number  WhatsAppNumber @relation(fields: [whatsapp_number_id], references: [id], onDelete: Cascade)
+
+  @@unique([whatsapp_number_id, remote_jid])
+  @@index([company_id, is_active])
+  @@index([company_id, flow_id])
+  @@map("whatsapp_linked_groups")
+}
+
+model MessageLog {
+  id                 String              @id @default(uuid()) @db.Uuid
+  company_id         String              @db.Uuid
+  whatsapp_number_id String?             @db.Uuid
+  event              MessageLogEvent
+  direction          MessageLogDirection
+  message_type       String?
+  content            String?
+  media_url          String?
+  recipient          String?
+  remote_jid         String?
+  status             String              @default("sent")
+  error              String?
+  metadata           Json?
+  created_at         DateTime            @default(now())
+
+  company Company         @relation(fields: [company_id], references: [id], onDelete: Cascade)
+  number  WhatsAppNumber? @relation(fields: [whatsapp_number_id], references: [id], onDelete: SetNull)
+
+  @@index([company_id, event, created_at])
+  @@index([company_id, whatsapp_number_id, created_at])
+  @@index([company_id, status])
+  @@map("message_logs")
 }
 
 model Driver {

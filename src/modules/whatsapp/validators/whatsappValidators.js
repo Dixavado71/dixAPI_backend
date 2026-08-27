@@ -252,6 +252,41 @@ export const catalogQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(50).optional(),
 }).strict();
 
+export const forwardRuleSchema = z.object({
+  mode: z.enum(['fixed', 'operator', 'group', 'round_robin']),
+  phone: z.string().max(20).nullable().optional(),
+  attendantId: z.string().uuid().nullable().optional(),
+  attendantRole: z.enum(['admin', 'manager', 'operator']).nullable().optional(),
+  roles: z.array(z.enum(['admin', 'manager', 'operator'])).optional(),
+}).strict();
+
+export const linkGroupSchema = z.object({
+  remoteJid: z.string().min(1, 'remoteJid do grupo é obrigatório.').max(100),
+  subject: z.string().max(255).nullable().optional(),
+  description: z.string().max(500).nullable().optional(),
+  isActive: z.boolean().optional(),
+  flowId: z.string().uuid().nullable().optional(),
+  forwardRule: forwardRuleSchema.nullable().optional(),
+  forwardMedia: z.boolean().optional(),
+  forwardPrefix: z.string().max(500).nullable().optional(),
+}).strict();
+
+export const updateLinkedGroupSchema = linkGroupSchema.partial();
+
+export const syncLinkedGroupsSchema = z.object({
+  groups: z.array(z.object({
+    remoteJid: z.string().min(1).max(100),
+    subject: z.string().max(255).nullable().optional(),
+    description: z.string().max(500).nullable().optional(),
+  })).optional(),
+}).strict();
+
+export const messageLogsQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(200).optional(),
+  event: z.enum(['group_forward', 'media_forward', 'flow_action', 'alert', 'unknown']).optional(),
+  status: z.string().max(20).optional(),
+}).strict();
+
 export default {
   connectNumberSchema,
   sendMessageSchema,
@@ -289,4 +324,9 @@ export default {
   botConfigSchema,
   updateProfileStatusSchema,
   catalogQuerySchema,
+  forwardRuleSchema,
+  linkGroupSchema,
+  updateLinkedGroupSchema,
+  syncLinkedGroupsSchema,
+  messageLogsQuerySchema,
 };

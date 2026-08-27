@@ -16,6 +16,14 @@ O projeto utiliza Node.js com JavaScript ES Modules, Express, Prisma ORM, Postgr
 
 Antes de implementar qualquer alteração, ler:
 
+- `C:\DixAPI_Backend\docs\README.md` (índice da documentação central);
+- `C:\DixAPI_Backend\docs\02_arquitetura.md`;
+- `C:\DixAPI_Backend\docs\04_funcionalidades.md`;
+- `C:\DixAPI_Backend\docs\05_progresso.md`;
+- `C:\DixAPI_Backend\docs\07_expansoes.md`;
+- `C:\DixAPI_Backend\docs\09_melhorias.md`;
+- `C:\DixAPI_Backend\docs\10_correcoes.md`;
+- `C:\DixAPI_Backend\docs\guias\guia_backend.md`;
 - `C:\DixAPI_Backend\prompt.md`;
 - `C:\DixAPI_Backend\database_especifications.md`;
 - `README.md`;
