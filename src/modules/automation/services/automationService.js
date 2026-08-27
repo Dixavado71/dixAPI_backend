@@ -192,7 +192,7 @@ export async function processIncomingMessage({ companyId, number, from, text, co
   const contact = await whatsappRepo.findContactByPhone(companyId, number.id, from);
   const currentState = contact?.metadata ?? {};
   const currentStepId = currentState?.flowStep;
-  console.log(`[BOT] text="${normalizedText}" stepId="${currentStepId ?? 'none'}"`);
+  console.log(`[BOT] company=${companyId.slice(0,8)} numId=${number.id?.slice(0,8)} from=${from} contact=${contact ? 'FOUND' : 'NULL'} stepId="${currentStepId ?? 'none'}"`);
 
   let nextStep = null;
 
