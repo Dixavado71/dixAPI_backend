@@ -173,11 +173,11 @@ export async function markMessageAsRead(instanceName, number, messageId) {
 }
 
 export async function sendTyping(instanceName, number) {
-  return instanceRequest('POST', instanceName, `/chat/sendPresence/${instanceName}`, { number, presence: 'composing' });
+  return instanceRequest('POST', instanceName, `/chat/sendPresence/${instanceName}`, { number, presence: 'composing', delay: 1000 });
 }
 
 export async function sendPresencePaused(instanceName, number) {
-  return instanceRequest('POST', instanceName, `/chat/sendPresence/${instanceName}`, { number, presence: 'paused' });
+  return instanceRequest('POST', instanceName, `/chat/sendPresence/${instanceName}`, { number, presence: 'paused', delay: 1000 });
 }
 
 export async function setChatName(instanceName, chatId, name) {
