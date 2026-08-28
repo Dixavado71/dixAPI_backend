@@ -1,5 +1,13 @@
 # Relatório Completo de Auditoria do Banco de Dados
 
+## Atualização — 2026-08-28 — fix schema User.companyId (coluna nunca criada, login quebrado)
+
+- **Problema**: o schema `User` declarava `companyId String? @db.Uuid` com `Company Company? @relation(fields: [companyId], references: [id])`, mas a migration `20260827000300_usercompany_consolidation` removeu `users.company_id` sem criar `users."companyId"`. Todas as queries `prisma.user.*` selecionavam a coluna inexistente → `DATABASE_ERROR` (500) no login e qualquer rota que consultasse usuários.
+- **Correção**: removido `companyId` + `Company` relation do modelo User, e `users User[]` do modelo Company. Criada migration `20260828000100_remove_user_companyid` (SQL: `DROP COLUMN IF EXISTS "companyId"` — no-op, coluna nunca existiu).
+- **Nota**: a migration foi gerada via PowerShell `Out-File -Encoding utf8` que adicionou BOM → `syntax error at or near ""` → migration FAILED. Corrigido (arquivo ASCII sem BOM) mas o registro FAILED persiste em `_prisma_migrations` até que o SSH ao Railway seja restaurado.
+- **Login validado**: `admin@demo.local` / `Admin@12345` → 200 OK.
+- **Estado**: 17 migrations (16 + 1), sendo a 17ª com registro FAILED (blocking `prisma migrate deploy`). `railway.toml` temporariamente com `npm start` (sem `db:deploy`).
+
 ## Atualização — 2026-08-28 — migrations aplicadas no Railway (16) e deploy restaurado
 
 - **Causa raiz do deploy falho**: migration `20260827000300_usercompany_consolidation` em estado `FAILED` em `_prisma_migrations` (`started_at` sem `finished_at`), bloqueando `prisma migrate deploy` com `P3009`.
