@@ -1038,6 +1038,18 @@ async function processWebhook(instanceName, payload) {
   if (!number) return;
 
   const { event, data } = payload;
+  if (event === 'MESSAGES_UPSERT') {
+    const first = Array.isArray(data) ? data[0] : data;
+    logger.info({
+      event,
+      isArray: Array.isArray(data),
+      count: Array.isArray(data) ? data.length : 1,
+      fromMe: first?.key?.fromMe,
+      remoteJid: first?.key?.remoteJid,
+      messageType: first?.messageType,
+      hasMessage: !!first?.message,
+    }, 'webhook: MESSAGES_UPSERT recebido');
+  }
 
   if (event === 'CONNECTION_UPDATE') {
     const newStatus = data.state === 'open' ? 'connected' : data.state === 'close' ? 'disconnected' : 'pending';
@@ -1093,10 +1105,15 @@ async function processWebhook(instanceName, payload) {
 
   if (event === 'MESSAGES_UPSERT') {
     const upserts = Array.isArray(data) ? data : [data];
+    let processed = 0;
     for (const msgData of upserts) {
       if (msgData.key?.fromMe === false) {
         await processUpsertMessage(number, msgData).catch((e) => logger.error({ err: e.message }, 'webhook: erro ao processar mensagem'));
+        processed += 1;
       }
+    }
+    if (processed === 0) {
+      logger.warn({ event, sample: JSON.stringify(upserts[0] ?? {}).slice(0, 400) }, 'webhook: MESSAGES_UPSERT sem mensagens válidas (fromMe ou estrutura)');
     }
     return;
   }
