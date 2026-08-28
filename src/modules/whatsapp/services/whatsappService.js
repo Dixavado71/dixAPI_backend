@@ -1126,8 +1126,8 @@ async function processWebhook(instanceName, payload) {
     if (number.is_bot_enabled && messageContent) {
       const { processIncomingMessage } = await import('../../automation/services/automationService.js');
       const { notifyAttendants } = await import('../../notifications/services/notificationService.js');
-      const { handleOrderEvent } = await import('../../notifications/services/orderNotificationService.js');
-      const check = await shouldBotRespond(number.company_id, number.id, phoneNumber);
+      const botConfig = (await whatsappRepo.getBotConfig(number.company_id).catch(() => ({}))) ?? {};
+      const check = await shouldBotRespond(number.company_id, number.id, phoneNumber, botConfig);
       if (check.allowed) {
         try {
           const result = await processIncomingMessage({ companyId: number.company_id, number, from: phoneNumber, text: messageContent, contact });
@@ -1140,8 +1140,8 @@ async function processWebhook(instanceName, payload) {
           logger.error({ companyId: number.company_id, from: phoneNumber, text: messageContent, err: err.message }, 'bot falhou ao processar mensagem');
         }
       } else {
-        logger.info({ companyId: number.company_id, from: phoneNumber, reason: check.reason, mode: (await whatsappRepo.getBotConfig(number.company_id).catch(() => ({})))?.mode ?? 'unknown' }, 'bot: contato nao permitido pelo modo de atendimento');
-        const config = (await whatsappRepo.getBotConfig(number.company_id)) ?? {};
+        logger.info({ companyId: number.company_id, from: phoneNumber, reason: check.reason, mode: botConfig.mode ?? 'unknown' }, 'bot: contato nao permitido pelo modo de atendimento');
+        const config = botConfig;
         const conv = await conversationRepo.findConversationByContact(number.company_id, 'whatsapp', phoneNumber);
         if (conv) {
           await conversationRepo.updateConversation(conv.id, { status: 'waiting' }).catch(() => null);

@@ -238,6 +238,7 @@ export const botConfigSchema = z.object({
   segment: z.enum(['delivery_food', 'retail', 'services']).optional(),
   ownerPhone: z.string().max(20).nullable().optional(),
   kitchenPhone: z.string().max(20).nullable().optional(),
+  flowPriority: z.array(z.enum(['vendas', 'suporte', 'marketing'])).optional(),
   templates: z.record(z.string(), z.object({
     to: z.string().optional(),
     message: z.string().optional(),
