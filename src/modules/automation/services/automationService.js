@@ -255,7 +255,7 @@ function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function resolveFlow(companyId, number, group, text) {
+async function resolveFlow(companyId, number, group, text, priority = ['vendas', 'suporte', 'marketing']) {
   if (group?.remoteJid) {
     const linked = await whatsappRepo.findLinkedGroupByRemoteJid(number.id, group.remoteJid);
     if (linked?.flow_id) {
@@ -263,10 +263,11 @@ async function resolveFlow(companyId, number, group, text) {
       if (bound && bound.is_active) return bound;
     }
   }
-  const flow = await automationRepo.findActiveFlowByType(companyId, 'vendas')
-    ?? await automationRepo.findActiveFlowByType(companyId, 'suporte')
-    ?? await automationRepo.findActiveFlowByType(companyId, 'marketing');
-  return flow;
+  for (const type of priority) {
+    const flow = await automationRepo.findActiveFlowByType(companyId, type);
+    if (flow) return flow;
+  }
+  return null;
 }
 
 function buildFlowContext({ number, from, text, state, flow, group }) {
@@ -303,7 +304,7 @@ async function executeStepLocal({ step, state, vars, simulated = false, extra = 
 
   if (step.type === 'condition') {
     const expression = step.expression ?? step.condition?.expression ?? '';
-    const passed = simulated ? true : evaluateExpression(expression, { ctx: varsOut });
+    const passed = evaluateExpression(expression, { ctx: varsOut });
     nextStep = passed ? (step.next ?? null) : (step.next_false ?? step.else ?? null);
   }
 
@@ -525,7 +526,9 @@ export async function processIncomingMessage({ companyId, number, from, text, co
     }
   }
   if (!flow) {
-    flow = await resolveFlow(companyId, number, group, text);
+    const botConfig = (await whatsappRepo.getBotConfig(companyId).catch(() => ({}))) ?? {};
+    const priority = Array.isArray(botConfig.flowPriority) && botConfig.flowPriority.length > 0 ? botConfig.flowPriority : null;
+    flow = await resolveFlow(companyId, number, group, text, priority ?? ['vendas', 'suporte', 'marketing']);
   }
 
   if (!flow) {
@@ -566,8 +569,18 @@ export async function processIncomingMessage({ companyId, number, from, text, co
           currentState.vars = base;
         }
       } else {
-        nextStep = currentStep;
+        const attempts = (currentState.questionAttempts ?? 0) + 1;
+        currentState.vars = { ...(currentState.vars ?? {}), questionAttempts: attempts };
         const replyTo = group?.remoteJid ?? from;
+        if (attempts >= 3) {
+          await sendFlowMessage(number, replyTo, 'Não consegui entender. Vou transferir para um atendente.');
+          if (resolvedContact?.id) await updateContactFlowState(companyId, resolvedContact.id, { flowId: null, flowStep: null, vars: currentState.vars ?? {} });
+          await chatbotCache.clearFlowState(companyId, from);
+          const { notifyAttendants } = await import('../../notifications/services/notificationService.js');
+          await notifyAttendants({ companyId, title: 'Cliente sem resposta do bot', message: `${from} não entendeu as opções do fluxo: "${text}"`, type: 'message' }).catch(() => null);
+          return { flowId: flow.id, stepId: currentStep.id, nextStepId: null, cacheRead, cleared: true };
+        }
+        nextStep = currentStep;
         await sendFlowMessage(number, replyTo, 'Desculpe, não entendi. Escolha uma das opções abaixo:');
       }
     } else {
@@ -585,10 +598,24 @@ export async function processIncomingMessage({ companyId, number, from, text, co
 
   const state = { flowId: flow.id, flowStep: currentStepId, vars: currentState?.vars ?? {} };
   const replyTo = group?.remoteJid ?? from;
-  const result = await executeStep({ companyId, number, from, replyTo, text, contact: resolvedContact, flow, step: nextStep, state, group });
+  let result = await executeStep({ companyId, number, from, replyTo, text, contact: resolvedContact, flow, step: nextStep, state, group });
 
   let finalFlowId = flow.id;
   if (result.switchFlow) finalFlowId = result.switchFlow;
+
+  let hops = 0;
+  while (result.nextStep && !result.clear && !result.switchFlow && hops < 10) {
+    const chainStep = steps.find((s) => s.id === result.nextStep);
+    if (!chainStep) break;
+    const needsInput = chainStep.type === 'question' || (chainStep.type === 'variable' && chainStep.mode === 'input');
+    if (needsInput) break;
+    if (chainStep.type === 'message' || chainStep.type === 'media' || chainStep.type === 'delay') await sleep(600);
+    const chainState = { flowId: flow.id, flowStep: result.nextStep, vars: result.vars ?? state.vars };
+    result = await executeStep({ companyId, number, from, replyTo, text, contact: resolvedContact, flow, step: chainStep, state: chainState, group });
+    hops += 1;
+    if (result.switchFlow) { finalFlowId = result.switchFlow; break; }
+    if (result.clear) break;
+  }
 
   if (result.clear) {
     if (resolvedContact?.id) await updateContactFlowState(companyId, resolvedContact.id, { flowId: null, flowStep: null, vars: result.vars ?? {} });

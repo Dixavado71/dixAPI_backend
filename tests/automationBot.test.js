@@ -20,6 +20,7 @@ const whatsappRepo = {
   findContactByPhone: vi.fn(),
   findContactById: vi.fn(),
   updateContactMetadata: vi.fn(),
+  getBotConfig: vi.fn().mockResolvedValue({}),
 };
 const conversationRepo = {
   findConversationByContact: vi.fn(),
