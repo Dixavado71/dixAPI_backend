@@ -151,7 +151,12 @@ export async function sendMessage(companyId, numberId, data) {
   if (number.status !== 'connected') throw new BadRequestError('Número não está conectado.');
   if (!number.external_account_id) throw new BadRequestError('Número não possui instância EvolutionAPI.');
 
-  const result = await evolutionApi.sendText(number.external_account_id, data.to, data.text, data.delay);
+  let result;
+  try {
+    result = await evolutionApi.sendText(number.external_account_id, data.to, data.text, data.delay);
+  } catch (error) {
+    throw new BadRequestError(`EvolutionAPI: ${error.message}`);
+  }
   const contact = await whatsappRepo.upsertContact(companyId, number.id, { phoneNumber: data.to });
 
   await whatsappRepo.createMessage({

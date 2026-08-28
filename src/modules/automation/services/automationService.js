@@ -24,6 +24,9 @@ export function validateFlowConfig(config) {
     if (step.next && !ids.has(step.next)) dangling.push(`step '${step.id}'.next -> '${step.next}'`);
     if (step.next_false && !ids.has(step.next_false)) dangling.push(`step '${step.id}'.next_false -> '${step.next_false}'`);
     if (step.else && !ids.has(step.else)) dangling.push(`step '${step.id}'.else -> '${step.else}'`);
+    if (step.type === 'question' && (!Array.isArray(step.options) || step.options.length === 0)) {
+      throw new BadRequestError(`Step '${step.id}': pergunta precisa de pelo menos 1 opção.`);
+    }
     if (Array.isArray(step.options)) {
       for (const opt of step.options) {
         if (opt.next && !ids.has(opt.next)) dangling.push(`step '${step.id}'.option '${opt.label}' -> '${opt.next}'`);
@@ -544,6 +547,13 @@ export async function processIncomingMessage({ companyId, number, from, text, co
   }
 
   const normalizedText = normalize(text);
+  const RESET_KEYWORDS = ['menu', 'inicio', 'reiniciar', 'voltar', 'comecar', 'start', 'zerar'];
+  if (RESET_KEYWORDS.includes(normalizedText)) {
+    currentState = {};
+    if (resolvedContact?.id) await updateContactFlowState(companyId, resolvedContact.id, { flowId: null, flowStep: null, vars: {} });
+    await chatbotCache.clearFlowState(companyId, from);
+    logger.info({ companyId, from }, 'bot: sessão reiniciada');
+  }
   const triggers = Array.isArray(config.triggers) ? [...config.triggers].sort((a, b) => normalize(b.keyword).length - normalize(a.keyword).length) : [];
 
   let nextStep = null;
