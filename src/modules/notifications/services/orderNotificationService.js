@@ -59,8 +59,8 @@ function fillTemplate(template, vars) {
 
 export async function handleOrderEvent(companyId, orderId, event) {
   try {
-    const order = await prisma.order.findUnique({
-      where: { id: orderId },
+    const order = await prisma.order.findFirst({
+      where: { id: orderId, company_id: companyId },
       include: { customer: true, order_items: { include: { product: true } }, delivery: { include: { driver: true } } },
     });
     if (!order) return;

@@ -116,8 +116,8 @@ router.post('/numbers/:id/groups/:groupId/leave', authorize('admin', 'manager'),
 router.post('/numbers/:id/groups/accept-invite', authorize('admin', 'manager'), whatsappController.acceptInviteCode);
 
 // Status / Stories
-router.get('/numbers/:id/status', authorize('admin', 'manager', 'operator'), whatsappController.getStories);
-router.get('/numbers/:id/status/:statusId', authorize('admin', 'manager', 'operator'), whatsappController.getStoryById);
-router.post('/numbers/:id/status/reaction', authorize('admin', 'manager', 'operator'), whatsappController.reactStory);
+router.get('/numbers/:id/stories', authorize('admin', 'manager', 'operator'), whatsappController.getStories);
+router.get('/numbers/:id/stories/:statusId', authorize('admin', 'manager', 'operator'), whatsappController.getStoryById);
+router.post('/numbers/:id/stories/reaction', authorize('admin', 'manager', 'operator'), whatsappController.reactStory);
 
 export default router;
