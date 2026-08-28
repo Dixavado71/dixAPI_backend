@@ -20,7 +20,12 @@ export async function deleteProduct(companyId, id) {
   try {
     return await repository.deleteProduct(companyId, id);
   } catch (err) {
-    if (err?.code === 'P2003') {
+    const code = err?.code;
+    const message = String(err?.message ?? '');
+    const isForeignKeyViolation =
+      code === 'P2003' || code === '23001'
+      || /foreign key constraint|RESTRICT|restrict|23001/i.test(message);
+    if (isForeignKeyViolation) {
       throw new ConflictError('Este produto possui vendas ou pedidos vinculados e não pode ser excluído. Desative o produto em vez disso.');
     }
     throw err;

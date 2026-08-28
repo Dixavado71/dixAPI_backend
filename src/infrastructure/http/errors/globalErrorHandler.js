@@ -41,6 +41,7 @@ function resolveStatusCode(err) {
   if (err instanceof Prisma.PrismaClientValidationError || err?.name === 'ZodError') return 400;
   if (err instanceof Prisma.PrismaClientInitializationError || err instanceof Prisma.PrismaClientRustPanicError) return 503;
   if (err instanceof Prisma.PrismaClientKnownRequestError) return prismaStatusCode(err.code);
+  if (err instanceof Prisma.PrismaClientUnknownRequestError && (err.code === '23001' || /RESTRICT/i.test(String(err.message)))) return 409;
   if (err instanceof AppError) return err.statusCode;
   return 500;
 }
@@ -61,6 +62,16 @@ function resolveError(err, statusCode) {
   }
 
   if (err instanceof Prisma.PrismaClientKnownRequestError) return prismaError(err);
+
+  if (err instanceof Prisma.PrismaClientUnknownRequestError && (err.code === '23001' || /RESTRICT/i.test(String(err.message)))) {
+    return {
+      code: 'FOREIGN_KEY_CONSTRAINT_FAILED',
+      category: 'conflict',
+      message: 'Não foi possível excluir porque o registro possui itens vinculados. Desative-o em vez de excluir.',
+      details: null,
+      retryable: false,
+    };
+  }
 
   if (err instanceof Prisma.PrismaClientValidationError) {
     return {
