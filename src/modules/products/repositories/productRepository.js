@@ -19,10 +19,11 @@ export function createProduct(companyId, data) {
   return prisma.product.create({ data: { company_id: companyId, ...data } });
 }
 
-export function updateProduct(companyId, id, data) {
-  return prisma.product.update({ where: { id, company_id: companyId }, data });
+export async function updateProduct(companyId, id, data) {
+  await prisma.product.updateMany({ where: { id, company_id: companyId }, data });
+  return prisma.product.findFirst({ where: { id, company_id: companyId } });
 }
 
 export function deleteProduct(companyId, id) {
-  return prisma.product.delete({ where: { id, company_id: companyId } });
+  return prisma.product.deleteMany({ where: { id, company_id: companyId } });
 }
