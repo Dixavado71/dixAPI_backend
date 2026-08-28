@@ -9,7 +9,7 @@ const optionSchema = z.object({
 
 const flowStepSchema = z.object({
   id: z.string().min(1),
-  type: z.enum(['message', 'question', 'condition', 'action', 'media', 'forward', 'delay', 'webhook', 'variable', 'group', 'flow', 'end']),
+  type: z.enum(['message', 'question', 'condition', 'action', 'media', 'forward', 'delay', 'webhook', 'variable', 'group', 'flow', 'catalog', 'end']),
   content: z.string().max(2048).optional(),
   next: z.string().nullable().optional(),
   next_false: z.string().nullable().optional(),
@@ -25,6 +25,7 @@ const flowStepSchema = z.object({
     url: z.string().url('URL da mídia inválida.').optional(),
     caption: z.string().max(1024).optional(),
   }).optional(),
+  limit: z.number().int().min(1).max(50).optional(),
   delayMs: z.number().int().min(0).max(60000).optional(),
   target: z.string().max(40).optional(),
   targetJid: z.string().max(100).optional(),

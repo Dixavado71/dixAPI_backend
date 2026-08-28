@@ -417,6 +417,20 @@ async function executeStep({ companyId, number, from, replyTo, text, contact, fl
     nextStep = step.next ?? null;
   }
 
+  if (step.type === 'catalog') {
+    const products = await whatsappRepo.listActiveProducts(companyId, step.limit ?? 10);
+    if (products.length === 0) {
+      await sendFlowMessage(number, target, 'No momento n\u00e3o temos produtos dispon\u00edveis no cat\u00e1logo.');
+    } else {
+      const lines = products.map((p) => {
+        const price = Number(p.price).toFixed(2).replace('.', ',');
+        return `\u2022 *${p.name}* \u2014 R$ ${price}\n   ${p.description ?? ''}`.trim();
+      });
+      await sendFlowMessage(number, target, `${content()}\n\n${lines.join('\n')}`);
+    }
+    nextStep = step.next ?? null;
+  }
+
   if (step.type === 'question') {
     const optionsText = (step.options ?? []).map((o) => `*${o.label}*`).join('\n');
     await sendFlowMessage(number, target, `${content()}\n\n${optionsText}`);
