@@ -1121,6 +1121,87 @@ async function processWebhook(instanceName, payload) {
     }
     return;
   }
+
+  if (event === 'MESSAGES_SET') {
+    const list = Array.isArray(data) ? data : [data];
+    const now = Math.floor(Date.now() / 1000);
+    let processed = 0;
+    for (const msgData of list) {
+      if (msgData.key?.fromMe === false && msgData.key?.remoteJid && !String(msgData.key.remoteJid).endsWith('@g.us')) {
+        const ts = Number(msgData.messageTimestamp) || 0;
+        if (now - ts <= 300) {
+          await processUpsertMessage(number, msgData).catch((e) => logger.error({ err: e.message }, 'webhook: erro ao processar MESSAGES_SET'));
+          processed += 1;
+        }
+      }
+    }
+    logger.info({ numberId: number.id, total: list.length, processed }, 'webhook: MESSAGES_SET processado');
+    return;
+  }
+
+  if (event === 'MESSAGES_REACTION') {
+    const list = Array.isArray(data) ? data : [data];
+    for (const r of list) {
+      const reacted = r.message?.reactionMessage?.key ?? r.key ?? null;
+      const emoji = r.message?.reactionMessage?.text ?? r.reaction ?? null;
+      if (reacted?.id && emoji) {
+        await addReactionToMessage(number, reacted.id, emoji, reacted.participant ?? reacted.remoteJid ?? null).catch((e) => logger.error({ err: e.message }, 'webhook: erro ao salvar reação'));
+      }
+    }
+    return;
+  }
+
+  if (event === 'CONTACTS_UPDATE') {
+    const list = Array.isArray(data) ? data : [data];
+    for (const c of list) {
+      const phone = String(c.id ?? '').replace('@c.us', '').replace('@s.whatsapp.net', '').replace('@lid', '');
+      if (!phone) continue;
+      const contact = await whatsappRepo.findContactByPhone(number.company_id, number.id, phone);
+      if (contact?.id) {
+        const name = c.name ?? c.pushName ?? c.verifiedName ?? null;
+        if (name) await whatsappRepo.updateContactMetadata(contact.id, { ...(contact.metadata ?? {}), name, updatedAt: new Date().toISOString() });
+      }
+    }
+    return;
+  }
+
+  if (event === 'CALL') {
+    logger.info({ numberId: number.id, callId: data.id, from: data.from, status: data.status }, 'webhook: chamada recebida');
+    return;
+  }
+
+  if (event === 'MESSAGES_DELETE') {
+    const list = Array.isArray(data) ? data : [data];
+    for (const d of list) {
+      if (d.key?.id) await whatsappRepo.updateMessageStatusByExternalId(d.key.id, 'deleted').catch(() => null);
+    }
+    return;
+  }
+
+  if (event === 'STATE_CHANGE') {
+    logger.info({ numberId: number.id, state: data?.state }, 'webhook: STATE_CHANGE');
+    return;
+  }
+
+  if (event === 'SEND_MESSAGE' || event === 'TYPEWRITER' || event === 'GROUPS_UPDATE'
+    || event === 'GROUP_PARTICIPANTS_UPDATE' || event === 'LABELS_EDIT' || event === 'LABELS_ASSOCIATION'
+    || event === 'APPLICATION_STARTUP') {
+    logger.debug({ event, numberId: number.id }, 'webhook: evento secundário ignorado');
+    return;
+  }
+}
+
+async function addReactionToMessage(number, externalMessageId, emoji, participant) {
+  const message = await whatsappRepo.findMessageByExternalId(number.id, externalMessageId);
+  if (!message) return;
+  const reactions = Array.isArray(message.reactions) ? [...message.reactions] : [];
+  const existing = reactions.findIndex((r) => r.emoji === emoji && r.author === participant);
+  if (existing >= 0) {
+    reactions[existing].count = (reactions[existing].count ?? 1) + 1;
+  } else {
+    reactions.push({ emoji, author: participant, count: 1, at: Date.now() });
+  }
+  await whatsappRepo.updateMessageReactions(message.id, reactions);
 }
 
 async function processUpsertMessage(number, data) {

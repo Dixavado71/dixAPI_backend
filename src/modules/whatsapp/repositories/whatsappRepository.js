@@ -165,6 +165,10 @@ export function updateMessageStatusByExternalId(externalMessageId, status) {
   });
 }
 
+export function updateMessageReactions(id, reactions) {
+  return prisma.whatsAppMessage.update({ where: { id }, data: { reactions } });
+}
+
 export function listMessages(companyId, numberId, { remoteJid, limit = 50, cursor } = {}) {
   return prisma.whatsAppMessage.findMany({
     where: {
@@ -263,6 +267,7 @@ export default {
   updateContactMetadata,
   findMessageByExternalId,
   updateMessageStatusByExternalId,
+  updateMessageReactions,
   listMessages,
   listLinkedGroups,
   findLinkedGroupById,
