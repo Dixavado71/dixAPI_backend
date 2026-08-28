@@ -1032,13 +1032,6 @@ function enqueue(instanceName, task) {
 }
 
 async function processWebhook(instanceName, payload) {
-  logger.info({
-    event: payload?.event,
-    hasData: !!payload?.data,
-    dataType: Array.isArray(payload?.data) ? 'array' : typeof payload?.data,
-    topKeys: payload?.data ? Object.keys(payload.data).slice(0, 8) : [],
-    sample: JSON.stringify(payload?.data ?? {}).slice(0, 200),
-  }, 'webhook: evento recebido');
   if (!payload?.event || !payload?.data) return;
 
   const number = await whatsappRepo.findNumberByExternalAccountId(instanceName);
@@ -1118,7 +1111,6 @@ async function processWebhook(instanceName, payload) {
   }
 
   if (event === 'MESSAGES_UPSERT') {
-    logger.info({ event, count: Array.isArray(data) ? data.length : 1, remoteJid: (Array.isArray(data) ? data[0] : data)?.key?.remoteJid }, 'webhook: MESSAGES_UPSERT processando');
     const upserts = Array.isArray(data) ? data : [data];
     let processed = 0;
     for (const msgData of upserts) {
