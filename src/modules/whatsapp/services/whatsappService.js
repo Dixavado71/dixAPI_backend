@@ -993,7 +993,20 @@ export async function shouldBotRespond(companyId, numberId, phone, config = null
   return { allowed: true, reason: 'public' };
 }
 
-export async function handleWebhook(instanceName, payload) {
+export function handleWebhook(instanceName, payload) {
+  return enqueue(instanceName, () => processWebhook(instanceName, payload));
+}
+
+const instanceQueues = new Map();
+
+function enqueue(instanceName, task) {
+  const prev = instanceQueues.get(instanceName) || Promise.resolve();
+  const next = prev.then(() => task()).catch(() => {});
+  instanceQueues.set(instanceName, next);
+  return next;
+}
+
+async function processWebhook(instanceName, payload) {
   if (!payload?.event || !payload?.data) return;
 
   const number = await whatsappRepo.findNumberByExternalAccountId(instanceName);

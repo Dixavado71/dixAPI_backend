@@ -569,7 +569,7 @@ export async function processIncomingMessage({ companyId, number, from, text, co
           currentState.vars = base;
         }
       } else {
-        const attempts = (currentState.questionAttempts ?? 0) + 1;
+        const attempts = ((currentState.vars?.questionAttempts) ?? 0) + 1;
         currentState.vars = { ...(currentState.vars ?? {}), questionAttempts: attempts };
         const replyTo = group?.remoteJid ?? from;
         if (attempts >= 3) {

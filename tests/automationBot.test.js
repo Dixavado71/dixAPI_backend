@@ -42,6 +42,9 @@ vi.mock('../src/config/logger.js', () => ({
   logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
   default: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
 }));
+vi.mock('../src/modules/notifications/services/notificationService.js', () => ({
+  notifyAttendants: vi.fn().mockResolvedValue([]),
+}));
 
 const service = await import('../src/modules/automation/services/automationService.js');
 
@@ -138,13 +141,73 @@ describe('processIncomingMessage', () => {
   });
 });
 
+describe('auto-chain e retry de question', () => {
+  it('encadeia steps message consecutivos sem input do usuário', async () => {
+    const chainFlow = {
+      id: 'chain1', is_active: true,
+      config_json: {
+        defaultStep: 's1',
+        steps: [
+          { id: 's1', type: 'message', content: 'Primeiro', next: 's2' },
+          { id: 's2', type: 'message', content: 'Segundo', next: null },
+        ],
+      },
+    };
+    automationRepo.findActiveFlowByType.mockResolvedValue(chainFlow);
+    whatsappRepo.findContactByPhone.mockResolvedValue({ id: 'c1', metadata: {} });
+    cache.getFlowState.mockResolvedValue(null);
+    evolutionApi.sendText.mockResolvedValue({});
+    conversationRepo.findConversationByContact.mockResolvedValue(null);
+    conversationRepo.createConversation.mockResolvedValue({ id: 'conv1' });
+    conversationRepo.createMessage.mockResolvedValue({});
+    automationRepo.incrementMessagesCount.mockResolvedValue({});
+
+    await service.processIncomingMessage({ companyId: C1, number, from: '5511', text: 'oi' });
+
+    expect(evolutionApi.sendText).toHaveBeenCalledTimes(2);
+    expect(evolutionApi.sendText.mock.calls[0][2]).toBe('Primeiro');
+    expect(evolutionApi.sendText.mock.calls[1][2]).toBe('Segundo');
+  });
+
+  it('transfere para atendente após 3 tentativas sem match', async () => {
+    const qFlow = {
+      id: 'qf', is_active: true,
+      config_json: {
+        defaultStep: 'menu',
+        steps: [
+          { id: 'menu', type: 'question', content: 'Escolha:', options: [{ label: 'Pedido', value: 'pedido', next: 'menu' }], next: 'menu' },
+        ],
+      },
+    };
+    automationRepo.findActiveFlowByType.mockResolvedValue(qFlow);
+    automationRepo.findFlowById.mockResolvedValue(null);
+    whatsappRepo.findContactByPhone.mockResolvedValue({ id: 'c1', metadata: { flowStep: 'menu', flowId: 'qf', vars: { questionAttempts: 2 } } });
+    cache.getFlowState.mockResolvedValue(null);
+    evolutionApi.sendText.mockResolvedValue({});
+    conversationRepo.findConversationByContact.mockResolvedValue(null);
+    conversationRepo.createConversation.mockResolvedValue({ id: 'conv1' });
+    conversationRepo.createMessage.mockResolvedValue({});
+    automationRepo.incrementMessagesCount.mockResolvedValue({});
+
+    const result = await service.processIncomingMessage({ companyId: C1, number, from: '5511', text: 'qualquer coisa' });
+
+    expect(result.cleared).toBe(true);
+    expect(cache.clearFlowState).toHaveBeenCalledWith(C1, '5511');
+    expect(evolutionApi.sendText).toHaveBeenCalledWith('inst1', '5511', 'Não consegui entender. Vou transferir para um atendente.', 800);
+  });
+});
+
 describe('executeStep webhook', () => {
-  it('executes a webhook step and advances', async () => {
-    global.fetch = vi.fn().mockResolvedValue({ json: async () => ({ ok: true }) });
-    const step = { id: 'w', type: 'webhook', url: 'https://api.example.com/hook', method: 'POST', next: 'next1', responseVar: 'resp' };
+  it('records a webhook step in the simulation', async () => {
+    automationRepo.findFlowById.mockResolvedValue({
+      id: 'wf', is_active: true,
+      config_json: {
+        defaultStep: 'w',
+        steps: [{ id: 'w', type: 'webhook', url: 'https://api.example.com/hook', method: 'POST', next: null, responseVar: 'resp' }],
+      },
+    });
     const result = await service.testFlow(C1, 'wf', { vars: {} });
-    expect(result.executed).toBeDefined();
-    global.fetch = undefined;
+    expect(result.executed.map((e) => e.type)).toContain('webhook');
   });
 });
 

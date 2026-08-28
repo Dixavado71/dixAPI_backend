@@ -62,6 +62,12 @@ describe('template engine', () => {
     expect(fillTemplate(null, {})).toBeNull();
     expect(fillTemplate(123, {})).toBe(123);
   });
+
+  it('resolves nested paths like {vars.nome}', () => {
+    expect(fillTemplate('Olá {vars.nome}!', { vars: { nome: 'Maria' } })).toBe('Olá Maria!');
+    expect(fillTemplate('{a.b.c}', { a: { b: { c: 7 } } })).toBe('7');
+    expect(fillTemplate('{vars.inexistente}', { vars: {} })).toBe('{vars.inexistente}');
+  });
 });
 
 describe('flow service', () => {
