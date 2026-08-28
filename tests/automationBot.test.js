@@ -92,7 +92,7 @@ describe('processIncomingMessage', () => {
 
     expect(result.flowId).toBe('f1');
     expect(result.stepId).toBe('welcome');
-    expect(evolutionApi.sendText).toHaveBeenCalledWith('inst1', '5511', 'Olá {nome}!', 800);
+    expect(evolutionApi.sendText).toHaveBeenCalledWith('inst1', '5511', 'Olá {nome}!', 0);
     expect(cache.setFlowState).toHaveBeenCalled();
   });
 
@@ -193,7 +193,7 @@ describe('auto-chain e retry de question', () => {
 
     expect(result.cleared).toBe(true);
     expect(cache.clearFlowState).toHaveBeenCalledWith(C1, '5511');
-    expect(evolutionApi.sendText).toHaveBeenCalledWith('inst1', '5511', 'Não consegui entender. Vou transferir para um atendente.', 800);
+    expect(evolutionApi.sendText).toHaveBeenCalledWith('inst1', '5511', 'Não consegui entender. Vou transferir para um atendente.', 0);
   });
 });
 
