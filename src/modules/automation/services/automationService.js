@@ -218,8 +218,8 @@ async function sendFlowMedia(number, to, media) {
   await createConversationRecord({ companyId: number.company_id, number, from: to, text: media.caption ?? media.type, sender: 'bot', messageType: media.type || 'image' }).catch(() => null);
 }
 
-async function updateContactFlowState(contactId, state) {
-  const contact = await whatsappRepo.findContactById(contactId);
+async function updateContactFlowState(companyId, contactId, state) {
+  const contact = await whatsappRepo.findContactById(companyId, contactId);
   const merged = { ...(contact?.metadata ?? {}), ...state };
   await whatsappRepo.updateContactMetadata(contactId, merged);
 }
@@ -377,11 +377,12 @@ async function runWebhook({ step, vars, text, from, flow, group, context }) {
   }
 }
 
-async function executeStep({ companyId, number, from, text, contact, flow, step, state, group }) {
+async function executeStep({ companyId, number, from, replyTo, text, contact, flow, step, state, group }) {
   const vars = { ...(state?.vars ?? {}) };
   const context = buildFlowContext({ number, from, text, state: { vars }, flow, group });
   let nextStep = step.next ?? null;
   let clear = false;
+  const target = replyTo ?? from;
 
   const content = () => fillTemplate(step.content ?? '', { ...context, ...vars });
 
@@ -393,19 +394,19 @@ async function executeStep({ companyId, number, from, text, contact, flow, step,
   }
 
   if (step.type === 'message') {
-    await sendFlowMessage(number, from, content());
+    await sendFlowMessage(number, target, content());
     nextStep = step.next ?? null;
   }
 
   if (step.type === 'media') {
     const media = step.media ?? {};
-    if (media.url) await sendFlowMedia(number, from, media);
+    if (media.url) await sendFlowMedia(number, target, media);
     nextStep = step.next ?? null;
   }
 
   if (step.type === 'question') {
     const optionsText = (step.options ?? []).map((o) => `*${o.label}*`).join('\n');
-    await sendFlowMessage(number, from, `${content()}\n\n${optionsText}`);
+    await sendFlowMessage(number, target, `${content()}\n\n${optionsText}`);
     nextStep = step.id;
   }
 
@@ -445,7 +446,7 @@ async function executeStep({ companyId, number, from, text, contact, flow, step,
 
   if (step.type === 'action') {
     if (step.action === 'transfer_to_human') {
-      await sendFlowMessage(number, from, step.content || 'Um atendente vai te responder em instantes. Por favor, aguarde.');
+      await sendFlowMessage(number, target, step.content || 'Um atendente vai te responder em instantes. Por favor, aguarde.');
       clear = true;
       const conv = await conversationRepo.findConversationByContact(companyId, 'whatsapp', from);
       if (conv) await conversationRepo.updateConversation(conv.id, { status: 'waiting' }).catch(() => null);
@@ -566,7 +567,8 @@ export async function processIncomingMessage({ companyId, number, from, text, co
         }
       } else {
         nextStep = currentStep;
-        await sendFlowMessage(number, from, 'Desculpe, não entendi. Escolha uma das opções abaixo:');
+        const replyTo = group?.remoteJid ?? from;
+        await sendFlowMessage(number, replyTo, 'Desculpe, não entendi. Escolha uma das opções abaixo:');
       }
     } else {
       nextStep = steps.find((s) => s.id === currentStep.next) ?? null;
@@ -582,17 +584,18 @@ export async function processIncomingMessage({ companyId, number, from, text, co
   await automationRepo.incrementMessagesCount(flow.id);
 
   const state = { flowId: flow.id, flowStep: currentStepId, vars: currentState?.vars ?? {} };
-  const result = await executeStep({ companyId, number, from, text, contact: resolvedContact, flow, step: nextStep, state, group });
+  const replyTo = group?.remoteJid ?? from;
+  const result = await executeStep({ companyId, number, from, replyTo, text, contact: resolvedContact, flow, step: nextStep, state, group });
 
   let finalFlowId = flow.id;
   if (result.switchFlow) finalFlowId = result.switchFlow;
 
   if (result.clear) {
-    if (resolvedContact?.id) await updateContactFlowState(resolvedContact.id, { flowId: null, flowStep: null, vars: result.vars ?? {} });
+    if (resolvedContact?.id) await updateContactFlowState(companyId, resolvedContact.id, { flowId: null, flowStep: null, vars: result.vars ?? {} });
     await chatbotCache.clearFlowState(companyId, from);
   } else {
     const nextState = { flowId: finalFlowId, flowStep: result.nextStep ?? null, vars: result.vars ?? state.vars };
-    if (resolvedContact?.id) await updateContactFlowState(resolvedContact.id, nextState);
+    if (resolvedContact?.id) await updateContactFlowState(companyId, resolvedContact.id, nextState);
     await chatbotCache.setFlowState(companyId, from, nextState);
   }
 

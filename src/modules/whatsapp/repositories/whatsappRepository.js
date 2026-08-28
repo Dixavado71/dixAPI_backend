@@ -93,8 +93,8 @@ export function findContactByPhone(companyId, numberId, phoneNumber) {
   });
 }
 
-export function findContactById(contactId) {
-  return prisma.whatsAppContact.findUnique({ where: { id: contactId } });
+export function findContactById(companyId, contactId) {
+  return prisma.whatsAppContact.findFirst({ where: { id: contactId, company_id: companyId } });
 }
 
 export function findCustomerByPhone(companyId, phone) {

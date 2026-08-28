@@ -1184,7 +1184,7 @@ async function handleGroupMessage({ number, data }) {
     await processIncomingMessage({
       companyId: number.company_id,
       number,
-      from: remoteJid,
+      from: senderJid,
       text,
       group: { remoteJid, participant: senderJid, senderName },
     }).catch(() => null);
