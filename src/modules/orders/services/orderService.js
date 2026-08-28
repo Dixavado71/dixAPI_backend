@@ -23,10 +23,10 @@ export async function updateOrderStatus(companyId, id, status) {
   if (!order) throw new NotFoundError('Order');
   const patch = { status };
   if (status === 'completed' && !order.completed_at) patch.completed_at = new Date();
-  const updated = await repository.updateOrder(companyId, id, patch);
+  await repository.updateOrder(companyId, id, patch);
   const { handleOrderEvent } = await import('../../notifications/services/orderNotificationService.js');
   if (status === 'completed') {
     await handleOrderEvent(companyId, id, 'order_completed').catch(() => null);
   }
-  return updated;
+  return repository.findUpdatedOrder(companyId, id);
 }

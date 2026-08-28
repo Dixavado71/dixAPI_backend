@@ -2,7 +2,7 @@ import prisma from '../../../infrastructure/database/prismaClient.js';
 
 export function listProducts(companyId, kind) {
   return prisma.product.findMany({
-    where: { company_id: companyId, ...(kind ? { status: kind } : {}), status: 'active' },
+    where: { company_id: companyId, status: kind ?? 'active' },
     orderBy: { name: 'asc' },
   });
 }

@@ -23,13 +23,14 @@ describe('dashboard repository', () => {
     mockPrisma.order.count.mockResolvedValue(4);
     mockPrisma.customer.count.mockResolvedValue(10);
     mockPrisma.conversation.count.mockResolvedValue(6);
-    mockPrisma.order.groupBy.mockResolvedValue([
-      { order_date: new Date('2026-08-01T12:00:00.000Z'), _sum: { total: 250n }, _count: { _all: 1 } },
-      { order_date: new Date('2026-08-02T12:00:00.000Z'), _sum: { total: 750n }, _count: { _all: 3 } },
-    ]);
-    mockPrisma.$queryRaw.mockResolvedValue([
-      { id: 'p1', name: 'Combo', total_sales: 5, revenue: '900.00' },
-    ]);
+    mockPrisma.$queryRaw
+      .mockResolvedValueOnce([
+        { month: new Date('2026-08-01T00:00:00.000Z'), revenue: '250', orders: 1 },
+        { month: new Date('2026-09-01T00:00:00.000Z'), revenue: '750', orders: 3 },
+      ])
+      .mockResolvedValueOnce([
+        { id: 'p1', name: 'Combo', total_sales: 5, revenue: '900.00' },
+      ]);
     mockPrisma.customer.groupBy.mockResolvedValue([
       { segment: 'vip', _count: { _all: 3 } },
       { segment: 'new', _count: { _all: 7 } },

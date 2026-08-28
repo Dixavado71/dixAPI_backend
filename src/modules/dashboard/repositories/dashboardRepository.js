@@ -19,13 +19,17 @@ export async function getOverview(companyId, { from, to } = {}) {
     prisma.order.count({ where: { company_id: companyId, order_date: { gte: start, lte: end } } }),
     prisma.customer.count({ where: { company_id: companyId, status: 'active' } }),
     prisma.conversation.count({ where: { company_id: companyId } }),
-    prisma.order.groupBy({
-      by: ['order_date'],
-      where: { company_id: companyId, status: 'completed', order_date: { gte: start, lte: end } },
-      _sum: { total: true },
-      _count: { _all: true },
-      orderBy: { order_date: 'asc' },
-    }),
+    prisma.$queryRaw`
+      SELECT date_trunc('month', order_date) AS month,
+             SUM(total) AS revenue,
+             COUNT(*)::int AS orders
+      FROM orders
+      WHERE company_id = ${companyId}::uuid
+        AND status = 'completed'
+        AND order_date >= ${start} AND order_date <= ${end}
+      GROUP BY date_trunc('month', order_date)
+      ORDER BY month ASC
+    `,
     prisma.$queryRaw`
       SELECT p.id, p.name, SUM(oi.quantity)::int AS total_sales, SUM(oi.subtotal) AS revenue
       FROM products p
@@ -57,9 +61,9 @@ export async function getOverview(companyId, { from, to } = {}) {
     totalCustomers,
     totalConversations,
     monthlyRevenue: monthly.map((m) => ({
-      date: m.order_date.toISOString().slice(0, 10),
-      revenue: Number(m._sum.total ?? 0),
-      orders: m._count._all,
+      date: String(m.month).slice(0, 10),
+      revenue: Number(m.revenue ?? 0),
+      orders: Number(m.orders ?? 0),
     })),
     topProducts: topProducts.map((p) => ({
       id: p.id,
