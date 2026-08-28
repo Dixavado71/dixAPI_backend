@@ -1061,6 +1061,9 @@ async function processWebhook(instanceName, payload) {
       if (statusLabel) {
         const normalized = String(statusLabel).toLowerCase();
         await whatsappRepo.updateMessageStatusByExternalId(msgId, normalized).catch(() => null);
+        if (fromMe) {
+          logger.info({ msgId, status: normalized, remoteJid }, 'bot: status de entrega da mensagem outbound');
+        }
       }
       const isInbound = fromMe === false && !remoteJid.endsWith('@g.us');
       if (isInbound && u.message) {

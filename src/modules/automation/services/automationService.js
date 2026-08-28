@@ -212,7 +212,8 @@ export function normalize(text) {
 async function sendFlowMessage(number, to, text) {
   if (!text) return;
   try {
-    await evolutionApi.sendText(number.external_account_id, normalizePhone(to), text, 0);
+    const res = await evolutionApi.sendText(number.external_account_id, normalizePhone(to), text, 0);
+    logger.info({ to, text: String(text).slice(0, 40), status: res?.status, keyId: res?.key?.id }, 'bot: resposta enviada para Evolution');
   } catch (err) {
     logger.error({ err: err.message, to, text }, 'bot: falha ao enviar resposta');
   }
