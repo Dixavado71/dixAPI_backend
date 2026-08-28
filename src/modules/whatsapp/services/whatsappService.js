@@ -1118,6 +1118,7 @@ async function processWebhook(instanceName, payload) {
   }
 
   if (event === 'MESSAGES_UPSERT') {
+    logger.info({ event, count: Array.isArray(data) ? data.length : 1, remoteJid: (Array.isArray(data) ? data[0] : data)?.key?.remoteJid }, 'webhook: MESSAGES_UPSERT processando');
     const upserts = Array.isArray(data) ? data : [data];
     let processed = 0;
     for (const msgData of upserts) {
