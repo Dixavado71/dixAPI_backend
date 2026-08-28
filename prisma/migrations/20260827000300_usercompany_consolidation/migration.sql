@@ -58,18 +58,21 @@ BEGIN
   END LOOP;
 END $$;
 
--- 3) Remove FKs compostas que dependiam de users.company_id (dinamicamente,
---    independente do nome gerado no schema legado)
+-- 3) Remove FKs compostas que dependem de users.company_id.
+--    Busca FKs cujas colunas de referência (confkey) correspondem
+--    às colunas da unique constraint users_company_id_id_key.
 DO $$
 DECLARE
   r RECORD;
+  key_cols int2[];
 BEGIN
+  SELECT conkey INTO key_cols FROM pg_constraint WHERE conname = 'users_company_id_id_key';
   FOR r IN
     SELECT conrelid::regclass AS tbl, conname
     FROM pg_constraint
     WHERE contype = 'f'
       AND confrelid = 'users'::regclass
-      AND conkey::text LIKE '%company_id%'
+      AND confkey = key_cols
   LOOP
     EXECUTE format('ALTER TABLE %s DROP CONSTRAINT IF EXISTS %I', r.tbl, r.conname);
   END LOOP;
