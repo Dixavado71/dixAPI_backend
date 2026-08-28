@@ -455,7 +455,6 @@ model Company {
   created_at         DateTime      @default(now())
   updated_at         DateTime      @updatedAt
 
-  users                   User[]
   customers               Customer[]
   products                Product[]
   orders                  Order[]
@@ -525,8 +524,6 @@ model User {
   quick_replies  QuickReply[]   @relation("QuickReplyCreatedBy")
   UserCompany    UserCompany[]
   Reseller       Reseller?
-  Company        Company?       @relation(fields: [companyId], references: [id])
-  companyId      String?        @db.Uuid
 
   @@index([email])
   @@index([role])
