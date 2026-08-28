@@ -31,7 +31,7 @@ app.use(cors({ origin: corsOrigins, methods: ['GET', 'POST', 'PATCH', 'PUT', 'DE
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: false, limit: '1mb' }));
 app.use(pinoHttp({ logger }));
-app.use(rateLimit({ windowMs: 15 * 60 * 1000, limit: 100, standardHeaders: 'draft-7', legacyHeaders: false }));
+app.use(rateLimit({ windowMs: 15 * 60 * 1000, limit: 500, standardHeaders: 'draft-7', legacyHeaders: false }));
 
 app.get('/health', (req, res) => {
   res.status(200).json({

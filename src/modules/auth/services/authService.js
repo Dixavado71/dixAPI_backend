@@ -2,6 +2,7 @@ import { UnauthorizedError, ConflictError, BadRequestError, NotFoundError } from
 import { hashPassword, comparePassword } from '../../../infrastructure/security/password.js';
 import { generateAccessToken, generateRefreshToken, verifyRefreshToken, generatePasswordResetToken, verifyPasswordResetToken } from '../../../infrastructure/security/jwt.js';
 import { env } from '../../../config/env.js';
+import { sendMail } from '../../../infrastructure/mail/mailer.js';
 import * as authRepository from '../repositories/authRepository.js';
 
 function refreshExpiresAt() {
@@ -168,11 +169,18 @@ export async function forgotPassword(email) {
   const user = await authRepository.findActiveUserByEmail(email);
   if (!user) return { sent: true, message: 'Se o e-mail existir, um link de redefinição será enviado.' };
   const token = generatePasswordResetToken(user.id);
-  const resetUrl = `${env.publicApiUrl}/api/v1/auth/reset-password?token=${token}`;
+  const resetUrl = `${env.frontendUrl}/?token=${token}&view=reset`;
+  const result = await sendMail({
+    to: user.email,
+    subject: 'Redefinição de senha — diix',
+    text: `Olá ${user.name}. Recebemos um pedido de redefinição de senha.\nAcesse: ${resetUrl}\nSe não foi você, ignore este e-mail.`,
+    html: `<p>Olá <strong>${user.name}</strong>.</p><p>Recebemos um pedido de redefinição de senha.</p><p><a href="${resetUrl}">Clique aqui para redefinir</a></p><p>Se não foi você, ignore este e-mail.</p>`,
+  });
+  if (result.sent) return { sent: true, message: 'Link de redefinição enviado para o seu e-mail.' };
   if (env.nodeEnv === 'production') {
     return { sent: true, message: 'Se o e-mail existir, um link de redefinição será enviado.' };
   }
-  return { sent: true, message: 'Link de redefinição gerado (ambiente de desenvolvimento).', resetUrl };
+  return { sent: true, message: 'Link de redefinição gerado (SMTP não configurado).', resetUrl };
 }
 
 export async function resetPassword(token, newPassword) {
