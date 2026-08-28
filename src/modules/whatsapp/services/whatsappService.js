@@ -1044,7 +1044,7 @@ async function processWebhook(instanceName, payload) {
   const number = await whatsappRepo.findNumberByExternalAccountId(instanceName);
   if (!number) return;
 
-  const event = String(payload.event || '').toUpperCase();
+  const event = String(payload.event || '').toUpperCase().replace(/\./g, '_');
   const data = payload.data;
 
   if (event === 'CONNECTION_UPDATE') {
