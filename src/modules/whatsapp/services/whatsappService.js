@@ -1032,7 +1032,7 @@ function enqueue(instanceName, task) {
 }
 
 async function processWebhook(instanceName, payload) {
-  logger.debug({
+  logger.info({
     event: payload?.event,
     hasData: !!payload?.data,
     dataType: Array.isArray(payload?.data) ? 'array' : typeof payload?.data,
