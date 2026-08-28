@@ -212,7 +212,7 @@ export function normalize(text) {
 async function sendFlowMessage(number, to, text) {
   if (!text) return;
   try {
-    await evolutionApi.sendText(number.external_account_id, normalizePhone(to), text, 800);
+    await evolutionApi.sendText(number.external_account_id, normalizePhone(to), text, 0);
   } catch (err) {
     logger.error({ err: err.message, to, text }, 'bot: falha ao enviar resposta');
   }
@@ -222,7 +222,7 @@ async function sendFlowMessage(number, to, text) {
 async function sendFlowMedia(number, to, media) {
   if (!media?.url) return;
   try {
-    await evolutionApi.sendMedia(number.external_account_id, normalizePhone(to), media.type || 'image', media.url, media.caption ?? null, 800);
+    await evolutionApi.sendMedia(number.external_account_id, normalizePhone(to), media.type || 'image', media.url, media.caption ?? null, 0);
   } catch (err) {
     logger.error({ err: err.message, to, type: media.type }, 'bot: falha ao enviar mídia');
   }
