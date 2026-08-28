@@ -23,9 +23,14 @@ export function validateFlowConfig(config) {
   for (const step of steps) {
     if (step.next && !ids.has(step.next)) dangling.push(`step '${step.id}'.next -> '${step.next}'`);
     if (step.next_false && !ids.has(step.next_false)) dangling.push(`step '${step.id}'.next_false -> '${step.next_false}'`);
+    if (step.next_sim && !ids.has(step.next_sim)) dangling.push(`step '${step.id}'.next_sim -> '${step.next_sim}'`);
+    if (step.next_nao && !ids.has(step.next_nao)) dangling.push(`step '${step.id}'.next_nao -> '${step.next_nao}'`);
     if (step.else && !ids.has(step.else)) dangling.push(`step '${step.id}'.else -> '${step.else}'`);
     if (step.type === 'question' && (!Array.isArray(step.options) || step.options.length === 0)) {
       throw new BadRequestError(`Step '${step.id}': pergunta precisa de pelo menos 1 opção.`);
+    }
+    if (step.type === 'product' && !step.productId && step.productSource !== 'featured' && step.productSource !== 'catalog') {
+      throw new BadRequestError(`Step '${step.id}': produto precisa de um produto ou origem (destaque/catálogo).`);
     }
     if (Array.isArray(step.options)) {
       for (const opt of step.options) {
@@ -230,6 +235,84 @@ async function sendFlowMedia(number, to, media) {
   await createConversationRecord({ companyId: number.company_id, number, from: to, text: media.caption ?? media.type, sender: 'bot', messageType: media.type || 'image' }).catch(() => null);
 }
 
+async function sendFlowButtons(number, to, { title, description, buttons, footer = 'diix', delay = 500 }) {
+  if (!buttons || buttons.length === 0) { await sendFlowMessage(number, to, [title, description].filter(Boolean).join('\n\n')); return; }
+  try {
+    const mapped = buttons.map((b) => ({ type: 'reply', title: b, id: `btn_${Date.now()}_${b}` }));
+    await evolutionApi.sendButtons(number.external_account_id, to, title ?? '', description ?? '', mapped, footer, delay);
+  } catch (err) {
+    logger.error({ err: err.message, to, title }, 'bot: falha ao enviar botoes');
+    const fallback = [title, description, '', buttons.map((b) => `*${b}*`).join('\n')].filter(Boolean).join('\n');
+    if (footer) await sendFlowMessage(number, to, `${fallback}\n\n${footer}`);
+    else await sendFlowMessage(number, to, fallback);
+  }
+}
+
+async function sendFlowProductCard(number, to, product, opts = {}) {
+  const name = product.name || 'Produto';
+  const price = `R$ ${Number(product.price).toFixed(2).replace('.', ',')}`;
+  const desc = product.description ? `\n\n${product.description}` : '';
+  const caption = `*${name}*${desc}`;
+  const stockInfo = product.stock > 0 ? `Disponivel: ${product.stock} un.` : 'Indisponivel';
+  const buttons = opts.buttons ?? ['SIM', 'NAO'];
+  const footer = opts.footer ?? price;
+  const title = opts.title ?? `Deseja ${opts.verb ?? 'adicionar'}?`;
+
+  if (product.image_url) {
+    try {
+      await evolutionApi.sendMedia(number.external_account_id, to, 'image', product.image_url, caption, 300);
+      await sleep(400);
+    } catch {
+      await sendFlowMessage(number, to, caption);
+    }
+  } else {
+    await sendFlowMessage(number, to, caption);
+  }
+  await sleep(300);
+  await sendFlowButtons(number, to, { title, description: stockInfo, buttons, footer });
+}
+
+async function resolveProductStep(companyId, step, vars) {
+  if (step.productId) {
+    const product = await whatsappRepo.findProductByCompany(companyId, step.productId).catch(() => null);
+    if (product && product.status !== 'inactive') return product;
+  }
+  if (step.productSource === 'catalog' && vars?.catalogQueue && vars.catalogQueue.length > 0) {
+    const queue = vars.catalogQueue;
+    const nextId = queue.shift();
+    vars.catalogQueue = queue;
+    const product = await whatsappRepo.findProductByCompany(companyId, nextId).catch(() => null);
+    if (product && product.status !== 'inactive') return product;
+  }
+  const [featured] = await whatsappRepo.listActiveProducts(companyId, 1);
+  return featured ?? null;
+}
+
+function formatCartSummary(cart) {
+  if (!Array.isArray(cart) || cart.length === 0) return 'Seu carrinho esta vazio.';
+  const lines = cart.map((i) => {
+    const lineTotal = (Number(i.price) * i.quantity).toFixed(2).replace('.', ',');
+    return `\u2022 ${i.quantity}x *${i.name}* \u2014 R$ ${lineTotal}`;
+  });
+  const total = cart.reduce((a, i) => a + Number(i.price) * i.quantity, 0);
+  return `${lines.join('\n')}\n\n*Total: R$ ${total.toFixed(2).replace('.', ',')}*`;
+}
+
+async function checkoutCartStep({ companyId, number, from, vars, step }) {
+  const cart = Array.isArray(vars?.cart) ? vars.cart : [];
+  if (cart.length === 0) return null;
+  const phone = normalizePhone(from);
+  let customer = await whatsappRepo.findCustomerByPhone(companyId, phone);
+  if (!customer) {
+    const { createCustomer } = await import('../../customers/services/customerService.js');
+    customer = await createCustomer(companyId, { name: phone, phone, segment: 'new' });
+  }
+  const { createOrder } = await import('../../orders/services/orderService.js');
+  const items = cart.map((i) => ({ productId: i.productId, quantity: i.quantity }));
+  const order = await createOrder(companyId, customer.id, step.paymentMethod ?? 'pix', items);
+  return order;
+}
+
 async function updateContactFlowState(companyId, contactId, state) {
   const contact = await whatsappRepo.findContactById(companyId, contactId);
   const merged = { ...(contact?.metadata ?? {}), ...state };
@@ -323,6 +406,12 @@ async function executeStepLocal({ step, state, vars, simulated = false, extra = 
   if (step.type === 'question' && step.options && extra.option) {
     if (extra.option.variable) varsOut[extra.option.variable] = extra.option.value;
     nextStep = extra.option.next ?? step.next ?? null;
+  }
+
+  if (step.type === 'product') {
+    if (extra.option === 'sim') nextStep = step.next_sim ?? step.next ?? null;
+    else if (extra.option === 'nao') nextStep = step.next_nao ?? step.next ?? null;
+    else nextStep = step.next_sim ?? step.next ?? null;
   }
 
   if (step.type === 'action') {
@@ -421,6 +510,13 @@ async function executeStep({ companyId, number, from, replyTo, text, contact, fl
     const products = await whatsappRepo.listActiveProducts(companyId, step.limit ?? 10);
     if (products.length === 0) {
       await sendFlowMessage(number, target, 'No momento n\u00e3o temos produtos dispon\u00edveis no cat\u00e1logo.');
+    } else if (step.style === 'cards') {
+      await sendFlowMessage(number, target, content());
+      await sleep(400);
+      for (const p of products) {
+        await sendFlowProductCard(number, target, p, { title: `Quer o *${p.name}*?`, verb: 'adicionar', buttons: ['SIM', 'NAO'] });
+        await sleep(350);
+      }
     } else {
       const lines = products.map((p) => {
         const price = Number(p.price).toFixed(2).replace('.', ',');
@@ -429,6 +525,22 @@ async function executeStep({ companyId, number, from, replyTo, text, contact, fl
       await sendFlowMessage(number, target, `${content()}\n\n${lines.join('\n')}`);
     }
     nextStep = step.next ?? null;
+  }
+
+  if (step.type === 'product') {
+    const product = await resolveProductStep(companyId, step, vars);
+    if (!product) {
+      await sendFlowMessage(number, target, 'Produto indispon\u00edvel no momento.');
+      nextStep = step.next_nao ?? step.next ?? null;
+    } else {
+      vars.productPending = product.id;
+      await sendFlowProductCard(number, target, product, {
+        title: `Deseja adicionar *${product.name}* ao carrinho?`,
+        verb: 'adicionar',
+        buttons: ['SIM', 'NAO'],
+      });
+      nextStep = step.id;
+    }
   }
 
   if (step.type === 'question') {
@@ -474,20 +586,75 @@ async function executeStep({ companyId, number, from, replyTo, text, contact, fl
   if (step.type === 'action') {
     if (step.action === 'transfer_to_human') {
       const bc = (await whatsappRepo.getBotConfig(companyId).catch(() => ({}))) ?? {};
-      await sendFlowMessage(number, target, step.content || bc.transferMessage || 'Um atendente vai te responder em instantes. Por favor, aguarde.');
+      const cart = (vars?.cart ?? []).length > 0 ? formatCartSummary(vars.cart) : '';
+      const msg = [step.content || bc.transferMessage || 'Um atendente vai te responder em instantes.', cart].filter(Boolean).join('\n\n');
+      await sendFlowMessage(number, target, msg);
       clear = true;
       const conv = await conversationRepo.findConversationByContact(companyId, 'whatsapp', from);
       if (conv) await conversationRepo.updateConversation(conv.id, { status: 'waiting' }).catch(() => null);
       const { notifyAttendants } = await import('../../notifications/services/notificationService.js');
       await notifyAttendants({
         companyId,
-        title: 'Cliente pediu atendente',
-        message: `${from} solicitou atendimento humano: "${text}"`,
+        title: cart ? 'Cliente finalizou pedido' : 'Cliente pediu atendente',
+        message: `${from}: "${text}"${cart ? `\n\n${cart}` : ''}`,
         type: 'message',
         relatedEntityType: 'conversation',
         relatedEntityId: conv?.id ?? null,
       }).catch(() => null);
       nextStep = null;
+    } else if (step.action === 'cart_summary') {
+      const cart = vars?.cart ?? [];
+      if (cart.length === 0) {
+        await sendFlowMessage(number, target, 'Seu carrinho esta vazio.');
+        nextStep = step.next_nao ?? step.next ?? null;
+      } else {
+        const summary = formatCartSummary(cart);
+        const total = cart.reduce((a, i) => a + Number(i.price) * i.quantity, 0);
+        const totalStr = `R$ ${total.toFixed(2).replace('.', ',')}`;
+        await sendFlowMessage(number, target, `${content() || 'Resumo do carrinho:'}\n\n${summary}\n\n*Total: ${totalStr}*`);
+        await sleep(300);
+        await sendFlowButtons(number, target, { title: 'O que deseja fazer?', description: null, buttons: ['Finalizar pedido', 'Continuar comprando'], footer: totalStr });
+        vars.cartSummaryPending = true;
+        nextStep = step.id;
+      }
+    } else if (step.action === 'cart_checkout') {
+      try {
+        const order = await checkoutCartStep({ companyId, number, from, vars, step });
+        if (order) {
+          const totalStr = `R$ ${Number(order.total).toFixed(2).replace('.', ',')}`;
+          await sendFlowMessage(number, target, `Pedido *${order.order_number}* criado com sucesso!\n\nTotal: ${totalStr}\n\nUm atendente vai enviar o PIX para pagamento em instantes.`);
+          clear = true;
+          const conv = await conversationRepo.findConversationByContact(companyId, 'whatsapp', from);
+          if (conv) await conversationRepo.updateConversation(conv.id, { status: 'waiting' }).catch(() => null);
+          const { notifyAttendants } = await import('../../notifications/services/notificationService.js');
+          const cartSummary = formatCartSummary(vars?.cart ?? []);
+          await notifyAttendants({
+            companyId,
+            title: `Novo pedido: ${order.order_number}`,
+            message: `${from} finalizou o pedido no WhatsApp.\n\nPedido: ${order.order_number}\nTotal: ${totalStr}\n\n${cartSummary}`,
+            type: 'order',
+            relatedEntityType: 'order',
+            relatedEntityId: order.id,
+          }).catch(() => null);
+          vars.cart = [];
+          vars.cartSummaryPending = false;
+        } else {
+          await sendFlowMessage(number, target, 'Nao foi possivel criar o pedido. Tente novamente ou fale com um atendente.');
+          clear = true;
+          const conv = await conversationRepo.findConversationByContact(companyId, 'whatsapp', from);
+          if (conv) await conversationRepo.updateConversation(conv.id, { status: 'waiting' }).catch(() => null);
+        }
+      } catch (err) {
+        logger.error({ err: err.message, companyId, from }, 'cart_checkout: erro ao criar pedido');
+        await sendFlowMessage(number, target, 'Erro ao criar pedido. Um atendente vai ajudar.');
+        clear = true;
+      }
+      nextStep = null;
+    } else if (step.action === 'cart_clear') {
+      vars.cart = [];
+      vars.cartSummaryPending = false;
+      await sendFlowMessage(number, target, step.content || 'Carrinho limpo.');
+      nextStep = step.next ?? null;
     } else if (step.action === 'alert') {
       const { notifyAttendants } = await import('../../notifications/services/notificationService.js');
       await notifyAttendants({
@@ -592,7 +759,88 @@ export async function processIncomingMessage({ companyId, number, from, text, co
 
   if (!nextStep && currentStepId) {
     const currentStep = steps.find((s) => s.id === currentStepId);
-    if (currentStep?.type === 'question' && currentStep.options) {
+    const replyTo = group?.remoteJid ?? from;
+
+    if (currentStep?.type === 'product') {
+      const vars = { ...(currentState.vars ?? {}) };
+      if (vars.pendingQtyProduct) {
+        const qty = Number.parseInt(normalizedText.replace(/\D/g, ''), 10);
+        if (Number.isInteger(qty) && qty >= 1) {
+          const product = await whatsappRepo.findProductByCompany(companyId, vars.pendingQtyProduct).catch(() => null);
+          if (product) {
+            const cart = Array.isArray(vars.cart) ? vars.cart : [];
+            const existing = cart.find((i) => i.productId === product.id);
+            if (existing) existing.quantity += qty;
+            else cart.push({ productId: product.id, name: product.name, price: Number(product.price), quantity: qty, image_url: product.image_url });
+            vars.cart = cart;
+            const total = (Number(product.price) * qty).toFixed(2).replace('.', ',');
+            await sendFlowMessage(number, replyTo, `Adicionado: ${qty}x *${product.name}* \u2014 R$ ${total}`);
+            vars.pendingQtyProduct = null;
+            vars.productPending = null;
+            currentState.vars = vars;
+            nextStep = steps.find((s) => s.id === currentStep.next_sim) ?? null;
+          } else {
+            vars.pendingQtyProduct = null;
+            vars.productPending = null;
+            currentState.vars = vars;
+            nextStep = steps.find((s) => s.id === currentStep.next_nao) ?? null;
+          }
+        } else {
+          await sendFlowMessage(number, replyTo, 'Quantidade inv\u00e1lida. Digite um n\u00famero (ex.: 2).');
+          nextStep = currentStep;
+        }
+      } else {
+        const isSim = ['sim', 's', 'yes', 'quero', 'comprar'].includes(normalizedText);
+        const isNao = ['nao', 'n', 'no', 'nao quero', 'nao, obrigado'].includes(normalizedText);
+        const product = vars.productPending ? await whatsappRepo.findProductByCompany(companyId, vars.productPending).catch(() => null) : null;
+        if (isSim && product) {
+          if (currentStep.askQuantity !== false) {
+            vars.pendingQtyProduct = product.id;
+            await sendFlowMessage(number, replyTo, `Quantas unidades de *${product.name}*? (digite um n\u00famero)`);
+            currentState.vars = vars;
+            nextStep = currentStep;
+          } else {
+            const cart = Array.isArray(vars.cart) ? vars.cart : [];
+            cart.push({ productId: product.id, name: product.name, price: Number(product.price), quantity: 1, image_url: product.image_url });
+            vars.cart = cart;
+            await sendFlowMessage(number, replyTo, `Adicionado: 1x *${product.name}*`);
+            vars.productPending = null;
+            currentState.vars = vars;
+            nextStep = steps.find((s) => s.id === currentStep.next_sim) ?? null;
+          }
+        } else if (isNao) {
+          vars.productPending = null;
+          vars.pendingQtyProduct = null;
+          currentState.vars = vars;
+          nextStep = steps.find((s) => s.id === currentStep.next_nao) ?? null;
+        } else {
+          if (product) {
+            await sendFlowProductCard(number, replyTo, product, {
+              title: `Deseja adicionar *${product.name}* ao carrinho?`,
+              verb: 'adicionar',
+              buttons: ['SIM', 'NAO'],
+            });
+          }
+          nextStep = currentStep;
+        }
+      }
+    } else if (currentStep?.type === 'action' && currentStep.action === 'cart_summary') {
+      const vars = { ...(currentState.vars ?? {}) };
+      const fin = /finaliz|confirmar|pedido|sim/.test(normalizedText);
+      const cont = /continuar|mais|comprar|voltar/.test(normalizedText);
+      if (fin) {
+        vars.cartSummaryPending = false;
+        currentState.vars = vars;
+        nextStep = steps.find((s) => s.id === currentStep.next) ?? null;
+      } else if (cont) {
+        vars.cartSummaryPending = false;
+        currentState.vars = vars;
+        nextStep = steps.find((s) => s.id === currentStep.next_nao) ?? null;
+      } else {
+        nextStep = currentStep;
+        await sendFlowButtons(number, replyTo, { title: 'O que deseja fazer?', description: null, buttons: ['Finalizar pedido', 'Continuar comprando'] });
+      }
+    } else if (currentStep?.type === 'question' && currentStep.options) {
       const matched = currentStep.options.find(
         (o) => normalize(o.label) === normalizedText || normalize(o.value) === normalizedText,
       );
@@ -644,7 +892,9 @@ export async function processIncomingMessage({ companyId, number, from, text, co
   while (result.nextStep && !result.clear && !result.switchFlow && hops < 10) {
     const chainStep = steps.find((s) => s.id === result.nextStep);
     if (!chainStep) break;
-    const needsInput = chainStep.type === 'question' || (chainStep.type === 'variable' && chainStep.mode === 'input');
+    const needsInput = chainStep.type === 'question' || chainStep.type === 'product'
+      || (chainStep.type === 'variable' && chainStep.mode === 'input')
+      || (chainStep.type === 'action' && chainStep.action === 'cart_summary');
     if (needsInput) break;
     if (chainStep.type === 'message' || chainStep.type === 'media' || chainStep.type === 'delay') await sleep(600);
     const chainState = { flowId: flow.id, flowStep: result.nextStep, vars: result.vars ?? state.vars };

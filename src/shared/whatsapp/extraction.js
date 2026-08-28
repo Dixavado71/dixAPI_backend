@@ -6,6 +6,12 @@ export function extractMessageText(message) {
   if (message.videoMessage?.caption) return message.videoMessage.caption;
   if (message.documentMessage?.title) return message.documentMessage.title;
   if (message.documentMessage?.fileName && !message.documentMessage?.title) return message.documentMessage.fileName;
+  if (message.buttonsResponseMessage?.selectedDisplayText) return message.buttonsResponseMessage.selectedDisplayText;
+  if (message.buttonsResponseMessage?.selectedButtonId) return message.buttonsResponseMessage.selectedButtonId;
+  if (message.listResponseMessage?.title) return message.listResponseMessage.title;
+  if (message.listResponseMessage?.singleSelectReply?.selectedRowId) return message.listResponseMessage.singleSelectReply.selectedRowId;
+  if (message.templateButtonReplyMessage?.selectedDisplayText) return message.templateButtonReplyMessage.selectedDisplayText;
+  if (message.templateButtonReplyMessage?.selectedId) return message.templateButtonReplyMessage.selectedId;
   if (message.audioMessage) return '🎵 Áudio';
   if (message.stickerMessage) return '🖼️ Sticker';
   if (message.locationMessage) return '📍 Localização';

@@ -109,6 +109,10 @@ export function listActiveProducts(companyId, limit = 10) {
   });
 }
 
+export function findProductByCompany(companyId, id) {
+  return prisma.product.findFirst({ where: { id, company_id: companyId } });
+}
+
 export function getCompanyCustomization(companyId) {
   return prisma.companyCustomization.findUnique({ where: { company_id: companyId } });
 }

@@ -9,10 +9,12 @@ const optionSchema = z.object({
 
 const flowStepSchema = z.object({
   id: z.string().min(1),
-  type: z.enum(['message', 'question', 'condition', 'action', 'media', 'forward', 'delay', 'webhook', 'variable', 'group', 'flow', 'catalog', 'end']),
+  type: z.enum(['message', 'question', 'condition', 'action', 'media', 'forward', 'delay', 'webhook', 'variable', 'group', 'flow', 'catalog', 'product', 'end']),
   content: z.string().max(2048).optional(),
   next: z.string().nullable().optional(),
   next_false: z.string().nullable().optional(),
+  next_sim: z.string().nullable().optional(),
+  next_nao: z.string().nullable().optional(),
   else: z.string().nullable().optional(),
   options: z.array(optionSchema).optional(),
   action: z.string().optional(),
@@ -43,6 +45,11 @@ const flowStepSchema = z.object({
   responseVar: z.string().max(50).optional(),
   title: z.string().max(255).optional(),
   notificationType: z.string().max(30).optional(),
+  style: z.enum(['text', 'cards']).optional(),
+  productId: z.string().uuid('Produto inválido.').optional(),
+  productSource: z.enum(['featured', 'catalog']).optional(),
+  askQuantity: z.boolean().optional(),
+  paymentMethod: z.string().max(30).optional(),
 });
 
 const flowTriggerSchema = z.object({

@@ -27,6 +27,18 @@ describe('extractMessageText', () => {
     expect(extractMessageText({ contactMessage: { displayName: 'Ana' } })).toBe('👤 Ana');
   });
 
+  it('extracts interactive button replies (SIM/NÃO)', () => {
+    expect(extractMessageText({ buttonsResponseMessage: { selectedDisplayText: 'SIM' } })).toBe('SIM');
+    expect(extractMessageText({ buttonsResponseMessage: { selectedButtonId: 'btn_1_NAO' } })).toBe('btn_1_NAO');
+  });
+
+  it('extracts list and template replies', () => {
+    expect(extractMessageText({ listResponseMessage: { title: 'Finalizar pedido' } })).toBe('Finalizar pedido');
+    expect(extractMessageText({ listResponseMessage: { singleSelectReply: { selectedRowId: 'cart_checkout' } } })).toBe('cart_checkout');
+    expect(extractMessageText({ templateButtonReplyMessage: { selectedDisplayText: 'SIM' } })).toBe('SIM');
+    expect(extractMessageText({ templateButtonReplyMessage: { selectedId: 'yes' } })).toBe('yes');
+  });
+
   it('returns empty for null and fallback for unknown', () => {
     expect(extractMessageText(null)).toBe('');
     expect(extractMessageText({})).toBe('(mídia)');

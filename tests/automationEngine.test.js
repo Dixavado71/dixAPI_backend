@@ -102,4 +102,45 @@ describe('flow service', () => {
     repository.findFlowById.mockResolvedValue(null);
     await expect(automationService.getFlowById('c1', 'missing')).rejects.toMatchObject({ code: 'RESOURCE_NOT_FOUND' });
   });
+
+  it('validates a flow with product and cart steps', () => {
+    expect(() => automationService.validateFlowConfig({
+      steps: [
+        { id: 's1', type: 'catalog', style: 'cards', limit: 5, next: 's2' },
+        { id: 's2', type: 'product', productSource: 'featured', askQuantity: true, next_sim: 's3', next_nao: 's4' },
+        { id: 's3', type: 'action', action: 'cart_summary', next: 's5', next_nao: 's1' },
+        { id: 's4', type: 'message', content: 'ok' },
+        { id: 's5', type: 'action', action: 'cart_checkout', paymentMethod: 'pix' },
+      ],
+      defaultStep: 's1',
+    })).not.toThrow();
+  });
+
+  it('rejects a product step without product or source', () => {
+    expect(() => automationService.validateFlowConfig({
+      steps: [{ id: 's1', type: 'product' }],
+    })).toThrow(/produto precisa de um produto ou origem/);
+  });
+
+  it('rejects dangling next_sim/next_nao references', () => {
+    expect(() => automationService.validateFlowConfig({
+      steps: [{ id: 's1', type: 'product', productSource: 'catalog', next_sim: 'inexistente' }],
+    })).toThrow(/next_sim/);
+  });
+
+  it('simulates a flow with a product step', async () => {
+    repository.findFlowById.mockResolvedValue({
+      id: 'f1',
+      config_json: {
+        defaultStep: 's1',
+        steps: [
+          { id: 's1', type: 'product', productSource: 'featured', next_sim: 's2', next_nao: 's3' },
+          { id: 's2', type: 'message', content: 'Adicionado!' },
+          { id: 's3', type: 'message', content: 'Ok, sem produto.' },
+        ],
+      },
+    });
+    const result = await automationService.testFlow('c1', 'f1', { stepId: 's1' });
+    expect(result.executed.map((e) => e.type)).toEqual(['product', 'message']);
+  });
 });
