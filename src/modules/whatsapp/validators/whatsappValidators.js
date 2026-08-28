@@ -1,5 +1,8 @@
 import { z } from 'zod';
 
+// Aceita telefone puro (10-15 dígitos) ou JID completo (@lid, @s.whatsapp.net, @c.us, @g.us)
+const destinationSchema = z.string().regex(/^(\d{10,15}|[^@\s]+@(lid|s\.whatsapp\.net|c\.us|g\.us))$/, 'Número de destino inválido.');
+
 export const connectNumberSchema = z.object({
   phoneNumber: z.string().regex(/^\d{10,15}$/, 'Número deve ter entre 10 e 15 dígitos.'),
   displayName: z.string().min(2).max(50).optional(),
@@ -12,7 +15,7 @@ export const sendMessageSchema = z.object({
 }).strict();
 
 export const sendMediaSchema = z.object({
-  to: z.string().regex(/^\d{10,15}$/, 'Número de destino inválido.'),
+  to: destinationSchema,
   mediaType: z.enum(['image', 'document', 'video', 'audio']),
   mediaUrl: z.string().url('URL da mídia inválida.'),
   caption: z.string().max(1024).optional(),
@@ -20,13 +23,13 @@ export const sendMediaSchema = z.object({
 }).strict();
 
 export const sendAudioSchema = z.object({
-  to: z.string().regex(/^\d{10,15}$/, 'Número de destino inválido.'),
+  to: destinationSchema,
   audioUrl: z.string().url('URL do áudio inválida.'),
   delay: z.number().int().min(0).max(10000).optional(),
 }).strict();
 
 export const sendDocumentSchema = z.object({
-  to: z.string().regex(/^\d{10,15}$/, 'Número de destino inválido.'),
+  to: destinationSchema,
   documentUrl: z.string().url('URL do documento inválida.'),
   caption: z.string().max(1024).optional(),
   fileName: z.string().max(255).optional(),
@@ -34,20 +37,20 @@ export const sendDocumentSchema = z.object({
 }).strict();
 
 export const sendVideoSchema = z.object({
-  to: z.string().regex(/^\d{10,15}$/, 'Número de destino inválido.'),
+  to: destinationSchema,
   videoUrl: z.string().url('URL do vídeo inválida.'),
   caption: z.string().max(1024).optional(),
   delay: z.number().int().min(0).max(10000).optional(),
 }).strict();
 
 export const sendStickerSchema = z.object({
-  to: z.string().regex(/^\d{10,15}$/, 'Número de destino inválido.'),
+  to: destinationSchema,
   stickerUrl: z.string().url('URL do sticker inválida.'),
   delay: z.number().int().min(0).max(10000).optional(),
 }).strict();
 
 export const sendButtonsSchema = z.object({
-  to: z.string().regex(/^\d{10,15}$/, 'Número de destino inválido.'),
+  to: destinationSchema,
   title: z.string().min(1).max(255),
   description: z.string().max(1024).optional(),
   buttons: z.array(z.string().min(1).max(80)).min(1).max(3),
@@ -56,7 +59,7 @@ export const sendButtonsSchema = z.object({
 }).strict();
 
 export const sendListSchema = z.object({
-  to: z.string().regex(/^\d{10,15}$/, 'Número de destino inválido.'),
+  to: destinationSchema,
   title: z.string().min(1).max(255),
   description: z.string().max(1024).optional(),
   buttonText: z.string().min(1).max(60).default('Escolha uma opção'),
@@ -72,7 +75,7 @@ export const sendListSchema = z.object({
 }).strict();
 
 export const sendLocationSchema = z.object({
-  to: z.string().regex(/^\d{10,15}$/, 'Número de destino inválido.'),
+  to: destinationSchema,
   name: z.string().max(255).optional(),
   address: z.string().max(1024).optional(),
   latitude: z.number().min(-90).max(90),
@@ -81,18 +84,18 @@ export const sendLocationSchema = z.object({
 }).strict();
 
 export const sendReactionSchema = z.object({
-  to: z.string().regex(/^\d{10,15}$/, 'Número de destino inválido.'),
+  to: destinationSchema,
   messageId: z.string().min(1, 'ID da mensagem é obrigatório.'),
   reaction: z.string().min(1).max(50),
 }).strict();
 
 export const markAsReadSchema = z.object({
-  to: z.string().regex(/^\d{10,15}$/, 'Número de destino inválido.'),
+  to: destinationSchema,
   messageId: z.string().min(1, 'ID da mensagem é obrigatório.'),
 }).strict();
 
 export const presenceSchema = z.object({
-  to: z.string().regex(/^\d{10,15}$/, 'Número de destino inválido.').optional(),
+  to: destinationSchema.optional(),
   presence: z.enum(['available', 'unavailable', 'composing', 'recording', 'paused']).optional(),
 }).strict();
 
