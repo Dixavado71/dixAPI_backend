@@ -1,5 +1,5 @@
 import * as repository from '../repositories/productRepository.js';
-import { NotFoundError } from '../../../shared/errors/AppError.js';
+import { NotFoundError, ConflictError } from '../../../shared/errors/AppError.js';
 
 export const listProducts = (companyId, kind) => repository.listProducts(companyId, kind);
 export const listAllProducts = (companyId) => repository.listAllProducts(companyId);
@@ -17,7 +17,14 @@ export async function updateProduct(companyId, id, data) {
 export async function deleteProduct(companyId, id) {
   const product = await repository.findProductById(id, companyId);
   if (!product) throw new NotFoundError('Product');
-  return repository.deleteProduct(companyId, id);
+  try {
+    return await repository.deleteProduct(companyId, id);
+  } catch (err) {
+    if (err?.code === 'P2003') {
+      throw new ConflictError('Este produto possui vendas ou pedidos vinculados e não pode ser excluído. Desative o produto em vez disso.');
+    }
+    throw err;
+  }
 }
 
 export async function getProduct(companyId, id) {
