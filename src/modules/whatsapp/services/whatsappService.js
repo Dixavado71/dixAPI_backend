@@ -1032,24 +1032,19 @@ function enqueue(instanceName, task) {
 }
 
 async function processWebhook(instanceName, payload) {
+  logger.info({
+    event: payload?.event,
+    hasData: !!payload?.data,
+    dataType: Array.isArray(payload?.data) ? 'array' : typeof payload?.data,
+    topKeys: payload?.data ? Object.keys(payload.data).slice(0, 8) : [],
+    sample: JSON.stringify(payload?.data ?? {}).slice(0, 200),
+  }, 'webhook: evento recebido');
   if (!payload?.event || !payload?.data) return;
 
   const number = await whatsappRepo.findNumberByExternalAccountId(instanceName);
   if (!number) return;
 
   const { event, data } = payload;
-  if (event === 'MESSAGES_UPSERT') {
-    const first = Array.isArray(data) ? data[0] : data;
-    logger.info({
-      event,
-      isArray: Array.isArray(data),
-      count: Array.isArray(data) ? data.length : 1,
-      fromMe: first?.key?.fromMe,
-      remoteJid: first?.key?.remoteJid,
-      messageType: first?.messageType,
-      hasMessage: !!first?.message,
-    }, 'webhook: MESSAGES_UPSERT recebido');
-  }
 
   if (event === 'CONNECTION_UPDATE') {
     const newStatus = data.state === 'open' ? 'connected' : data.state === 'close' ? 'disconnected' : 'pending';
@@ -1059,13 +1054,22 @@ async function processWebhook(instanceName, payload) {
 
   if (event === 'QRCODE_UPDATED') return;
 
-  if (event === 'MESSAGES_UPDATE' && data.key?.id) {
-    const statusMap = { 1: 'sent', 2: 'delivered', 3: 'read', 4: 'played' };
-    const statusCode = typeof data.status === 'number' ? data.status : null;
-    const statusLabel = data.status && typeof data.status === 'string' ? data.status.toUpperCase() : statusMap[statusCode];
-    if (statusLabel) {
-      const normalized = String(statusLabel).toLowerCase();
-      await whatsappRepo.updateMessageStatusByExternalId(data.key.id, normalized).catch(() => null);
+  if (event === 'MESSAGES_UPDATE') {
+    const updates = Array.isArray(data) ? data : [data];
+    for (const u of updates) {
+      if (!u.key?.id) continue;
+      const statusMap = { 1: 'sent', 2: 'delivered', 3: 'read', 4: 'played' };
+      const statusCode = typeof u.status === 'number' ? u.status : null;
+      const statusLabel = u.status && typeof u.status === 'string' ? u.status.toUpperCase() : statusMap[statusCode];
+      if (statusLabel) {
+        const normalized = String(statusLabel).toLowerCase();
+        await whatsappRepo.updateMessageStatusByExternalId(u.key.id, normalized).catch(() => null);
+      }
+      const remoteJid = u.key?.remoteJid || '';
+      const isInbound = u.key?.fromMe === false && !remoteJid.endsWith('@g.us');
+      if (isInbound && u.message) {
+        await processUpsertMessage(number, u).catch((e) => logger.error({ err: e.message }, 'webhook: erro ao processar mensagem em MESSAGES_UPDATE'));
+      }
     }
     return;
   }
@@ -1130,7 +1134,7 @@ async function processUpsertMessage(number, data) {
     const phoneNumber = String(remoteJid).replace('@c.us', '').replace('@s.whatsapp.net', '');
     const externalId = data.key.id;
     const messageContent = extractMessageText(data.message) || '';
-    const messageType = data.messageType === 'conversation' ? 'text' : data.messageType;
+    const messageType = (!data.messageType || data.messageType === 'conversation') ? 'text' : data.messageType;
 
     const existing = await whatsappRepo.findMessageByExternalId(number.id, externalId);
     if (existing) return;
