@@ -71,12 +71,16 @@ export async function connectNumber(companyId, data) {
 
   if (!evolutionInstance) throw new BadRequestError('Não foi possível criar a instância no EvolutionAPI.');
 
+  const webhookUrl = `${env.publicApiUrl}/api/v1/whatsapp/webhook/${instanceName}`;
+  await evolutionApi.setWebhook(instanceName, webhookUrl).catch(() => null);
+
   const number = await whatsappRepo.upsertNumber(companyId, {
     phoneNumber: data.phoneNumber,
     displayName: data.displayName,
     status: 'pending',
     isBotEnabled: true,
     externalAccountId: instanceName,
+    webhookVerified: true,
   });
 
   return { number, qrcode: evolutionInstance?.qrcode?.base64 ?? null, instanceName };
@@ -398,7 +402,15 @@ export async function listChats(companyId, numberId) {
   if (!number) throw new NotFoundError('Número não encontrado.');
   if (!number.external_account_id) throw new BadRequestError('Número não possui instância EvolutionAPI.');
   const chats = await evolutionApi.fetchChats(number.external_account_id);
-  return Array.isArray(chats) ? chats.map(mapChat) : [];
+  if (!Array.isArray(chats)) return [];
+  const ownJid = `${number.phone_number}@`;
+  return chats
+    .filter((c) => {
+      const jid = c.remoteJid ?? c.key?.remoteJid ?? '';
+      const isOwn = jid.startsWith(ownJid) || jid.startsWith(`55${number.phone_number}@`);
+      return !isOwn;
+    })
+    .map(mapChat);
 }
 
 export function parseEvolutionMessage(msg) {
