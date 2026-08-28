@@ -1,4 +1,5 @@
 import { NotFoundError, ConflictError, BadRequestError } from '../../../shared/errors/AppError.js';
+import { lookup } from 'node:dns/promises';
 import * as automationRepo from '../repositories/automationRepository.js';
 import * as whatsappRepo from '../../whatsapp/repositories/whatsappRepository.js';
 import * as conversationRepo from '../../conversations/repositories/conversationRepository.js';
@@ -323,17 +324,39 @@ async function executeStepLocal({ step, state, vars, simulated = false, extra = 
   return { nextStep, vars: varsOut, clear: false };
 }
 
-function isAllowedWebhookUrl(url) {
+async function isAllowedWebhookUrl(url) {
   try {
     const parsed = new URL(url);
-    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return false;
+    const host = parsed.hostname.toLowerCase().replace(/^\[|\]$/g, '');
+    if (host === 'localhost' || host === '0.0.0.0' || host === '::1') return false;
+    if (host.endsWith('.local') || host.endsWith('.internal') || host.endsWith('.localhost')) return false;
+    if (host.startsWith('10.') || host.startsWith('127.') || host.startsWith('169.254.')) return false;
+    if (/^192\.168\./.test(host)) return false;
+    if (/^172\.(1[6-9]|2\d|3[01])\./.test(host)) return false;
+    try {
+      const records = await lookup(host, { all: true, verbatim: true });
+      for (const r of records) {
+        const ip = r.address;
+        if (r.family === 4) {
+          const p = ip.split('.').map(Number);
+          if (p[0] === 10 || p[0] === 127 || (p[0] === 169 && p[1] === 254)
+            || (p[0] === 172 && p[1] >= 16 && p[1] <= 31) || (p[0] === 192 && p[1] === 168)) return false;
+        } else if (ip === '::1' || ip.startsWith('fc') || ip.startsWith('fd') || ip.startsWith('fe80')) {
+          return false;
+        }
+      }
+    } catch {
+      return false;
+    }
+    return true;
   } catch {
     return false;
   }
 }
 
 async function runWebhook({ step, vars, text, from, flow, group, context }) {
-  if (!step.url || !isAllowedWebhookUrl(step.url)) return { nextStep: step.next ?? null, vars };
+  if (!step.url || !(await isAllowedWebhookUrl(step.url))) return { nextStep: step.next ?? null, vars };
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 10000);
   try {

@@ -1,6 +1,7 @@
 import * as notificationService from '../services/notificationService.js';
 import * as orderNotificationService from '../services/orderNotificationService.js';
 import { successResponse, createdResponse } from '../../../shared/utils/response.js';
+import { triggerSchema, triggerUpdateSchema } from '../validators/notificationValidators.js';
 
 export async function list(req, res, next) {
   try {
@@ -42,7 +43,7 @@ export async function listTriggers(req, res, next) {
 
 export async function createTrigger(req, res, next) {
   try {
-    const data = req.body;
+    const data = triggerSchema.parse(req.body);
     const result = await notificationService.createTrigger(req.tenant.companyId, req.user.id, data);
     return createdResponse(res, result);
   } catch (error) { return next(error); }
@@ -50,7 +51,8 @@ export async function createTrigger(req, res, next) {
 
 export async function updateTrigger(req, res, next) {
   try {
-    const result = await notificationService.updateTrigger(req.tenant.companyId, req.params.id, req.body);
+    const data = triggerUpdateSchema.parse(req.body);
+    const result = await notificationService.updateTrigger(req.tenant.companyId, req.params.id, data);
     return successResponse(res, result);
   } catch (error) { return next(error); }
 }

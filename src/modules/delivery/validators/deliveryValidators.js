@@ -65,3 +65,7 @@ export const paymentSchema = z.object({
   confirmed_by_driver: z.boolean().optional(),
   notes: z.string().optional(),
 }).strict();
+
+export const confirmPaymentSchema = z.object({
+  amount_received: decimal,
+}).strict();
