@@ -194,7 +194,7 @@ export async function useQuickReply(companyId, id) {
 /* ===== Flow execution engine ===== */
 
 function normalizePhone(phone) {
-  return String(phone).replace('@c.us', '').replace('@s.whatsapp.net', '').replace('@lid', '');
+  return String(phone).replace('@c.us', '').replace('@s.whatsapp.net', '');
 }
 
 export function extractMessageText(data) {
