@@ -2206,7 +2206,7 @@
     },
     "/whatsapp/numbers/:id/status": {
       "get": {
-        "operationId": "get__whatsapp_numbers_id_status_2",
+        "operationId": "get__whatsapp_numbers_id_status_1",
         "summary": "GET /whatsapp/numbers/:id/status",
         "security": [
           {
@@ -3930,10 +3930,10 @@
         }
       }
     },
-    "/whatsapp/numbers/:id/status/:statusId": {
+    "/whatsapp/numbers/:id/stories": {
       "get": {
-        "operationId": "get__whatsapp_numbers_id_status_statusId_1",
-        "summary": "GET /whatsapp/numbers/:id/status/:statusId",
+        "operationId": "get__whatsapp_numbers_id_stories_1",
+        "summary": "GET /whatsapp/numbers/:id/stories",
         "security": [
           {
             "bearerAuth": []
@@ -3958,10 +3958,486 @@
         }
       }
     },
-    "/whatsapp/numbers/:id/status/reaction": {
+    "/whatsapp/numbers/:id/stories/:statusId": {
+      "get": {
+        "operationId": "get__whatsapp_numbers_id_stories_statusId_1",
+        "summary": "GET /whatsapp/numbers/:id/stories/:statusId",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/whatsapp/numbers/:id/stories/reaction": {
       "post": {
-        "operationId": "post__whatsapp_numbers_id_status_reaction_1",
-        "summary": "POST /whatsapp/numbers/:id/status/reaction",
+        "operationId": "post__whatsapp_numbers_id_stories_reaction_1",
+        "summary": "POST /whatsapp/numbers/:id/stories/reaction",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/whatsapp/numbers/:id/block": {
+      "post": {
+        "operationId": "post__whatsapp_numbers_id_block_1",
+        "summary": "POST /whatsapp/numbers/:id/block",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/whatsapp/numbers/:id/pairing-code": {
+      "post": {
+        "operationId": "post__whatsapp_numbers_id_pairing_code_1",
+        "summary": "POST /whatsapp/numbers/:id/pairing-code",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/whatsapp/numbers/:id/groups/:groupId/participants": {
+      "get": {
+        "operationId": "get__whatsapp_numbers_id_groups_groupId_participants_1",
+        "summary": "GET /whatsapp/numbers/:id/groups/:groupId/participants",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/whatsapp/numbers/:id/send-template": {
+      "post": {
+        "operationId": "post__whatsapp_numbers_id_send_template_1",
+        "summary": "POST /whatsapp/numbers/:id/send-template",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/whatsapp/numbers/:id/send-ptv": {
+      "post": {
+        "operationId": "post__whatsapp_numbers_id_send_ptv_1",
+        "summary": "POST /whatsapp/numbers/:id/send-ptv",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/whatsapp/numbers/:id/groups/:groupId/ephemeral": {
+      "post": {
+        "operationId": "post__whatsapp_numbers_id_groups_groupId_ephemeral_1",
+        "summary": "POST /whatsapp/numbers/:id/groups/:groupId/ephemeral",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/whatsapp/numbers/:id/send-bulk": {
+      "post": {
+        "operationId": "post__whatsapp_numbers_id_send_bulk_1",
+        "summary": "POST /whatsapp/numbers/:id/send-bulk",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/whatsapp/numbers/:id/send-base64": {
+      "post": {
+        "operationId": "post__whatsapp_numbers_id_send_base64_1",
+        "summary": "POST /whatsapp/numbers/:id/send-base64",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/whatsapp/numbers/:id/group-invite-info": {
+      "post": {
+        "operationId": "post__whatsapp_numbers_id_group_invite_info_1",
+        "summary": "POST /whatsapp/numbers/:id/group-invite-info",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/whatsapp/numbers/:id/groups/:groupId/send-invite": {
+      "post": {
+        "operationId": "post__whatsapp_numbers_id_groups_groupId_send_invite_1",
+        "summary": "POST /whatsapp/numbers/:id/groups/:groupId/send-invite",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/whatsapp/numbers/:id/contacts/find": {
+      "post": {
+        "operationId": "post__whatsapp_numbers_id_contacts_find_1",
+        "summary": "POST /whatsapp/numbers/:id/contacts/find",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/whatsapp/numbers/:id/profile-picture": {
+      "delete": {
+        "operationId": "delete__whatsapp_numbers_id_profile_picture_1",
+        "summary": "DELETE /whatsapp/numbers/:id/profile-picture",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/whatsapp/numbers/:id/business-profile": {
+      "post": {
+        "operationId": "post__whatsapp_numbers_id_business_profile_1",
+        "summary": "POST /whatsapp/numbers/:id/business-profile",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/whatsapp/numbers/:id/change-number": {
+      "post": {
+        "operationId": "post__whatsapp_numbers_id_change_number_1",
+        "summary": "POST /whatsapp/numbers/:id/change-number",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/whatsapp/numbers/:id/send-link-preview": {
+      "post": {
+        "operationId": "post__whatsapp_numbers_id_send_link_preview_1",
+        "summary": "POST /whatsapp/numbers/:id/send-link-preview",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/whatsapp/numbers/:id/typewriter": {
+      "post": {
+        "operationId": "post__whatsapp_numbers_id_typewriter_1",
+        "summary": "POST /whatsapp/numbers/:id/typewriter",
         "security": [
           {
             "bearerAuth": []

@@ -843,7 +843,15 @@ export async function listMessageLogs(companyId, numberId, query) {
 export async function listStatus(companyId, numberId) {
   const number = await requireNumber(companyId, numberId);
   try {
-    return await evolutionApi.findStatusMessage(number.external_account_id, 'status@broadcast');
+    const statuses = await evolutionApi.findStatusMessage(number.external_account_id, 'status@broadcast');
+    return (Array.isArray(statuses) ? statuses : []).map((s) => ({
+      id: s.key?.id ?? s.id ?? null,
+      senderName: s.senderName ?? null,
+      messageType: s.messageType ?? 'text',
+      content: extractMessageText(s.message ?? {}),
+      mediaUrl: extractMedia(s.message ?? {})?.url ?? null,
+      timestamp: s.messageTimestamp ? new Date(s.messageTimestamp * 1000).toISOString() : null,
+    }));
   } catch {
     return [];
   }
