@@ -211,13 +211,21 @@ export function normalize(text) {
 
 async function sendFlowMessage(number, to, text) {
   if (!text) return;
-  await evolutionApi.sendText(number.external_account_id, normalizePhone(to), text, 800).catch(() => null);
+  try {
+    await evolutionApi.sendText(number.external_account_id, normalizePhone(to), text, 800);
+  } catch (err) {
+    logger.error({ err: err.message, to, text }, 'bot: falha ao enviar resposta');
+  }
   await createConversationRecord({ companyId: number.company_id, number, from: to, text, sender: 'bot', messageType: 'text' }).catch(() => null);
 }
 
 async function sendFlowMedia(number, to, media) {
   if (!media?.url) return;
-  await evolutionApi.sendMedia(number.external_account_id, normalizePhone(to), media.type || 'image', media.url, media.caption ?? null, 800).catch(() => null);
+  try {
+    await evolutionApi.sendMedia(number.external_account_id, normalizePhone(to), media.type || 'image', media.url, media.caption ?? null, 800);
+  } catch (err) {
+    logger.error({ err: err.message, to, type: media.type }, 'bot: falha ao enviar mídia');
+  }
   await createConversationRecord({ companyId: number.company_id, number, from: to, text: media.caption ?? media.type, sender: 'bot', messageType: media.type || 'image' }).catch(() => null);
 }
 

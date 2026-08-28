@@ -1091,8 +1091,19 @@ async function processWebhook(instanceName, payload) {
     return;
   }
 
-  if (event === 'MESSAGES_UPSERT' && data.key?.fromMe === false) {
-    const remoteJid = data.key.remoteJid || '';
+  if (event === 'MESSAGES_UPSERT') {
+    const upserts = Array.isArray(data) ? data : [data];
+    for (const msgData of upserts) {
+      if (msgData.key?.fromMe === false) {
+        await processUpsertMessage(number, msgData).catch((e) => logger.error({ err: e.message }, 'webhook: erro ao processar mensagem'));
+      }
+    }
+    return;
+  }
+}
+
+async function processUpsertMessage(number, data) {
+  const remoteJid = data.key.remoteJid || '';
 
     if (remoteJid.endsWith('@g.us')) {
       await handleGroupMessage({ number, data }).catch(() => null);
@@ -1181,7 +1192,6 @@ async function processWebhook(instanceName, payload) {
       }
     }
   }
-}
 
 async function handleGroupMessage({ number, data }) {
   const remoteJid = data.key.remoteJid;
