@@ -1032,7 +1032,7 @@ function enqueue(instanceName, task) {
 }
 
 async function processWebhook(instanceName, payload) {
-  logger.info({
+  logger.debug({
     event: payload?.event,
     hasData: !!payload?.data,
     dataType: Array.isArray(payload?.data) ? 'array' : typeof payload?.data,
@@ -1044,7 +1044,8 @@ async function processWebhook(instanceName, payload) {
   const number = await whatsappRepo.findNumberByExternalAccountId(instanceName);
   if (!number) return;
 
-  const { event, data } = payload;
+  const event = String(payload.event || '').toUpperCase();
+  const data = payload.data;
 
   if (event === 'CONNECTION_UPDATE') {
     const newStatus = data.state === 'open' ? 'connected' : data.state === 'close' ? 'disconnected' : 'pending';
@@ -1057,26 +1058,35 @@ async function processWebhook(instanceName, payload) {
   if (event === 'MESSAGES_UPDATE') {
     const updates = Array.isArray(data) ? data : [data];
     for (const u of updates) {
-      if (!u.key?.id) continue;
+      const msgId = u.keyId ?? u.key?.id ?? u.messageId;
+      if (!msgId) continue;
+      const fromMe = u.fromMe ?? u.key?.fromMe;
+      const remoteJid = u.remoteJid ?? u.key?.remoteJid ?? '';
       const statusMap = { 1: 'sent', 2: 'delivered', 3: 'read', 4: 'played' };
       const statusCode = typeof u.status === 'number' ? u.status : null;
       const statusLabel = u.status && typeof u.status === 'string' ? u.status.toUpperCase() : statusMap[statusCode];
       if (statusLabel) {
         const normalized = String(statusLabel).toLowerCase();
-        await whatsappRepo.updateMessageStatusByExternalId(u.key.id, normalized).catch(() => null);
+        await whatsappRepo.updateMessageStatusByExternalId(msgId, normalized).catch(() => null);
       }
-      const remoteJid = u.key?.remoteJid || '';
-      const isInbound = u.key?.fromMe === false && !remoteJid.endsWith('@g.us');
+      const isInbound = fromMe === false && !remoteJid.endsWith('@g.us');
       if (isInbound && u.message) {
-        await processUpsertMessage(number, u).catch((e) => logger.error({ err: e.message }, 'webhook: erro ao processar mensagem em MESSAGES_UPDATE'));
+        const normalizedMsg = { ...u, key: u.key ?? { remoteJid, id: msgId, fromMe: false } };
+        await processUpsertMessage(number, normalizedMsg).catch((e) => logger.error({ err: e.message }, 'webhook: erro ao processar mensagem em MESSAGES_UPDATE'));
       }
     }
     return;
   }
 
-  if (event === 'MESSAGES_REVOKED' && data.key?.id) {
-    await whatsappRepo.updateMessageStatusByExternalId(data.key.id, 'revoked').catch(() => null);
-    logger.info({ numberId: number.id, messageId: data.key.id }, 'mensagem revogada marcada como revoked');
+  if (event === 'MESSAGES_REVOKED') {
+    const list = Array.isArray(data) ? data : [data];
+    for (const r of list) {
+      const msgId = r.keyId ?? r.key?.id ?? r.messageId;
+      if (msgId) {
+        await whatsappRepo.updateMessageStatusByExternalId(msgId, 'revoked').catch(() => null);
+        logger.info({ numberId: number.id, messageId: msgId }, 'mensagem revogada marcada como revoked');
+      }
+    }
     return;
   }
 
@@ -1173,7 +1183,8 @@ async function processWebhook(instanceName, payload) {
   if (event === 'MESSAGES_DELETE') {
     const list = Array.isArray(data) ? data : [data];
     for (const d of list) {
-      if (d.key?.id) await whatsappRepo.updateMessageStatusByExternalId(d.key.id, 'deleted').catch(() => null);
+      const msgId = d.keyId ?? d.key?.id ?? d.messageId;
+      if (msgId) await whatsappRepo.updateMessageStatusByExternalId(msgId, 'deleted').catch(() => null);
     }
     return;
   }
