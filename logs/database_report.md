@@ -1,5 +1,16 @@
 # Relatório Completo de Auditoria do Banco de Dados
 
+## Atualização — 2026-08-28 — migrations aplicadas no Railway (16) e deploy restaurado
+
+- **Causa raiz do deploy falho**: migration `20260827000300_usercompany_consolidation` em estado `FAILED` em `_prisma_migrations` (`started_at` sem `finished_at`), bloqueando `prisma migrate deploy` com `P3009`.
+- **Bug da migration**: o step 3 usava `pg_constraint.conkey::text LIKE '%company_id%'`, mas `conkey` é um array de números de coluna. As FKs compostas dependentes (`conversations_company_id_assigned_to_fkey`, `quick_replies_company_id_created_by_fkey`, `notifications_company_id_user_id_fkey`) não eram removidas e o `DROP CONSTRAINT "users_company_id_id_key"` falhava (`cannot drop constraint ... because other objects depend on it`).
+- **Correção aplicada** em `prisma/migrations/20260827000300_usercompany_consolidation/migration.sql`: o step 3 agora seleciona FKs cuja `confkey` é igual ao `conkey` da unique constraint `users_company_id_id_key` (declarado `key_cols int2[]`), e as remove antes do drop da coluna/constraint.
+- **Conectividade**: proxy público `switchyard.proxy.rlwy.net` aceita TCP/TLS mas não encaminha o handshake Postgres deste ambiente (P1001). Conexão bem-sucedida apenas via túnel SSH `railway connect Postgres --tunnel-only --ssh` (porta local 15432). Redis idem (`sakura.proxy.rlwy.net` → túnel 16379).
+- **Credenciais**: senhas de Postgres e Redis rotacionadas no Railway; `.env` local atualizado com os valores correntes.
+- **Execução**: removido registro `20260827000300_usercompany_consolidation` de `_prisma_migrations`; dry-run das migrations 004–006 OK; `prisma migrate deploy` aplicou as 4 migrations pendentes (003–006) com sucesso.
+- **Estado atual**: **16 migrations** aplicadas; `npx prisma validate` aprovado; servidor local sobe (DB+Redis conectados) e `/health` 200; deploy `2660ec86` SUCCESS em produção, `/health` 200.
+- **Pendência**: commitar/pushar a correção da migration no repo privado `Dixavado71/dixAPI_backend_private` para que deploys via GitHub não reintroduzam o bug.
+
 ## Atualização — 2026-08-27 — migration at_location + order_notification_logs
 
 - Migration `20260827000100_add_at_location_and_notification_logs` adicionada:

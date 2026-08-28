@@ -1,5 +1,7 @@
 # Progress Report - ECMS6 DiixWhatsApp Backend
 
+> **Nota (2026-08-28)**: este relatório antigo está defasado. O relatório de progresso autoritativo é `docs/05_progresso.md` (fases 1–7, 100 testes, 16 migrations). Atualização Railway em 28/08: deploy restaurado (deployment `2660ec86` SUCCESS), migrations 003–006 aplicadas, credenciais do `.env` renovadas. Ver `docs/05_progresso.md` e `logs/database_report.md`.
+
 ## Data: $(date)
 
 ## Status Geral: Em Andamento (≈35% Completo)
