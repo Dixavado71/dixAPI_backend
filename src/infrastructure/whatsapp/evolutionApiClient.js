@@ -53,6 +53,12 @@ export async function downloadMedia(instanceName, mediaUrl) {
   return buffer.toString('base64');
 }
 
+function webhookConfig(url, events = ['MESSAGES_UPSERT', 'CONNECTION_UPDATE', 'QRCODE_UPDATED', 'MESSAGES_UPDATE']) {
+  const cfg = { enabled: true, url, events };
+  if (env.evolutionWebhookSecret) cfg.headers = { 'x-webhook-secret': env.evolutionWebhookSecret };
+  return cfg;
+}
+
 /* ===== Instance (v2.3.7) ===== */
 
 export async function createInstance(instanceName) {
@@ -61,7 +67,7 @@ export async function createInstance(instanceName) {
     instanceName,
     qrcode: true,
     integration: 'WHATSAPP-BAILEYS',
-    webhook: { enabled: true, url: webhookUrl, events: ['MESSAGES_UPSERT', 'CONNECTION_UPDATE', 'QRCODE_UPDATED', 'MESSAGES_UPDATE'] },
+    webhook: webhookConfig(webhookUrl),
   });
 }
 
@@ -340,7 +346,7 @@ export async function leaveGroup(instanceName, groupJid) {
 
 export async function setWebhook(instanceName, webhookUrl, events = ['MESSAGES_UPSERT', 'CONNECTION_UPDATE', 'QRCODE_UPDATED', 'MESSAGES_UPDATE']) {
   return instanceRequest('POST', instanceName, `/webhook/set/${instanceName}`, {
-    webhook: { enabled: true, url: webhookUrl, events },
+    webhook: webhookConfig(webhookUrl, events),
   });
 }
 
