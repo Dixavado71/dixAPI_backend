@@ -1,5 +1,5 @@
 import prisma from '../../../infrastructure/database/prismaClient.js';
-import { ConflictError } from '../../../shared/errors/AppError.js';
+import { ConflictError, NotFoundError } from '../../../shared/errors/AppError.js';
 
 /* ===== Admin (master) ===== */
 
@@ -92,16 +92,17 @@ export function createAdminStore(data) {
       data: { user_id: user.id, company_id: company.id, role: 'admin', status: 'active', is_primary: true, joined_at: new Date() },
     });
     const plan = await tx.plan.findUnique({ where: { code: data.planCode ?? 'simple' } });
+    if (!plan) throw new NotFoundError('Plano não encontrado. Rode o seed para criar os planos.');
     const now = new Date();
     const end = new Date(now);
-    end.setDate(end.getDate() + (plan?.trial_days ?? 14));
+    end.setDate(end.getDate() + (plan.trial_days ?? 14));
     await tx.companySubscription.create({
       data: {
         company_id: company.id,
-        plan_id: plan?.id ?? null,
+        plan_id: plan.id,
         status: 'trialing',
         billing_cycle: 'monthly',
-        price: plan?.monthly_price ?? 0,
+        price: plan.monthly_price ?? 0,
         current_period_start: now,
         current_period_end: end,
         trial_ends_at: end,

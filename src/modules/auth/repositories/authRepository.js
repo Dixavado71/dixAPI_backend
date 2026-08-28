@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import prisma from '../../../infrastructure/database/prismaClient.js';
+import { NotFoundError } from '../../../shared/errors/AppError.js';
 
 export function hashRefreshToken(token) {
   return createHash('sha256').update(token).digest('hex');
@@ -134,14 +135,15 @@ export function createStoreWithSubscription(data) {
     });
 
     const plan = await tx.plan.findUnique({ where: { code: data.planCode ?? 'simple' } });
+    if (!plan) throw new NotFoundError('Plano não encontrado. Rode o seed para criar os planos.');
     const now = new Date();
     const periodEnd = new Date(now);
-    periodEnd.setDate(periodEnd.getDate() + (plan?.trial_days ?? 14));
+    periodEnd.setDate(periodEnd.getDate() + (plan.trial_days ?? 14));
 
     await tx.companySubscription.create({
       data: {
         company_id: company.id,
-        plan_id: plan?.id ?? null,
+        plan_id: plan.id,
         status: 'trialing',
         billing_cycle: 'monthly',
         price: plan?.monthly_price ?? 0,

@@ -1,4 +1,5 @@
 import prisma from '../../../infrastructure/database/prismaClient.js';
+import { NotFoundError } from '../../../shared/errors/AppError.js';
 
 export function findPlanByCode(code) {
   return prisma.plan.findUnique({ where: { code } });
@@ -21,7 +22,7 @@ export function findCompanyWithReseller(companyId) {
 export function subscribeAndBill(data) {
   return prisma.$transaction(async (tx) => {
     const plan = await tx.plan.findUnique({ where: { code: data.planCode } });
-    if (!plan) throw new Error('Plano não encontrado');
+    if (!plan) throw new NotFoundError('Plano não encontrado');
 
     const now = new Date();
     const periodEnd = new Date(now);
@@ -82,7 +83,7 @@ export function confirmPaymentAndActivate(data) {
     const transaction = await tx.platformTransaction.findFirst({
       where: { id: data.transactionId, company_id: data.companyId },
     });
-    if (!transaction) throw new Error('Transação não encontrada');
+    if (!transaction) throw new NotFoundError('Transação não encontrada');
     if (transaction.status === 'paid') return { transaction, subscription: await tx.companySubscription.findUnique({ where: { company_id: data.companyId } }), alreadyPaid: true };
 
     const now = new Date();

@@ -7,7 +7,7 @@ export const createStoreSchema = z.object({
   adminName: z.string().min(2, 'Nome do administrador deve ter pelo menos 2 caracteres.'),
   email: z.string().email('Digite um e-mail válido.'),
   phone: z.string().optional(),
-  password: z.string().min(8, 'A senha deve ter pelo menos 8 caracteres.'),
+  password: z.string().min(8, 'A senha deve ter pelo menos 8 caracteres.').regex(/[A-Z]/, 'Use ao menos uma letra maiúscula.').regex(/[a-z]/, 'Use ao menos uma letra minúscula.').regex(/\d/, 'Use ao menos um número.'),
   planCode: z.enum(['simple', 'silver', 'diamond']).optional(),
 }).strict();
 
