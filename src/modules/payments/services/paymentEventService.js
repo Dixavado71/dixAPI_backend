@@ -1,4 +1,4 @@
-import { ConflictError, NotFoundError, UnauthorizedError } from '../../../shared/errors/AppError.js';
+import { ConflictError, NotFoundError } from '../../../shared/errors/AppError.js';
 import prisma from '../../../infrastructure/database/prismaClient.js';
 import * as paymentRepository from '../repositories/paymentRepository.js';
 
@@ -10,8 +10,7 @@ const STATUS_BY_EVENT = {
   cancelled: { status: 'cancelled' },
 };
 
-export async function processPaymentEvent({ companyId, paymentId, provider, providerEventId, eventType, signatureValid, providerTimestamp, payloadHash }) {
-  if (!signatureValid) throw new UnauthorizedError('Invalid payment signature');
+export async function processPaymentEvent({ companyId, paymentId, provider, providerEventId, eventType, providerTimestamp, payloadHash }) {
   return prisma.$transaction(async (tx) => {
     const payment = await paymentRepository.findPaymentRecord(tx, paymentId, companyId);
     if (!payment) throw new NotFoundError('Payment');

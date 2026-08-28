@@ -10,15 +10,15 @@ vi.mock('../src/infrastructure/database/prismaClient.js', () => ({
   },
 }));
 
-const customerRepository = await import('../src/modules/customers/repositories/customerRepository.js');
+const customerService = await import('../src/modules/customers/services/customerService.js');
 const productRepository = await import('../src/modules/products/repositories/productRepository.js');
 const orderRepository = await import('../src/modules/orders/repositories/orderRepository.js');
 
 describe('tenant repository scope', () => {
   it('scopes customer lookup and listing by company', async () => {
-    await customerRepository.findCustomerById('company-a', 'customer-a');
+    await customerService.findCustomerById('company-a', 'customer-a');
     expect(findFirst).toHaveBeenCalledWith({ where: { id: 'customer-a', company_id: 'company-a' } });
-    await customerRepository.listCustomers('company-a');
+    await customerService.listCustomers('company-a');
     expect(findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { company_id: 'company-a' } }));
   });
 

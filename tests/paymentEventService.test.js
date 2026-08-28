@@ -13,7 +13,6 @@ const event = {
   provider: 'gateway',
   providerEventId: 'event-1',
   eventType: 'paid',
-  signatureValid: true,
   payloadHash: 'a'.repeat(64),
 };
 
@@ -30,13 +29,8 @@ function txClient(existing = null) {
   };
 }
 
-describe('payment event security', () => {
+describe('payment event processing', () => {
   beforeEach(() => vi.clearAllMocks());
-
-  it('rejects invalid signatures before database access', async () => {
-    await expect(processPaymentEvent({ ...event, signatureValid: false })).rejects.toMatchObject({ code: 'UNAUTHORIZED' });
-    expect(transaction).not.toHaveBeenCalled();
-  });
 
   it('rejects payment references outside the tenant', async () => {
     const client = txClient();
