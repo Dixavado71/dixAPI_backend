@@ -242,6 +242,9 @@ export const botConfigSchema = z.object({
   ownerPhone: z.string().max(20).nullable().optional(),
   kitchenPhone: z.string().max(20).nullable().optional(),
   flowPriority: z.array(z.enum(['vendas', 'suporte', 'marketing'])).optional(),
+  fallbackMessage: z.string().max(500).nullable().optional(),
+  transferMessage: z.string().max(500).nullable().optional(),
+  maxAttempts: z.number().int().min(1).max(10).optional(),
   templates: z.record(z.string(), z.object({
     to: z.string().optional(),
     message: z.string().optional(),

@@ -459,7 +459,8 @@ async function executeStep({ companyId, number, from, replyTo, text, contact, fl
 
   if (step.type === 'action') {
     if (step.action === 'transfer_to_human') {
-      await sendFlowMessage(number, target, step.content || 'Um atendente vai te responder em instantes. Por favor, aguarde.');
+      const bc = (await whatsappRepo.getBotConfig(companyId).catch(() => ({}))) ?? {};
+      await sendFlowMessage(number, target, step.content || bc.transferMessage || 'Um atendente vai te responder em instantes. Por favor, aguarde.');
       clear = true;
       const conv = await conversationRepo.findConversationByContact(companyId, 'whatsapp', from);
       if (conv) await conversationRepo.updateConversation(conv.id, { status: 'waiting' }).catch(() => null);
@@ -537,9 +538,9 @@ export async function processIncomingMessage({ companyId, number, from, text, co
       flow = persistedFlow;
     }
   }
+  const botCfg = (await whatsappRepo.getBotConfig(companyId).catch(() => ({}))) ?? {};
   if (!flow) {
-    const botConfig = (await whatsappRepo.getBotConfig(companyId).catch(() => ({}))) ?? {};
-    const priority = Array.isArray(botConfig.flowPriority) && botConfig.flowPriority.length > 0 ? botConfig.flowPriority : null;
+    const priority = Array.isArray(botCfg.flowPriority) && botCfg.flowPriority.length > 0 ? botCfg.flowPriority : null;
     flow = await resolveFlow(companyId, number, group, text, priority ?? ['vendas', 'suporte', 'marketing']);
   }
 
@@ -591,8 +592,11 @@ export async function processIncomingMessage({ companyId, number, from, text, co
         const attempts = ((currentState.vars?.questionAttempts) ?? 0) + 1;
         currentState.vars = { ...(currentState.vars ?? {}), questionAttempts: attempts };
         const replyTo = group?.remoteJid ?? from;
-        if (attempts >= 3) {
-          await sendFlowMessage(number, replyTo, 'Não consegui entender. Vou transferir para um atendente.');
+        const maxAttempts = botCfg?.maxAttempts ?? 3;
+        const transferMsg = botCfg?.transferMessage || 'Não consegui entender. Vou transferir para um atendente.';
+        const fallbackMsg = botCfg?.fallbackMessage || 'Desculpe, não entendi. Escolha uma das opções abaixo:';
+        if (attempts >= maxAttempts) {
+          await sendFlowMessage(number, replyTo, transferMsg);
           if (resolvedContact?.id) await updateContactFlowState(companyId, resolvedContact.id, { flowId: null, flowStep: null, vars: currentState.vars ?? {} });
           await chatbotCache.clearFlowState(companyId, from);
           const { notifyAttendants } = await import('../../notifications/services/notificationService.js');
@@ -600,7 +604,7 @@ export async function processIncomingMessage({ companyId, number, from, text, co
           return { flowId: flow.id, stepId: currentStep.id, nextStepId: null, cacheRead, cleared: true };
         }
         nextStep = currentStep;
-        await sendFlowMessage(number, replyTo, 'Desculpe, não entendi. Escolha uma das opções abaixo:');
+        await sendFlowMessage(number, replyTo, fallbackMsg);
       }
     } else {
       nextStep = steps.find((s) => s.id === currentStep.next) ?? null;
