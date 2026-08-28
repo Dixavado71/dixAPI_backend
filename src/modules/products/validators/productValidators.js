@@ -6,6 +6,8 @@ export const categoryEnumSchema = z.enum([
 
 export const productParamsSchema = z.object({ id: z.string().uuid() }).strict();
 
+export const productStatusSchema = z.enum(['active', 'inactive', 'low_stock']);
+
 export const productSchema = z.object({
   name: z.string().min(2, 'Nome é obrigatório').max(120),
   description: z.string().max(500).optional(),
@@ -15,6 +17,7 @@ export const productSchema = z.object({
   stock: z.number().int().nonnegative('Stock deve ser ≥ 0'),
   min_stock: z.number().int().nonnegative('Min. stock deve ser ≥ 0'),
   image_url: z.string().url('URL inválida').optional(),
+  status: productStatusSchema.optional(),
 }).strict();
 
 export const productUpdateSchema = productSchema.partial();
