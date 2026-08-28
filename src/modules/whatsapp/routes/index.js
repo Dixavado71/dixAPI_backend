@@ -120,4 +120,22 @@ router.get('/numbers/:id/stories', authorize('admin', 'manager', 'operator'), wh
 router.get('/numbers/:id/stories/:statusId', authorize('admin', 'manager', 'operator'), whatsappController.getStoryById);
 router.post('/numbers/:id/stories/reaction', authorize('admin', 'manager', 'operator'), whatsappController.reactStory);
 
+// Capabilities EvolutionAPI (novos endpoints)
+router.post('/numbers/:id/block', authorize('admin', 'manager'), whatsappController.blockContact);
+router.post('/numbers/:id/pairing-code', authorize('admin', 'manager'), whatsappController.requestPairingCode);
+router.get('/numbers/:id/groups/:groupId/participants', authorize('admin', 'manager', 'operator'), whatsappController.getGroupParticipants);
+router.post('/numbers/:id/send-template', authorize('admin', 'manager', 'operator'), whatsappController.sendTemplate);
+router.post('/numbers/:id/send-ptv', authorize('admin', 'manager', 'operator'), whatsappController.sendPtv);
+router.post('/numbers/:id/groups/:groupId/ephemeral', authorize('admin', 'manager'), whatsappController.toggleEphemeral);
+router.post('/numbers/:id/send-bulk', authorize('admin', 'manager'), whatsappController.sendBulk);
+router.post('/numbers/:id/send-base64', authorize('admin', 'manager', 'operator'), whatsappController.sendBase64);
+router.post('/numbers/:id/group-invite-info', authorize('admin', 'manager', 'operator'), whatsappController.getGroupInviteInfo);
+router.post('/numbers/:id/groups/:groupId/send-invite', authorize('admin', 'manager'), whatsappController.sendGroupInvite);
+router.post('/numbers/:id/contacts/find', authorize('admin', 'manager', 'operator'), whatsappController.findContacts);
+router.delete('/numbers/:id/profile-picture', authorize('admin', 'manager'), whatsappController.removeProfilePicture);
+router.post('/numbers/:id/business-profile', authorize('admin', 'manager', 'operator'), whatsappController.fetchBusinessProfile);
+router.post('/numbers/:id/change-number', authorize('admin', 'manager'), whatsappController.changeNumber);
+router.post('/numbers/:id/send-link-preview', authorize('admin', 'manager', 'operator'), whatsappController.sendLinkPreview);
+router.post('/numbers/:id/typewriter', authorize('admin', 'manager', 'operator'), whatsappController.typewriter);
+
 export default router;

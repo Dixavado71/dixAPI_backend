@@ -9,6 +9,9 @@ import {
   editMessageSchema, deleteMessageSchema, sendContactSchema, profilePictureSchema, profileNameSchema,
   botConfigSchema, updateProfileStatusSchema, catalogQuerySchema,
   linkGroupSchema, updateLinkedGroupSchema, syncLinkedGroupsSchema, messageLogsQuerySchema,
+  blockContactSchema, sendTemplateSchema, sendPtvSchema, ephemeralSchema,
+  groupInviteInfoSchema, sendGroupInviteSchema, findContactsSchema, fetchBusinessProfileSchema,
+  requestPairingSchema, changeNumberSchema, linkPreviewSchema, typewriterSchema, sendBase64Schema, sendBulkSchema,
 } from '../validators/whatsappValidators.js';
 import { successResponse, createdResponse } from '../../../shared/utils/response.js';
 
@@ -371,6 +374,88 @@ export async function webhook(req, res, next) {
   catch (error) { return next(error); }
 }
 
+/* ===== Capabilities EvolutionAPI (novos endpoints) ===== */
+
+export async function blockContact(req, res, next) {
+  try { const data = blockContactSchema.parse(req.body); const result = await whatsappService.blockContact(req.tenant.companyId, req.params.id, data); return successResponse(res, result); }
+  catch (error) { return next(error); }
+}
+
+export async function requestPairingCode(req, res, next) {
+  try { const data = requestPairingSchema.parse(req.body); const result = await whatsappService.requestPairingCode(req.tenant.companyId, req.params.id, data); return successResponse(res, result); }
+  catch (error) { return next(error); }
+}
+
+export async function getGroupParticipants(req, res, next) {
+  try { const result = await whatsappService.listGroupParticipants(req.tenant.companyId, req.params.id, req.params.groupId); return successResponse(res, result); }
+  catch (error) { return next(error); }
+}
+
+export async function sendTemplate(req, res, next) {
+  try { const data = sendTemplateSchema.parse(req.body); const result = await whatsappService.sendTemplateMessage(req.tenant.companyId, req.params.id, data); return createdResponse(res, result); }
+  catch (error) { return next(error); }
+}
+
+export async function sendPtv(req, res, next) {
+  try { const data = sendPtvSchema.parse(req.body); const result = await whatsappService.sendPtvMessage(req.tenant.companyId, req.params.id, data); return createdResponse(res, result); }
+  catch (error) { return next(error); }
+}
+
+export async function toggleEphemeral(req, res, next) {
+  try { const data = ephemeralSchema.parse(req.body); const result = await whatsappService.toggleEphemeralMessage(req.tenant.companyId, req.params.id, data); return successResponse(res, result); }
+  catch (error) { return next(error); }
+}
+
+export async function sendBulk(req, res, next) {
+  try { const data = sendBulkSchema.parse(req.body); const result = await whatsappService.sendBulkMessages(req.tenant.companyId, req.params.id, data); return createdResponse(res, result); }
+  catch (error) { return next(error); }
+}
+
+export async function sendBase64(req, res, next) {
+  try { const data = sendBase64Schema.parse(req.body); const result = await whatsappService.sendBase64Message(req.tenant.companyId, req.params.id, data); return createdResponse(res, result); }
+  catch (error) { return next(error); }
+}
+
+export async function getGroupInviteInfo(req, res, next) {
+  try { const data = groupInviteInfoSchema.parse(req.body); const result = await whatsappService.groupInviteInfo(req.tenant.companyId, req.params.id, data); return successResponse(res, result); }
+  catch (error) { return next(error); }
+}
+
+export async function sendGroupInvite(req, res, next) {
+  try { const data = sendGroupInviteSchema.parse(req.body); const result = await whatsappService.sendGroupInvite(req.tenant.companyId, req.params.id, data); return createdResponse(res, result); }
+  catch (error) { return next(error); }
+}
+
+export async function findContacts(req, res, next) {
+  try { const data = findContactsSchema.parse(req.body); const result = await whatsappService.findContacts(req.tenant.companyId, req.params.id, data); return successResponse(res, result); }
+  catch (error) { return next(error); }
+}
+
+export async function removeProfilePicture(req, res, next) {
+  try { const result = await whatsappService.removeProfilePicture(req.tenant.companyId, req.params.id); return successResponse(res, result); }
+  catch (error) { return next(error); }
+}
+
+export async function fetchBusinessProfile(req, res, next) {
+  try { const data = fetchBusinessProfileSchema.parse(req.body); const result = await whatsappService.fetchBusinessProfile(req.tenant.companyId, req.params.id, data); return successResponse(res, result); }
+  catch (error) { return next(error); }
+}
+
+export async function changeNumber(req, res, next) {
+  try { const data = changeNumberSchema.parse(req.body); const result = await whatsappService.changeNumber(req.tenant.companyId, req.params.id, data); return successResponse(res, result); }
+  catch (error) { return next(error); }
+}
+
+export async function sendLinkPreview(req, res, next) {
+  try { const data = linkPreviewSchema.parse(req.body); const result = await whatsappService.sendLinkPreview(req.tenant.companyId, req.params.id, data); return createdResponse(res, result); }
+  catch (error) { return next(error); }
+}
+
+export async function typewriter(req, res, next) {
+  try { const data = typewriterSchema.parse(req.body); const result = await whatsappService.typewriterEffect(req.tenant.companyId, req.params.id, data); return createdResponse(res, result); }
+  catch (error) { return next(error); }
+}
+
 export default {
   listNumbers, connectNumber, getQrCode, getStatus, disconnectNumber, deleteNumber,
   sendMessage, sendMedia, sendAudio, sendDocument, sendVideo, sendSticker,
@@ -385,4 +470,7 @@ export default {
   getProfilePicture, getProfileName, updateProfileStatus, getBotConfig, updateBotConfig, getCatalog, getNotificationLogs,
   getLinkedGroups, createLinkedGroup, updateLinkedGroup, removeLinkedGroup, syncLinkedGroups, getMessageLogs,
   updateProfile, updatePicture, restartNumber, logoutNumber, getWebhook, setupWebhook, webhook,
+  blockContact, requestPairingCode, getGroupParticipants, sendTemplate, sendPtv, toggleEphemeral,
+  sendBulk, sendBase64, getGroupInviteInfo, sendGroupInvite, findContacts, removeProfilePicture,
+  fetchBusinessProfile, changeNumber, sendLinkPreview, typewriter,
 };

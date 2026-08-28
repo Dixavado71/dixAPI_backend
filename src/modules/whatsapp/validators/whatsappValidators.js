@@ -287,6 +287,50 @@ export const messageLogsQuerySchema = z.object({
   status: z.string().max(20).optional(),
 }).strict();
 
+export const blockContactSchema = z.object({
+  number: z.string().min(1),
+  action: z.enum(['block', 'unblock']),
+}).strict();
+
+export const sendTemplateSchema = z.object({
+  number: z.string().min(1),
+  template: z.record(z.unknown()),
+}).strict();
+
+export const sendPtvSchema = z.object({
+  number: z.string().min(1),
+  videoUrl: z.string().url('URL do vídeo inválida.'),
+  caption: z.string().max(1024).optional(),
+}).strict();
+
+export const ephemeralSchema = z.object({
+  groupJid: z.string().min(1),
+  expiration: z.number().int().min(0).max(86400),
+}).strict();
+
+export const groupInviteInfoSchema = z.object({
+  inviteCode: z.string().min(1).max(255),
+}).strict();
+
+export const sendGroupInviteSchema = z.object({
+  groupJid: z.string().min(1),
+  numbers: z.array(z.string().min(1)).min(1).max(100),
+  description: z.string().max(1024).optional(),
+}).strict();
+
+export const findContactsSchema = z.object({
+  where: z.record(z.unknown()).optional(),
+}).strict();
+
+export const fetchBusinessProfileSchema = z.object({
+  number: z.string().min(1),
+}).strict();
+
+export const typewriterActionSchema = z.object({
+  number: z.string().min(1),
+  text: z.string().min(1).max(4096),
+}).strict();
+
 export default {
   connectNumberSchema,
   sendMessageSchema,
@@ -329,4 +373,13 @@ export default {
   updateLinkedGroupSchema,
   syncLinkedGroupsSchema,
   messageLogsQuerySchema,
+  blockContactSchema,
+  sendTemplateSchema,
+  sendPtvSchema,
+  ephemeralSchema,
+  groupInviteInfoSchema,
+  sendGroupInviteSchema,
+  findContactsSchema,
+  fetchBusinessProfileSchema,
+  typewriterActionSchema,
 };

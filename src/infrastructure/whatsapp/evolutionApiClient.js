@@ -99,6 +99,32 @@ export async function setPresence(instanceName, presence = 'available') {
   return instanceRequest('POST', instanceName, `/instance/setPresence/${instanceName}`, { presence });
 }
 
+export async function requestPairing(instanceName, phone) {
+  return instanceRequest('POST', instanceName, `/instance/requestCode/${instanceName}`, { phone });
+}
+
+export async function changeNumber(instanceName, number) {
+  return instanceRequest('POST', instanceName, `/chat/changeNumber/${instanceName}`, { number });
+}
+
+export async function sendLinkPreview(instanceName, data) {
+  return instanceRequest('POST', instanceName, `/chat/sendLinkPreview/${instanceName}`, data);
+}
+
+export async function typewriter(instanceName, data) {
+  return instanceRequest('POST', instanceName, `/chat/typewriter/${instanceName}`, data);
+}
+
+export async function sendBulk(instanceName, messages) {
+  return instanceRequest('POST', instanceName, `/chat/sendBulk/${instanceName}`, { messages });
+}
+
+export async function sendBase64(instanceName, number, mediaType, base64, fileName) {
+  return instanceRequest('POST', instanceName, `/message/sendMedia/${instanceName}`, {
+    number, mediatype: mediaType || 'image', media: base64, fileName, delay: 800,
+  });
+}
+
 /* ===== Message (v2.3.7) ===== */
 
 export async function sendText(instanceName, number, text, delay = 1000) {
@@ -363,6 +389,12 @@ export default {
   logoutInstance,
   restartInstance,
   setPresence,
+  requestPairing,
+  changeNumber,
+  sendLinkPreview,
+  typewriter,
+  sendBulk,
+  sendBase64,
   downloadMedia,
   sendText,
   sendMedia,

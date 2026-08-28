@@ -973,12 +973,12 @@ async function isContactAllowed(companyId, phone) {
 
 async function isContactSaved(companyId, numberId, phone) {
   const contact = await whatsappRepo.findContactByPhone(companyId, numberId, phone);
-  return contact?.isSaved === true;
+  return !!contact;
 }
 
-export async function shouldBotRespond(companyId, numberId, phone) {
-  const config = (await whatsappRepo.getBotConfig(companyId)) ?? {};
-  const mode = config.mode ?? 'public';
+export async function shouldBotRespond(companyId, numberId, phone, config = null) {
+  const cfg = config ?? (await whatsappRepo.getBotConfig(companyId)) ?? {};
+  const mode = cfg.mode ?? 'public';
   if (mode === 'public') return { allowed: true, reason: 'public' };
   if (mode === 'customers_only') {
     const allowed = await isContactAllowed(companyId, phone);
@@ -1063,7 +1063,7 @@ export async function handleWebhook(instanceName, payload) {
 
     const phoneNumber = String(remoteJid).replace('@c.us', '').replace('@s.whatsapp.net', '');
     const externalId = data.key.id;
-    const messageContent = data.message?.conversation || data.message?.extendedTextMessage?.text || '';
+    const messageContent = extractMessageText(data.message) || '';
     const messageType = data.messageType === 'conversation' ? 'text' : data.messageType;
 
     const existing = await whatsappRepo.findMessageByExternalId(number.id, externalId);
@@ -1191,6 +1191,99 @@ async function handleGroupMessage({ number, data }) {
   }
 }
 
+/* ===== Capabilities EvolutionAPI (novos endpoints) ===== */
+
+export async function blockContact(companyId, numberId, data) {
+  const number = await requireNumber(companyId, numberId);
+  return evolutionApi.updateBlockStatus(number.external_account_id, String(data.number).replace(/\D/g, ''), data.action);
+}
+
+export async function requestPairingCode(companyId, numberId, data) {
+  const number = await requireNumber(companyId, numberId);
+  return evolutionApi.requestPairing(number.external_account_id, String(data.phone).replace(/\D/g, ''));
+}
+
+export async function listGroupParticipants(companyId, numberId, groupId) {
+  const number = await requireNumber(companyId, numberId);
+  return evolutionApi.groupParticipants(number.external_account_id, groupId);
+}
+
+export async function sendTemplateMessage(companyId, numberId, data) {
+  const number = await requireNumber(companyId, numberId);
+  return evolutionApi.sendTemplate(number.external_account_id, String(data.number).replace(/\D/g, ''), data.template);
+}
+
+export async function sendPtvMessage(companyId, numberId, data) {
+  const number = await requireNumber(companyId, numberId);
+  return evolutionApi.sendPtv(number.external_account_id, String(data.number).replace(/\D/g, ''), data.videoUrl, data.caption ?? null, 800);
+}
+
+export async function toggleEphemeralMessage(companyId, numberId, data) {
+  const number = await requireNumber(companyId, numberId);
+  return evolutionApi.toggleEphemeral(number.external_account_id, data.groupJid, data.expiration);
+}
+
+export async function sendBulkMessages(companyId, numberId, data) {
+  const number = await requireNumber(companyId, numberId);
+  const messages = (data.messages ?? []).map((m) => ({
+    number: String(m.number).replace(/\D/g, ''),
+    text: m.text,
+    delay: m.delay ?? 1000,
+  }));
+  const results = [];
+  for (const m of messages) {
+    await evolutionApi.sendText(number.external_account_id, m.number, m.text, m.delay).catch((e) => results.push({ number: m.number, ok: false, error: e.message }));
+    results.push({ number: m.number, ok: true });
+  }
+  return { sent: results.length, results };
+}
+
+export async function sendBase64Message(companyId, numberId, data) {
+  const number = await requireNumber(companyId, numberId);
+  return evolutionApi.sendBase64(number.external_account_id, String(data.number).replace(/\D/g, ''), data.mediaType, data.base64, data.fileName ?? null);
+}
+
+export async function groupInviteInfo(companyId, numberId, data) {
+  const number = await requireNumber(companyId, numberId);
+  return evolutionApi.groupInviteInfo(number.external_account_id, data.inviteCode);
+}
+
+export async function sendGroupInvite(companyId, numberId, data) {
+  const number = await requireNumber(companyId, numberId);
+  const numbers = (data.numbers ?? []).map((n) => String(n).replace(/\D/g, ''));
+  return evolutionApi.sendGroupInvite(number.external_account_id, data.groupJid, numbers, data.description ?? null);
+}
+
+export async function findContacts(companyId, numberId, data) {
+  const number = await requireNumber(companyId, numberId);
+  return evolutionApi.findContacts(number.external_account_id, data.where ?? {});
+}
+
+export async function removeProfilePicture(companyId, numberId) {
+  const number = await requireNumber(companyId, numberId);
+  return evolutionApi.removeProfilePicture(number.external_account_id);
+}
+
+export async function fetchBusinessProfile(companyId, numberId, data) {
+  const number = await requireNumber(companyId, numberId);
+  return evolutionApi.fetchBusinessProfile(number.external_account_id, String(data.number).replace(/\D/g, ''));
+}
+
+export async function changeNumber(companyId, numberId, data) {
+  const number = await requireNumber(companyId, numberId);
+  return evolutionApi.changeNumber(number.external_account_id, String(data.number).replace(/\D/g, ''));
+}
+
+export async function sendLinkPreview(companyId, numberId, data) {
+  const number = await requireNumber(companyId, numberId);
+  return evolutionApi.sendLinkPreview(number.external_account_id, { ...data, number: String(data.number).replace(/\D/g, '') });
+}
+
+export async function typewriterEffect(companyId, numberId, data) {
+  const number = await requireNumber(companyId, numberId);
+  return evolutionApi.typewriter(number.external_account_id, { ...data, number: String(data.number).replace(/\D/g, '') });
+}
+
 export default {
   listNumbers,
   connectNumber,
@@ -1267,4 +1360,20 @@ export default {
   getCatalog,
   shouldBotRespond,
   handleWebhook,
+  blockContact,
+  requestPairingCode,
+  listGroupParticipants,
+  sendTemplateMessage,
+  sendPtvMessage,
+  toggleEphemeralMessage,
+  sendBulkMessages,
+  sendBase64Message,
+  groupInviteInfo,
+  sendGroupInvite,
+  findContacts,
+  removeProfilePicture,
+  fetchBusinessProfile,
+  changeNumber,
+  sendLinkPreview,
+  typewriterEffect,
 };
