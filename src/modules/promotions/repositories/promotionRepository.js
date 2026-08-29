@@ -39,10 +39,28 @@ export async function createCoupon(companyId, data) {
 }
 
 export function getCustomization(companyId) { return prisma.companyCustomization.findUnique({ where: { company_id: companyId } }); }
+
+function customizationData(data) {
+  return {
+    ...(data.brandName !== undefined ? { brand_name: data.brandName } : {}),
+    ...(data.primaryColor !== undefined ? { primary_color: data.primaryColor } : {}),
+    ...(data.secondaryColor !== undefined ? { secondary_color: data.secondaryColor } : {}),
+    ...(data.logoUrl !== undefined ? { logo_url: data.logoUrl } : {}),
+    ...(data.bannerUrl !== undefined ? { banner_url: data.bannerUrl } : {}),
+    ...(data.faviconUrl !== undefined ? { favicon_url: data.faviconUrl } : {}),
+    ...(data.websiteSlug !== undefined ? { website_slug: data.websiteSlug } : {}),
+    ...(data.whatsappGreeting !== undefined ? { whatsapp_greeting: data.whatsappGreeting } : {}),
+    ...(data.whatsappFallback !== undefined ? { whatsapp_fallback: data.whatsappFallback } : {}),
+    ...(data.storefrontConfig !== undefined ? { storefront_config: data.storefrontConfig } : {}),
+    ...(data.botConfig !== undefined ? { bot_config: data.botConfig } : {}),
+  };
+}
+
 export function upsertCustomization(companyId, data) {
+  const payload = customizationData(data);
   return prisma.companyCustomization.upsert({
     where: { company_id: companyId },
-    create: { company_id: companyId, ...data },
-    update: data,
+    create: { company_id: companyId, ...payload },
+    update: payload,
   });
 }
