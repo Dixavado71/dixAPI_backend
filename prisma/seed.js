@@ -289,7 +289,7 @@ async function main() {
     is_active: false,
     config_json: {
       steps: [
-        { id: 'inicio', type: 'message', content: '\u{1F69B} *Bem vindo a Marcenaria do Kelvin!* \u{1F3E0}\n\nAqui você encontra móveis planejados, sob medida e com qualidade de artesão.\n\n\u{1F4E6} Digite *Catalogo* para ver nossos produtos\n\u{1F4CB} Digite o *protocolo* para retomar um atendimento anterior\n\u{1F3ED} Digite *Orçamento* para solicitar um móvel sob medida\n\u{1F9D1}\u200D\u{1F9F0} Digite *Atendente* para falar com um atendente humano', next: 'gerarProtocolo' },
+        { id: 'inicio', type: 'message', content: '\u{1FA9A} *Bem vindo a Marcenaria do Kelvin!* \u{1F3E0}\n\nAqui você encontra móveis planejados, sob medida e com qualidade de artesão.\n\n\u{1F4E6} Digite *Catalogo* para ver nossos produtos\n\u{1F4CB} Digite o *protocolo* para retomar um atendimento anterior\n\u{1F3ED} Digite *Orçamento* para solicitar um móvel sob medida\n\u{1F9D1}\u200D\u{1F9F0} Digite *Atendente* para falar com um atendente humano', next: 'gerarProtocolo' },
         { id: 'gerarProtocolo', type: 'action', action: 'start_atendimento', content: '\u{1F4CB} Seu protocolo de atendimento: *{protocol}*\nGuarde para retomar depois!', next: 'menuPrincipal' },
         { id: 'menuPrincipal', type: 'question', content: '\u{1F4CB} *O que você deseja fazer?*', options: [
           { label: '\u{1F4E6} Ver catálogo', value: 'catalogo', next: 'catalogoInicio' },
@@ -310,10 +310,10 @@ async function main() {
         { id: 'carrinho', type: 'action', action: 'cart_summary', next: 'finalizar', next_nao: 'menuPrincipal' },
         { id: 'finalizar', type: 'action', action: 'cart_checkout', paymentMethod: 'pix' },
         { id: 'orcamentoInicio', type: 'message', content: '\u{1F3ED} *Vou te ajudar com o orçamento!*\n\nPrimeiro, *qual móvel você deseja?* Escolha uma opção abaixo ou digite "Outro" para informar manualmente.', next: 'orcamentoMoveis' },
-        { id: 'orcamentoMoveis', type: 'question', content: '\u{1F4FA} *Qual móvel você deseja?*', options: [
+        { id: 'orcamentoMoveis', type: 'question', content: '\u{1F6CB}\uFE0F *Qual móvel você deseja?*', options: [
           { label: '\u{1F37D} Mesa', value: 'mesa', next: 'orcamentoMedidas' },
           { label: '\u{1FA91} Cadeira', value: 'cadeira', next: 'orcamentoMedidas' },
-          { label: '\u{1F4E1} Armário', value: 'armario', next: 'orcamentoMedidas' },
+          { label: '\u{1F5C4}\uFE0F Armário', value: 'armario', next: 'orcamentoMedidas' },
           { label: '\u{1F4DA} Estante', value: 'estante', next: 'orcamentoMedidas' },
           { label: '\u{2795} Outro', value: 'outro', next: 'orcamentoOutro' },
         ] },
