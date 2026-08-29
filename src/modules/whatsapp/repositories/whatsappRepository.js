@@ -113,6 +113,10 @@ export function findProductByCompany(companyId, id) {
   return prisma.product.findFirst({ where: { id, company_id: companyId } });
 }
 
+export function findProductByName(companyId, name) {
+  return prisma.product.findFirst({ where: { company_id: companyId, name } });
+}
+
 export function getCompanyCustomization(companyId) {
   return prisma.companyCustomization.findUnique({ where: { company_id: companyId } });
 }

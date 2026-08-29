@@ -122,6 +122,26 @@ async function main() {
   await seedCompanyData(companyOne, products.slice(0, 2), [{ name: 'Mariana Costa', email: 'mariana@example.local', phone: '11991112222', segment: CustomerSegment.vip, status: CustomerStatus.active }, { name: 'Rafael Almeida', email: 'rafael@example.local', phone: '11992223333', segment: CustomerSegment.frequent, status: CustomerStatus.active }], [{ name: 'Carlos Entregas', phone: '11993334444', vehicle_type: VehicleType.motorcycle, vehicle_plate: 'ABC1D23', status: DriverStatus.available, provider_type: DeliveryProviderType.own }]);
   await seedCompanyData(companyTwo, products.slice(2), [{ name: 'Camila Nunes', email: 'camila@example.local', phone: '21994445555', segment: CustomerSegment.new, status: CustomerStatus.active }, { name: 'João Victor', email: 'joao@example.local', phone: '21995556666', segment: CustomerSegment.occasional, status: CustomerStatus.active }], [{ name: 'Fernanda Rotas', phone: '21996667777', vehicle_type: VehicleType.car, vehicle_plate: 'XYZ4E56', status: DriverStatus.available, provider_type: DeliveryProviderType.own }]);
 
+  // Marcenaria do Kelvin — produtos de marcenaria para a loja Aurora (companyOne)
+  const marcenariaProducts = [
+    { name: 'Mesa de Madeira Maciça', description: 'Mesa retangular em madeira maciça de eucalipto, acabamento natural. Comporta 6 lugares.', category: 'mesas', price: 890, cost: 420, stock: 10, min_stock: 2, status: ProductStatus.active, estimated_production_days: 4 },
+    { name: 'Mesa de Centro', description: 'Mesa de centro em MDF com tampo de vidro e acabamento em laca branca.', category: 'mesas', price: 450, cost: 210, stock: 15, min_stock: 3, status: ProductStatus.active, estimated_production_days: 3 },
+    { name: 'Cadeira Rústica', description: 'Cadeira em madeira maciça com assento trançado em palha natural.', category: 'cadeiras', price: 180, cost: 85, stock: 30, min_stock: 5, status: ProductStatus.active, estimated_production_days: 2 },
+    { name: 'Cadeira Estofada', description: 'Cadeira com estrutura em compensado, estofamento em espuma D33 e revestimento em sarja.', category: 'cadeiras', price: 320, cost: 150, stock: 20, min_stock: 4, status: ProductStatus.active, estimated_production_days: 3 },
+    { name: 'Armário Planejado 3 Portas', description: 'Armário em MDF com 3 portas, prateleiras ajustáveis e pintura em laca na cor branca.', category: 'armarios', price: 1890, cost: 850, stock: 5, min_stock: 1, status: ProductStatus.active, estimated_production_days: 7 },
+    { name: 'Armário de Cozinha Aéreo', description: 'Armário aéreo para cozinha em MDF com portas de correr, 1,20m de largura.', category: 'armarios', price: 980, cost: 460, stock: 8, min_stock: 2, status: ProductStatus.active, estimated_production_days: 5 },
+    { name: 'Estante Modular', description: 'Estante modular em compensado naval com 5 prateleiras ajustáveis, acabamento em verniz.', category: 'estantes', price: 680, cost: 320, stock: 12, min_stock: 3, status: ProductStatus.active, estimated_production_days: 4 },
+    { name: 'Estante Cantinho', description: 'Estante pequena para canto em MDF, 3 prateleiras, ideal para salas compactas.', category: 'estantes', price: 390, cost: 180, stock: 15, min_stock: 3, status: ProductStatus.active, estimated_production_days: 2 },
+    { name: 'Banco de Madeira', description: 'Banco em madeira maciça com 1,20m de comprimento, ideal para varandas e jardins.', category: 'bancos', price: 250, cost: 120, stock: 20, min_stock: 4, status: ProductStatus.active, estimated_production_days: 2 },
+    { name: 'Rack para TV', description: 'Rack para TV em MDF com 2 portas e 3 nichos, suporta TVs até 65 polegadas.', category: 'racks', price: 520, cost: 250, stock: 10, min_stock: 2, status: ProductStatus.active, estimated_production_days: 3 },
+    { name: 'Criado Mudo', description: 'Criado mudo em MDF com gaveta e nicho, acabamento em laca na cor escolhida.', category: 'criados', price: 320, cost: 150, stock: 18, min_stock: 3, status: ProductStatus.active, estimated_production_days: 2 },
+    { name: 'Escrivaninha', description: 'Escrivaninha em MDF com tampo de 1,00m, 3 gavetas e passagem para cabos.', category: 'escrivaninhas', price: 480, cost: 230, stock: 10, min_stock: 2, status: ProductStatus.active, estimated_production_days: 3 },
+    { name: 'Móvel Sob Medida', description: 'Produto base para orçamentos personalizados de móveis sob medida. Preço definido pelo atendente.', category: 'sob-medida', price: 0, cost: 0, stock: 999, min_stock: 0, status: ProductStatus.inactive, estimated_production_days: 3 },
+  ];
+  for (const prod of marcenariaProducts) {
+    await upsertProduct(companyOne.id, prod);
+  }
+
   // Demo reseller + affiliate code
   const resellerEmail = 'reseller@demo.local';
   const resellerUser = await upsertUser({ companyId: companyOne.id, email: resellerEmail, name: 'Revenda Demo', role: UserRole.reseller, password: passwordFromEnv('SEED_RESELLER_PASSWORD', 'Reseller@12345'), phone: '11990000005' });

@@ -798,7 +798,7 @@ async function executeStep({ companyId, number, from, replyTo, text, contact, fl
       } catch (err) {
         logger.error({ err: err.message, companyId, from }, 'start_atendimento: erro ao salvar protocolo');
       }
-      await sendFlowMessage(number, target, step.content || `Seu protocolo de atendimento: *${protocol}*. Guarde para retomar depois.`);
+      await sendFlowMessage(number, target, fillTemplate(step.content || `Seu protocolo de atendimento: *${protocol}*. Guarde para retomar depois.`, { ...context, ...vars, protocol }));
       nextStep = step.next ?? null;
     } else if (step.action === 'resume_by_protocol') {
       const protocolInput = String(vars?.protocolo_input || text || '').trim().toUpperCase();
@@ -838,8 +838,8 @@ async function executeStep({ companyId, number, from, replyTo, text, contact, fl
       vars.customerId = customer.id;
       let product = await whatsappRepo.findProductByCompany(companyId, step.productId).catch(() => null);
       if (!product) {
-        const [existing] = await whatsappRepo.listActiveProducts(companyId, 1);
-        product = existing ?? null;
+        product = await whatsappRepo.findProductByName(companyId, 'Móvel Sob Medida').catch(() => null)
+          ?? (await whatsappRepo.listActiveProducts(companyId, 1))[0] ?? null;
       }
       const qty = Number(vars?.orcamento_quantidade) || 1;
       const items = product ? [{ productId: product.id, quantity: qty }] : [];
