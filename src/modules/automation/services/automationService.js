@@ -372,7 +372,7 @@ async function resolveProductStep(companyId, step, vars) {
 }
 
 function formatCartSummary(cart) {
-  if (!Array.isArray(cart) || cart.length === 0) return 'Seu carrinho esta vazio.';
+  if (!Array.isArray(cart) || cart.length === 0) return '\u{1F6AB} *Seu carrinho esta vazio!*\n\nAdicione produtos pelo catalogo ou solicite um orcamento.';
   const lines = cart.map((i) => {
     const lineTotal = (Number(i.price) * i.quantity).toFixed(2).replace('.', ',');
     return `\u2022 ${i.quantity}x *${i.name}* \u2014 R$ ${lineTotal}`;
@@ -635,7 +635,7 @@ async function executeStep({ companyId, number, from, replyTo, text, contact, fl
     const product = await resolveProductStep(companyId, step, vars);
     if (!product) {
       if (step.productSource === 'catalog') {
-        await sendFlowMessage(number, target, 'Voce ja viu todos os produtos do catalogo.');
+        await sendFlowMessage(number, target, '\u{1F4E6} *Catalogo finalizado!*\n\nVoce ja viu todos os produtos disponiveis no momento.');
         nextStep = step.next_empty ?? step.next_nao ?? step.next ?? null;
       } else {
         await sendFlowMessage(number, target, 'Produto indispon\u00edvel no momento.');
@@ -724,7 +724,7 @@ async function executeStep({ companyId, number, from, replyTo, text, contact, fl
     } else if (step.action === 'cart_summary') {
       const cart = vars?.cart ?? [];
       if (cart.length === 0) {
-        await sendFlowMessage(number, target, 'Seu carrinho esta vazio.');
+        await sendFlowMessage(number, target, '\u{1F6AB} *Seu carrinho esta vazio!*\n\nAdicione produtos pelo catalogo ou solicite um orcamento.');
         nextStep = step.next_nao ?? step.next ?? null;
       } else {
         const summary = formatCartSummary(cart);
@@ -778,7 +778,7 @@ async function executeStep({ companyId, number, from, replyTo, text, contact, fl
       const products = await whatsappRepo.listActiveProducts(companyId, step.limit ?? 50);
       const queue = products.map((p) => p.id);
       if (queue.length === 0) {
-        await sendFlowMessage(number, target, 'Nao ha produtos disponiveis no momento.');
+        await sendFlowMessage(number, target, '\u{1F6AB} *Nenhum produto disponivel no momento.*\n\nTente novamente mais tarde ou fale com um atendente.');
         nextStep = step.next_nao ?? step.next ?? null;
       } else {
         vars.catalogQueue = queue;
@@ -812,7 +812,7 @@ async function executeStep({ companyId, number, from, replyTo, text, contact, fl
       const resumeTarget = steps.find((s) => s.id === step.next) ?? step;
       const resumeFallback = step.next_nao ?? step.next ?? null;
       if (!protocolInput) {
-        await sendFlowMessage(number, target, 'Digite o n\u00famero do protocolo para retomar seu atendimento.');
+        await sendFlowMessage(number, target, '\u{1F522} *Digite o numero do protocolo* para retomar seu atendimento anterior.');
         nextStep = resumeFallback;
       } else {
         try {
@@ -823,19 +823,19 @@ async function executeStep({ companyId, number, from, replyTo, text, contact, fl
             const snapshotVars = { ...(snapshot.vars ?? {}), protocol: conv.protocol, protocolo_input: protocolInput };
             Object.assign(vars, snapshotVars);
             if (snapshotStep) {
-              await sendFlowMessage(number, target, `Atendimento *${protocolInput}* retomado. Continuando de onde parou.`);
+              await sendFlowMessage(number, target, `\u{1F4CB} *Atendimento retomado!*\n\nProtocolo: *${protocolInput}*\nContinuando de onde parou.`);
               nextStep = snapshot.flowStep;
             } else {
-              await sendFlowMessage(number, target, `Atendimento *${protocolInput}* retomado. Selecione uma op\u00e7\u00e3o: *Catalogo*, *Protocolo* ou *Atendente*.`);
+              await sendFlowMessage(number, target, `\u{1F4CB} *Atendimento ${protocolInput} retomado!*\n\nSelecione uma op\u00e7\u00e3o: *Catalogo*, *Protocolo* ou *Atendente*.`);
               nextStep = resumeTarget.next ?? step.next ?? null;
             }
           } else {
-            await sendFlowMessage(number, target, 'Protocolo n\u00e3o encontrado ou sem atendimento ativo. Vamos iniciar um novo.');
+            await sendFlowMessage(number, target, '\u{274C} *Protocolo n\u00e3o encontrado*\n\nO protocolo informado n\u00e3o existe ou o atendimento j\u00e1 foi encerrado. Vamos iniciar um novo atendimento.');
             nextStep = resumeFallback;
           }
         } catch (err) {
           logger.error({ err: err.message, companyId, from, protocolInput }, 'resume_by_protocol: erro');
-          await sendFlowMessage(number, target, 'Erro ao buscar protocolo. Tente novamente.');
+          await sendFlowMessage(number, target, '\u{26A0}\u{FE0F} *Erro ao buscar protocolo.* Tente novamente.');
           nextStep = resumeFallback;
         }
       }
@@ -876,17 +876,17 @@ async function executeStep({ companyId, number, from, replyTo, text, contact, fl
     } else if (step.action === 'schedule_production') {
       const orderId = vars?.last_order_id;
       if (!orderId) {
-        await sendFlowMessage(number, target, 'Nenhum pedido encontrado para agendar produ\u00e7\u00e3o.');
+        await sendFlowMessage(number, target, '\u{26A0}\u{FE0F} *Nenhum pedido encontrado* para agendar produ\u00e7\u00e3o.');
         nextStep = step.next_nao ?? step.next ?? null;
       } else {
         try {
           const result = await productionService.scheduleOrder(companyId, orderId);
-          await sendFlowMessage(number, target, `\u2705 Produ\u00e7\u00e3o agendada!\n\n\u2022 In\u00edcio: ${productionService.formatDateBR(result.start)}\n\u2022 Conclus\u00e3o: ${productionService.formatDateBR(result.completion)}\n\u2022 Previs\u00e3o entrega: ${productionService.formatDateBR(result.eta)}`);
+          await sendFlowMessage(number, target, `\u{1F4C5} *Produ\u00e7\u00e3o agendada!*\n\n\u{1F4C5} In\u00edcio: *${productionService.formatDateBR(result.start)}*\n\u{2705} Conclus\u00e3o: *${productionService.formatDateBR(result.completion)}*\n\u{1F69A} Previs\u00e3o entrega: *${productionService.formatDateBR(result.eta)}*`);
           await productionService.sendWorkflowReportToOwner(companyId, number);
           nextStep = step.next ?? null;
         } catch (err) {
           logger.error({ err: err.message, companyId, orderId }, 'schedule_production: erro');
-          await sendFlowMessage(number, target, 'Erro ao agendar produ\u00e7\u00e3o. Um atendente vai ajudar.');
+          await sendFlowMessage(number, target, '\u{274C} *Erro ao agendar produ\u00e7\u00e3o.*\n\nUm atendente vai ajudar voc\u00ea.');
           nextStep = step.next_nao ?? step.next ?? null;
         }
       }
