@@ -37,4 +37,10 @@ export const sendReply = asyncHandler(async (req, res) => {
   return createdResponse(res, result);
 });
 
-export default { list, getById, listMessages, updateStatus, assign, sendReply };
+export const reassignStale = asyncHandler(async (req, res) => {
+  const timeoutMinutes = req.body?.timeoutMinutes ? Number(req.body.timeoutMinutes) : 30;
+  const result = await conversationService.reassignStaleWaitingConversations({ companyId: req.tenant.companyId, timeoutMinutes });
+  return successResponse(res, result);
+});
+
+export default { list, getById, listMessages, updateStatus, assign, sendReply, reassignStale };

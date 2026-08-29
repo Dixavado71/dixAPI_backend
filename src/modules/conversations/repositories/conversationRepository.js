@@ -42,6 +42,17 @@ export function createConversation(data) {
   return prisma.conversation.create({ data });
 }
 
+export function findWaitingConversationsOlderThan(companyId, thresholdDate) {
+  return prisma.conversation.findMany({
+    where: {
+      company_id: companyId,
+      status: 'waiting',
+      updated_at: { lt: thresholdDate },
+    },
+    take: 50,
+  });
+}
+
 export function updateConversation(id, data) {
   return prisma.conversation.update({ where: { id }, data });
 }

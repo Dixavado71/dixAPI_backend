@@ -14,5 +14,6 @@ router.get('/:id/messages', authorize('admin', 'manager', 'operator'), conversat
 router.patch('/:id/status', authorize('admin', 'manager'), conversationController.updateStatus);
 router.post('/:id/assign', authorize('admin', 'manager'), conversationController.assign);
 router.post('/:id/send', authorize('admin', 'manager', 'operator'), conversationController.sendReply);
+router.post('/reassign-stale', authorize('admin', 'manager'), conversationController.reassignStale);
 
 export default router;

@@ -3,6 +3,7 @@ import * as conversationRepo from '../repositories/conversationRepository.js';
 import * as whatsappRepo from '../../whatsapp/repositories/whatsappRepository.js';
 import * as evolutionApi from '../../../infrastructure/whatsapp/evolutionApiClient.js';
 import { handleCustomerCommand } from '../../../shared/whatsapp/customer.js';
+import { notifyAttendantsAsync } from '../../notifications/services/notificationService.js';
 
 function mapConversation(conversation) {
   if (!conversation) return conversation;
@@ -150,4 +151,23 @@ export async function sendReply(companyId, id, userId, text) {
   return { ...mapMessage(message), delivered: sent, externalMessageId };
 }
 
-export default { list, getById, listMessages, updateStatus, assign, sendReply };
+export async function reassignStaleWaitingConversations({ companyId, timeoutMinutes = 30 }) {
+  const threshold = new Date(Date.now() - timeoutMinutes * 60 * 1000);
+  const stale = await conversationRepo.findWaitingConversationsOlderThan(companyId, threshold);
+  if (stale.length === 0) return { reassigned: 0 };
+
+  for (const conv of stale) {
+    notifyAttendantsAsync({
+      companyId,
+      title: 'Cliente aguardando atendimento',
+      message: `${conv.contact_name} (${conv.contact_phone ?? 'sem telefone'}) ainda aguarda resposta. Última mensagem: "${conv.last_message ?? ''}".`,
+      type: 'message',
+      relatedEntityType: 'conversation',
+      relatedEntityId: conv.id,
+    });
+    await conversationRepo.updateConversation(conv.id, { status: 'open' }).catch(() => null);
+  }
+  return { reassigned: stale.length };
+}
+
+export default { list, getById, listMessages, updateStatus, assign, sendReply, reassignStaleWaitingConversations };
