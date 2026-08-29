@@ -79,6 +79,34 @@ describe('processIncomingMessage', () => {
     expect(result).toBeNull();
   });
 
+  it('uses the flow bound to the number (flow_id) before type fallback', async () => {
+    const boundFlow = {
+      id: 'bound1',
+      is_active: true,
+      config_json: {
+        defaultStep: 'a',
+        steps: [{ id: 'a', type: 'message', content: 'Fluxo do numero', next: null }],
+        triggers: [{ keyword: 'oi', step: 'a' }],
+      },
+    };
+    automationRepo.findFlowById.mockResolvedValue(boundFlow);
+    automationRepo.findActiveFlowByType.mockResolvedValue({ id: 'generic', is_active: true, config_json: { defaultStep: 'g', steps: [{ id: 'g', type: 'message', content: 'generico', next: null }] } });
+    whatsappRepo.findContactByPhone.mockResolvedValue({ id: 'c1', metadata: {} });
+    cache.getFlowState.mockResolvedValue(null);
+    evolutionApi.sendText.mockResolvedValue({ key: { id: 'x' } });
+    conversationRepo.findConversationByContact.mockResolvedValue(null);
+    conversationRepo.createConversation.mockResolvedValue({ id: 'conv1' });
+    conversationRepo.createMessage.mockResolvedValue({});
+    automationRepo.incrementMessagesCount.mockResolvedValue({});
+
+    const boundNumber = { ...number, flow_id: 'bound1' };
+    const result = await service.processIncomingMessage({ companyId: C1, number: boundNumber, from: '5511', text: 'oi' });
+
+    expect(result.flowId).toBe('bound1');
+    expect(evolutionApi.sendText).toHaveBeenCalledWith('inst1', '5511', 'Fluxo do numero', 0);
+    expect(automationRepo.findActiveFlowByType).not.toHaveBeenCalled();
+  });
+
   it('matches trigger and sends welcome message', async () => {
     automationRepo.findActiveFlowByType.mockResolvedValue(flow);
     whatsappRepo.findContactByPhone.mockResolvedValue({ id: 'c1', metadata: {} });

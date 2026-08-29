@@ -426,6 +426,10 @@ async function resolveFlow(companyId, number, group, text, priority = ['vendas',
       if (bound && bound.is_active) return bound;
     }
   }
+  if (number?.flow_id) {
+    const bound = await automationRepo.findFlowById(companyId, number.flow_id);
+    if (bound && bound.is_active) return bound;
+  }
   for (const type of priority) {
     const flow = await automationRepo.findActiveFlowByType(companyId, type);
     if (flow) return flow;

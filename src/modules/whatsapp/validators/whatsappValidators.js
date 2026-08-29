@@ -100,8 +100,9 @@ export const presenceSchema = z.object({
 }).strict();
 
 export const updateProfileSchema = z.object({
-  name: z.string().min(2).max(50),
-}).strict();
+  name: z.string().min(2).max(50).optional(),
+  flowId: z.string().uuid().nullable().optional(),
+}).strict().refine((v) => v.name !== undefined || v.flowId !== undefined, { message: 'Informe name ou flowId.' });
 
 export const updateProfilePictureSchema = z.object({
   picture: z.string().min(10, 'Imagem inválida (base64).'),

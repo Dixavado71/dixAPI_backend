@@ -504,10 +504,17 @@ export async function listChatMessages(companyId, numberId, chatId, limit) {
 export async function updateProfile(companyId, numberId, data) {
   const number = await whatsappRepo.findNumberById(companyId, numberId);
   if (!number) throw new NotFoundError('Número não encontrado.');
-  if (!number.external_account_id) throw new BadRequestError('Número não possui instância EvolutionAPI.');
-  const result = await evolutionApi.updateProfileName(number.external_account_id, data.name);
-  await whatsappRepo.updateNumberById(number.id, { display_name: data.name });
-  return { updated: true, result };
+  const patch = {};
+  if (data.name) {
+    if (!number.external_account_id) throw new BadRequestError('Número não possui instância EvolutionAPI.');
+    await evolutionApi.updateProfileName(number.external_account_id, data.name);
+    patch.display_name = data.name;
+  }
+  if (data.flowId !== undefined) {
+    patch.flow_id = data.flowId || null;
+  }
+  await whatsappRepo.updateNumberById(number.id, patch);
+  return { updated: true };
 }
 
 export async function updateProfilePicture(companyId, numberId, data) {

@@ -1328,6 +1328,7 @@ model WhatsAppNumber {
   is_bot_enabled      Boolean               @default(true)
   webhook_verified    Boolean               @default(false)
   last_connected_at   DateTime?
+  flow_id             String?               @db.Uuid
   created_at          DateTime              @default(now())
   updated_at          DateTime              @updatedAt
   company             Company               @relation(fields: [company_id], references: [id], onDelete: Cascade)
