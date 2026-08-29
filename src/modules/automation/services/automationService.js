@@ -1119,7 +1119,7 @@ export async function processIncomingMessage({ companyId, number, from, text, co
   while (result.nextStep && !result.clear && !result.switchFlow && hops < 10) {
     const chainStep = steps.find((s) => s.id === result.nextStep);
     if (!chainStep) break;
-    const needsInput = chainStep.type === 'question' || chainStep.type === 'product'
+    const needsInput = chainStep.type === 'question'
       || (chainStep.type === 'variable' && chainStep.mode === 'input')
       || (chainStep.type === 'action' && chainStep.action === 'cart_summary');
     if (needsInput) break;
@@ -1129,6 +1129,7 @@ export async function processIncomingMessage({ companyId, number, from, text, co
     hops += 1;
     if (result.switchFlow) { finalFlowId = result.switchFlow; break; }
     if (result.clear) break;
+    if (chainStep.type === 'product') break;
   }
 
   if (result.clear) {
