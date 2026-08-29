@@ -10,7 +10,7 @@ router.use(authenticate, ensureTenant(), authorize('admin', 'manager'));
 
 router.get('/', companyController.index);
 router.get('/:id', companyController.show);
-router.post('/', companyController.store);
+router.post('/', authorize('admin'), companyController.store);
 router.patch('/:id', companyController.update);
 router.delete('/:id', companyController.destroy);
 

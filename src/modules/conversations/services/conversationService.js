@@ -2,6 +2,48 @@ import { NotFoundError, BadRequestError } from '../../../shared/errors/AppError.
 import * as conversationRepo from '../repositories/conversationRepository.js';
 import * as whatsappRepo from '../../whatsapp/repositories/whatsappRepository.js';
 import * as evolutionApi from '../../../infrastructure/whatsapp/evolutionApiClient.js';
+import { handleCustomerCommand } from '../../../shared/whatsapp/customer.js';
+
+function mapConversation(conversation) {
+  if (!conversation) return conversation;
+  return {
+    id: conversation.id,
+    companyId: conversation.company_id,
+    customerId: conversation.customer_id,
+    channel: conversation.channel,
+    contactName: conversation.contact_name,
+    contactPhone: conversation.contact_phone,
+    lastMessage: conversation.last_message,
+    lastMessageAt: conversation.last_message_at,
+    unreadCount: conversation.unread_count,
+    isPinned: conversation.is_pinned,
+    isArchived: conversation.is_archived,
+    assignedTo: conversation.assigned_to,
+    status: conversation.status,
+    createdAt: conversation.created_at,
+    updatedAt: conversation.updated_at,
+    assignee: conversation.assignee,
+    customer: conversation.customer,
+  };
+}
+
+function mapMessage(message) {
+  if (!message) return message;
+  return {
+    id: message.id,
+    conversationId: message.conversation_id,
+    senderType: message.sender_type,
+    senderId: message.sender_id,
+    messageType: message.message_type,
+    content: message.content,
+    mediaUrl: message.media_url,
+    status: message.status,
+    isRead: message.is_read,
+    readAt: message.read_at,
+    sentAt: message.sent_at,
+    createdAt: message.created_at,
+  };
+}
 
 export async function list(companyId, filters) {
   const conversations = await conversationRepo.listConversations(companyId, filters);
@@ -23,7 +65,7 @@ export async function list(companyId, filters) {
 export async function getById(companyId, id) {
   const conversation = await conversationRepo.findConversationById(companyId, id);
   if (!conversation) throw new NotFoundError('Conversa não encontrada.');
-  return conversation;
+  return mapConversation(conversation);
 }
 
 export async function listMessages(companyId, id, query) {
@@ -49,13 +91,15 @@ export async function listMessages(companyId, id, query) {
 export async function updateStatus(companyId, id, status) {
   const conversation = await conversationRepo.findConversationById(companyId, id);
   if (!conversation) throw new NotFoundError('Conversa não encontrada.');
-  return conversationRepo.updateConversation(id, { status });
+  const updated = await conversationRepo.updateConversation(id, { status });
+  return mapConversation(updated);
 }
 
 export async function assign(companyId, id, userId) {
   const conversation = await conversationRepo.findConversationById(companyId, id);
   if (!conversation) throw new NotFoundError('Conversa não encontrada.');
-  return conversationRepo.updateConversation(id, { assigned_to: userId });
+  const updated = await conversationRepo.updateConversation(id, { assigned_to: userId });
+  return mapConversation(updated);
 }
 
 export async function sendReply(companyId, id, userId, text) {
@@ -69,6 +113,19 @@ export async function sendReply(companyId, id, userId, text) {
   if (conversation.channel === 'whatsapp') {
     const number = await whatsappRepo.listNumbers(companyId).then((list) => list[0]);
     if (number && number.status === 'connected' && number.external_account_id) {
+      const commandResult = await handleCustomerCommand(companyId, number, conversation.contact_phone, text);
+      if (commandResult) {
+        const reply = await conversationRepo.createMessage({
+          conversation_id: id,
+          sender_type: 'bot',
+          sender_id: userId,
+          message_type: 'text',
+          content: `Cliente cadastrado automaticamente.`,
+          status: 'sent',
+        });
+        await conversationRepo.updateConversation(id, { last_message: reply.content, last_message_at: new Date() });
+        return { ...mapMessage(reply), delivered: true, registered: true };
+      }
       const result = await evolutionApi.sendText(number.external_account_id, conversation.contact_phone, text).catch(() => null);
       if (result) externalMessageId = result?.key?.id ?? null;
       else sent = false;
@@ -90,7 +147,7 @@ export async function sendReply(companyId, id, userId, text) {
     await conversationRepo.updateConversationLastMessage(id, text, 0);
   }
 
-  return { ...message, delivered: sent, externalMessageId };
+  return { ...mapMessage(message), delivered: sent, externalMessageId };
 }
 
 export default { list, getById, listMessages, updateStatus, assign, sendReply };

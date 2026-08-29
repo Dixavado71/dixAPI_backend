@@ -17,6 +17,8 @@ router.delete('/flows/:id', authorize('admin', 'manager'), automationController.
 router.patch('/flows/:id/toggle', authorize('admin', 'manager'), automationController.toggle);
 router.post('/flows/:id/duplicate', authorize('admin', 'manager'), automationController.duplicate);
 router.post('/flows/:id/test', authorize('admin', 'manager'), automationController.test);
+router.post('/flows/:id/export', authorize('admin', 'manager'), automationController.exportFlow);
+router.post('/flows/import', authorize('admin', 'manager'), automationController.importFlow);
 
 router.get('/quick-replies', authorize('admin', 'manager', 'operator'), quickReplyController.list);
 router.post('/quick-replies', authorize('admin', 'manager'), quickReplyController.create);

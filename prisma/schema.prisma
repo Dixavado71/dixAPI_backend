@@ -586,6 +586,7 @@ model Product {
   @@index([company_id])
   @@index([category])
   @@index([status])
+  @@index([company_id, category, status])
   @@map("products")
 }
 
@@ -667,6 +668,7 @@ model Conversation {
   @@index([company_id])
   @@index([company_id, channel])
   @@index([company_id, status])
+  @@index([company_id, status, updated_at])
   @@index([channel])
   @@index([status])
   @@index([assigned_to])
@@ -691,6 +693,7 @@ model Message {
   conversation Conversation @relation(fields: [conversation_id], references: [id], onDelete: Cascade)
 
   @@index([conversation_id])
+  @@index([conversation_id, created_at])
   @@index([sender_type])
   @@index([created_at])
   @@map("messages")
@@ -1215,6 +1218,7 @@ model PaymentRecord {
   delivery Delivery? @relation(fields: [company_id, delivery_id], references: [company_id, id], onDelete: Restrict)
 
   @@index([company_id, status, method])
+  @@index([company_id, created_at])
   @@index([order_id])
   @@map("payment_records")
 }

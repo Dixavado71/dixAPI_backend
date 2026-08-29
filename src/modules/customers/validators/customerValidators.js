@@ -1,6 +1,7 @@
 import { z } from 'zod';
+import { idParamSchema, paginationQuerySchema } from '../../../shared/validators/commonSchemas.js';
 
-export const customerParamsSchema = z.object({ id: z.string().uuid() }).strict();
+export const customerParamsSchema = idParamSchema;
 
 export const customerSchema = z.object({
   name: z.string().min(2, 'Nome é obrigatório').max(120),
@@ -11,3 +12,7 @@ export const customerSchema = z.object({
 }).strict();
 
 export const customerUpdateSchema = customerSchema.partial();
+
+export const customerQuerySchema = paginationQuerySchema.extend({
+  search: z.string().trim().max(120).optional(),
+}).strict();

@@ -87,8 +87,13 @@ export function confirmPaymentAndActivate(data) {
     if (transaction.status === 'paid') return { transaction, subscription: await tx.companySubscription.findUnique({ where: { company_id: data.companyId } }), alreadyPaid: true };
 
     const now = new Date();
+    const existingSubscription = await tx.companySubscription.findUnique({ where: { company_id: data.companyId } });
     const periodEnd = new Date(now);
-    periodEnd.setMonth(periodEnd.getMonth() + 1);
+    if (existingSubscription?.billing_cycle === 'yearly') {
+      periodEnd.setFullYear(periodEnd.getFullYear() + 1);
+    } else {
+      periodEnd.setMonth(periodEnd.getMonth() + 1);
+    }
 
     const updatedTransaction = await tx.platformTransaction.update({
       where: { id: transaction.id },
@@ -107,16 +112,18 @@ export function confirmPaymentAndActivate(data) {
 
     if (company?.reseller_id && company.reseller) {
       const baseAmount = Number(updatedTransaction.amount);
-      const commissionAmount = company.reseller.commission_type === 'percentage'
-        ? baseAmount * Math.min(Number(company.reseller.commission_value) / 100, 1)
-        : 0;
+      const commissionValue = Number(company.reseller.commission_value) || 0;
+      const isPercentage = company.reseller.commission_type === 'percentage';
+      const commissionAmount = isPercentage
+        ? baseAmount * Math.min(commissionValue / 100, 1)
+        : commissionValue;
       await tx.commission.create({
         data: {
           reseller_id: company.reseller_id,
           company_id: data.companyId,
           platform_transaction_id: transaction.id,
           type: 'subscription',
-          rate: company.reseller.commission_type === 'percentage' ? Math.min(Number(company.reseller.commission_value) / 100, 1) : 0,
+          rate: isPercentage ? Math.min(commissionValue / 100, 1) : commissionValue,
           base_amount: updatedTransaction.amount,
           amount: commissionAmount,
           status: 'pending',

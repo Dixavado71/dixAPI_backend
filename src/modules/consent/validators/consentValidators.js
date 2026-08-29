@@ -1,6 +1,7 @@
 import { z } from 'zod';
+import { customerIdParamSchema } from '../../../shared/validators/commonSchemas.js';
 
-export const customerParamsSchema = z.object({ customerId: z.string().uuid() }).strict();
+export const customerParamsSchema = customerIdParamSchema;
 
 export const consentSchema = z.object({
   customerId: z.string().uuid(),

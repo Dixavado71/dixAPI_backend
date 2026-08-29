@@ -2,9 +2,10 @@ import { describe, expect, it, vi } from 'vitest';
 
 const findFirst = vi.fn().mockResolvedValue(null);
 const findMany = vi.fn().mockResolvedValue([]);
+const count = vi.fn().mockResolvedValue(0);
 vi.mock('../src/infrastructure/database/prismaClient.js', () => ({
   default: {
-    customer: { findFirst, findMany },
+    customer: { findFirst, findMany, count },
     product: { findFirst, findMany },
     order: { findFirst, findMany },
   },

@@ -14,8 +14,4 @@ export function ensureTenant() {
   };
 }
 
-export function getTenantCompanyId(req) {
-  return req.user?.companyId;
-}
-
 export default ensureTenant;

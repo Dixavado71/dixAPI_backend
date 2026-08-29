@@ -6,11 +6,19 @@ function tokenize(input) {
   const tokens = [];
   let i = 0;
   const n = input.length;
+
+  function isRegexContext() {
+    if (tokens.length === 0) return true;
+    const last = tokens[tokens.length - 1];
+    if (last.type === 'op' || last.type === 'lparen' || last.type === 'lbracket' || last.type === 'comma' || last.type === 'colon') return true;
+    return false;
+  }
+
   while (i < n) {
     const c = input[i];
     if (/\s/.test(c)) { i += 1; continue; }
 
-    if (c === '/' && input[i + 1] !== '/' && input[i + 1] !== '*') {
+    if (c === '/' && input[i + 1] !== '/' && input[i + 1] !== '*' && isRegexContext()) {
       let j = i + 1;
       let inClass = false;
       let escaped = false;

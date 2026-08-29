@@ -646,6 +646,416 @@
         }
       }
     },
+    "/automation/flows": {
+      "get": {
+        "operationId": "get__automation_flows_1",
+        "summary": "GET /automation/flows",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      },
+      "post": {
+        "operationId": "post__automation_flows_2",
+        "summary": "POST /automation/flows",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/automation/flows/:id": {
+      "get": {
+        "operationId": "get__automation_flows_id_1",
+        "summary": "GET /automation/flows/:id",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      },
+      "put": {
+        "operationId": "put__automation_flows_id_2",
+        "summary": "PUT /automation/flows/:id",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      },
+      "delete": {
+        "operationId": "delete__automation_flows_id_3",
+        "summary": "DELETE /automation/flows/:id",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/automation/flows/:id/toggle": {
+      "patch": {
+        "operationId": "patch__automation_flows_id_toggle_1",
+        "summary": "PATCH /automation/flows/:id/toggle",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/automation/flows/:id/duplicate": {
+      "post": {
+        "operationId": "post__automation_flows_id_duplicate_1",
+        "summary": "POST /automation/flows/:id/duplicate",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/automation/flows/:id/test": {
+      "post": {
+        "operationId": "post__automation_flows_id_test_1",
+        "summary": "POST /automation/flows/:id/test",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/automation/flows/:id/export": {
+      "post": {
+        "operationId": "post__automation_flows_id_export_1",
+        "summary": "POST /automation/flows/:id/export",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/automation/flows/import": {
+      "post": {
+        "operationId": "post__automation_flows_import_1",
+        "summary": "POST /automation/flows/import",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/automation/quick-replies": {
+      "get": {
+        "operationId": "get__automation_quick_replies_1",
+        "summary": "GET /automation/quick-replies",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      },
+      "post": {
+        "operationId": "post__automation_quick_replies_2",
+        "summary": "POST /automation/quick-replies",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/automation/quick-replies/:id": {
+      "put": {
+        "operationId": "put__automation_quick_replies_id_1",
+        "summary": "PUT /automation/quick-replies/:id",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      },
+      "delete": {
+        "operationId": "delete__automation_quick_replies_id_2",
+        "summary": "DELETE /automation/quick-replies/:id",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/automation/quick-replies/:id/use": {
+      "post": {
+        "operationId": "post__automation_quick_replies_id_use_1",
+        "summary": "POST /automation/quick-replies/:id/use",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
     "/billing": {
       "get": {
         "operationId": "get__billing_1",
@@ -730,36 +1140,10 @@
         }
       }
     },
-    "/companies": {
+    "/catalog/categories": {
       "get": {
-        "operationId": "get__companies_1",
-        "summary": "GET /companies",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successo"
-          },
-          "400": {
-            "description": "Requisição inválida"
-          },
-          "401": {
-            "description": "Não autenticado"
-          },
-          "403": {
-            "description": "Sem permissão"
-          },
-          "404": {
-            "description": "Não encontrado"
-          }
-        }
-      },
-      "post": {
-        "operationId": "post__companies_2",
-        "summary": "POST /companies",
+        "operationId": "get__catalog_categories_1",
+        "summary": "GET /catalog/categories",
         "security": [
           {
             "bearerAuth": []
@@ -784,10 +1168,38 @@
         }
       }
     },
-    "/companies/:id": {
+    "/catalog/services": {
       "get": {
-        "operationId": "get__companies_id_1",
-        "summary": "GET /companies/:id",
+        "operationId": "get__catalog_services_1",
+        "summary": "GET /catalog/services",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/catalog/company/categories": {
+      "get": {
+        "operationId": "get__catalog_company_categories_1",
+        "summary": "GET /catalog/company/categories",
         "security": [
           {
             "bearerAuth": []
@@ -811,9 +1223,479 @@
           }
         }
       },
+      "post": {
+        "operationId": "post__catalog_company_categories_2",
+        "summary": "POST /catalog/company/categories",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/catalog/company/services": {
+      "get": {
+        "operationId": "get__catalog_company_services_1",
+        "summary": "GET /catalog/company/services",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      },
+      "post": {
+        "operationId": "post__catalog_company_services_2",
+        "summary": "POST /catalog/company/services",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/communications": {
+      "get": {
+        "operationId": "get__communications_1",
+        "summary": "GET /communications",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      },
+      "post": {
+        "operationId": "post__communications_2",
+        "summary": "POST /communications",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/consent": {
+      "post": {
+        "operationId": "post__consent_1",
+        "summary": "POST /consent",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/consent/customer/:customerId": {
+      "get": {
+        "operationId": "get__consent_customer_customerId_1",
+        "summary": "GET /consent/customer/:customerId",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/conversations": {
+      "get": {
+        "operationId": "get__conversations_1",
+        "summary": "GET /conversations",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/conversations/:id": {
+      "get": {
+        "operationId": "get__conversations_id_1",
+        "summary": "GET /conversations/:id",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/conversations/:id/messages": {
+      "get": {
+        "operationId": "get__conversations_id_messages_1",
+        "summary": "GET /conversations/:id/messages",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/conversations/:id/status": {
       "patch": {
-        "operationId": "patch__companies_id_2",
-        "summary": "PATCH /companies/:id",
+        "operationId": "patch__conversations_id_status_1",
+        "summary": "PATCH /conversations/:id/status",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/conversations/:id/assign": {
+      "post": {
+        "operationId": "post__conversations_id_assign_1",
+        "summary": "POST /conversations/:id/assign",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/conversations/:id/send": {
+      "post": {
+        "operationId": "post__conversations_id_send_1",
+        "summary": "POST /conversations/:id/send",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/coupons/validate": {
+      "post": {
+        "operationId": "post__coupons_validate_1",
+        "summary": "POST /coupons/validate",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/coupons/redeem": {
+      "post": {
+        "operationId": "post__coupons_redeem_1",
+        "summary": "POST /coupons/redeem",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/customers": {
+      "get": {
+        "operationId": "get__customers_1",
+        "summary": "GET /customers",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      },
+      "post": {
+        "operationId": "post__customers_2",
+        "summary": "POST /customers",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/customers/:id": {
+      "patch": {
+        "operationId": "patch__customers_id_1",
+        "summary": "PATCH /customers/:id",
         "security": [
           {
             "bearerAuth": []
@@ -838,8 +1720,36 @@
         }
       },
       "delete": {
-        "operationId": "delete__companies_id_3",
-        "summary": "DELETE /companies/:id",
+        "operationId": "delete__customers_id_2",
+        "summary": "DELETE /customers/:id",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/dashboard/overview": {
+      "get": {
+        "operationId": "get__dashboard_overview_1",
+        "summary": "GET /dashboard/overview",
         "security": [
           {
             "bearerAuth": []
@@ -1166,94 +2076,10 @@
         }
       }
     },
-    "/coupons/validate": {
-      "post": {
-        "operationId": "post__coupons_validate_1",
-        "summary": "POST /coupons/validate",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successo"
-          },
-          "400": {
-            "description": "Requisição inválida"
-          },
-          "401": {
-            "description": "Não autenticado"
-          },
-          "403": {
-            "description": "Sem permissão"
-          },
-          "404": {
-            "description": "Não encontrado"
-          }
-        }
-      }
-    },
-    "/coupons/redeem": {
-      "post": {
-        "operationId": "post__coupons_redeem_1",
-        "summary": "POST /coupons/redeem",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successo"
-          },
-          "400": {
-            "description": "Requisição inválida"
-          },
-          "401": {
-            "description": "Não autenticado"
-          },
-          "403": {
-            "description": "Sem permissão"
-          },
-          "404": {
-            "description": "Não encontrado"
-          }
-        }
-      }
-    },
-    "/payments/events": {
-      "post": {
-        "operationId": "post__payments_events_1",
-        "summary": "POST /payments/events",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successo"
-          },
-          "400": {
-            "description": "Requisição inválida"
-          },
-          "401": {
-            "description": "Não autenticado"
-          },
-          "403": {
-            "description": "Sem permissão"
-          },
-          "404": {
-            "description": "Não encontrado"
-          }
-        }
-      }
-    },
-    "/catalog/categories": {
+    "/notifications": {
       "get": {
-        "operationId": "get__catalog_categories_1",
-        "summary": "GET /catalog/categories",
+        "operationId": "get__notifications_1",
+        "summary": "GET /notifications",
         "security": [
           {
             "bearerAuth": []
@@ -1278,200 +2104,148 @@
         }
       }
     },
-    "/catalog/services": {
-      "get": {
-        "operationId": "get__catalog_services_1",
-        "summary": "GET /catalog/services",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successo"
-          },
-          "400": {
-            "description": "Requisição inválida"
-          },
-          "401": {
-            "description": "Não autenticado"
-          },
-          "403": {
-            "description": "Sem permissão"
-          },
-          "404": {
-            "description": "Não encontrado"
-          }
-        }
-      }
-    },
-    "/catalog/company/categories": {
-      "get": {
-        "operationId": "get__catalog_company_categories_1",
-        "summary": "GET /catalog/company/categories",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successo"
-          },
-          "400": {
-            "description": "Requisição inválida"
-          },
-          "401": {
-            "description": "Não autenticado"
-          },
-          "403": {
-            "description": "Sem permissão"
-          },
-          "404": {
-            "description": "Não encontrado"
-          }
-        }
-      },
-      "post": {
-        "operationId": "post__catalog_company_categories_2",
-        "summary": "POST /catalog/company/categories",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successo"
-          },
-          "400": {
-            "description": "Requisição inválida"
-          },
-          "401": {
-            "description": "Não autenticado"
-          },
-          "403": {
-            "description": "Sem permissão"
-          },
-          "404": {
-            "description": "Não encontrado"
-          }
-        }
-      }
-    },
-    "/catalog/company/services": {
-      "get": {
-        "operationId": "get__catalog_company_services_1",
-        "summary": "GET /catalog/company/services",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successo"
-          },
-          "400": {
-            "description": "Requisição inválida"
-          },
-          "401": {
-            "description": "Não autenticado"
-          },
-          "403": {
-            "description": "Sem permissão"
-          },
-          "404": {
-            "description": "Não encontrado"
-          }
-        }
-      },
-      "post": {
-        "operationId": "post__catalog_company_services_2",
-        "summary": "POST /catalog/company/services",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successo"
-          },
-          "400": {
-            "description": "Requisição inválida"
-          },
-          "401": {
-            "description": "Não autenticado"
-          },
-          "403": {
-            "description": "Sem permissão"
-          },
-          "404": {
-            "description": "Não encontrado"
-          }
-        }
-      }
-    },
-    "/customers": {
-      "get": {
-        "operationId": "get__customers_1",
-        "summary": "GET /customers",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successo"
-          },
-          "400": {
-            "description": "Requisição inválida"
-          },
-          "401": {
-            "description": "Não autenticado"
-          },
-          "403": {
-            "description": "Sem permissão"
-          },
-          "404": {
-            "description": "Não encontrado"
-          }
-        }
-      },
-      "post": {
-        "operationId": "post__customers_2",
-        "summary": "POST /customers",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successo"
-          },
-          "400": {
-            "description": "Requisição inválida"
-          },
-          "401": {
-            "description": "Não autenticado"
-          },
-          "403": {
-            "description": "Sem permissão"
-          },
-          "404": {
-            "description": "Não encontrado"
-          }
-        }
-      }
-    },
-    "/customers/:id": {
+    "/notifications/:id/read": {
       "patch": {
-        "operationId": "patch__customers_id_1",
-        "summary": "PATCH /customers/:id",
+        "operationId": "patch__notifications_id_read_1",
+        "summary": "PATCH /notifications/:id/read",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/notifications/read-all": {
+      "post": {
+        "operationId": "post__notifications_read_all_1",
+        "summary": "POST /notifications/read-all",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/notifications/logs": {
+      "get": {
+        "operationId": "get__notifications_logs_1",
+        "summary": "GET /notifications/logs",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/notifications/triggers": {
+      "get": {
+        "operationId": "get__notifications_triggers_1",
+        "summary": "GET /notifications/triggers",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      },
+      "post": {
+        "operationId": "post__notifications_triggers_2",
+        "summary": "POST /notifications/triggers",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/notifications/triggers/:id": {
+      "patch": {
+        "operationId": "patch__notifications_triggers_id_1",
+        "summary": "PATCH /notifications/triggers/:id",
         "security": [
           {
             "bearerAuth": []
@@ -1496,8 +2270,8 @@
         }
       },
       "delete": {
-        "operationId": "delete__customers_id_2",
-        "summary": "DELETE /customers/:id",
+        "operationId": "delete__notifications_triggers_id_2",
+        "summary": "DELETE /notifications/triggers/:id",
         "security": [
           {
             "bearerAuth": []
@@ -1632,254 +2406,10 @@
         }
       }
     },
-    "/promotions": {
-      "get": {
-        "operationId": "get__promotions_1",
-        "summary": "GET /promotions",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successo"
-          },
-          "400": {
-            "description": "Requisição inválida"
-          },
-          "401": {
-            "description": "Não autenticado"
-          },
-          "403": {
-            "description": "Sem permissão"
-          },
-          "404": {
-            "description": "Não encontrado"
-          }
-        }
-      },
+    "/payments/events": {
       "post": {
-        "operationId": "post__promotions_2",
-        "summary": "POST /promotions",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successo"
-          },
-          "400": {
-            "description": "Requisição inválida"
-          },
-          "401": {
-            "description": "Não autenticado"
-          },
-          "403": {
-            "description": "Sem permissão"
-          },
-          "404": {
-            "description": "Não encontrado"
-          }
-        }
-      }
-    },
-    "/promotions/coupons": {
-      "get": {
-        "operationId": "get__promotions_coupons_1",
-        "summary": "GET /promotions/coupons",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successo"
-          },
-          "400": {
-            "description": "Requisição inválida"
-          },
-          "401": {
-            "description": "Não autenticado"
-          },
-          "403": {
-            "description": "Sem permissão"
-          },
-          "404": {
-            "description": "Não encontrado"
-          }
-        }
-      },
-      "post": {
-        "operationId": "post__promotions_coupons_2",
-        "summary": "POST /promotions/coupons",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successo"
-          },
-          "400": {
-            "description": "Requisição inválida"
-          },
-          "401": {
-            "description": "Não autenticado"
-          },
-          "403": {
-            "description": "Sem permissão"
-          },
-          "404": {
-            "description": "Não encontrado"
-          }
-        }
-      }
-    },
-    "/company/customization": {
-      "get": {
-        "operationId": "get__company_customization_1",
-        "summary": "GET /company/customization",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successo"
-          },
-          "400": {
-            "description": "Requisição inválida"
-          },
-          "401": {
-            "description": "Não autenticado"
-          },
-          "403": {
-            "description": "Sem permissão"
-          },
-          "404": {
-            "description": "Não encontrado"
-          }
-        }
-      },
-      "patch": {
-        "operationId": "patch__company_customization_2",
-        "summary": "PATCH /company/customization",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successo"
-          },
-          "400": {
-            "description": "Requisição inválida"
-          },
-          "401": {
-            "description": "Não autenticado"
-          },
-          "403": {
-            "description": "Sem permissão"
-          },
-          "404": {
-            "description": "Não encontrado"
-          }
-        }
-      }
-    },
-    "/communications": {
-      "get": {
-        "operationId": "get__communications_1",
-        "summary": "GET /communications",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successo"
-          },
-          "400": {
-            "description": "Requisição inválida"
-          },
-          "401": {
-            "description": "Não autenticado"
-          },
-          "403": {
-            "description": "Sem permissão"
-          },
-          "404": {
-            "description": "Não encontrado"
-          }
-        }
-      },
-      "post": {
-        "operationId": "post__communications_2",
-        "summary": "POST /communications",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successo"
-          },
-          "400": {
-            "description": "Requisição inválida"
-          },
-          "401": {
-            "description": "Não autenticado"
-          },
-          "403": {
-            "description": "Sem permissão"
-          },
-          "404": {
-            "description": "Não encontrado"
-          }
-        }
-      }
-    },
-    "/consent": {
-      "post": {
-        "operationId": "post__consent_1",
-        "summary": "POST /consent",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successo"
-          },
-          "400": {
-            "description": "Requisição inválida"
-          },
-          "401": {
-            "description": "Não autenticado"
-          },
-          "403": {
-            "description": "Sem permissão"
-          },
-          "404": {
-            "description": "Não encontrado"
-          }
-        }
-      }
-    },
-    "/consent/customer/:customerId": {
-      "get": {
-        "operationId": "get__consent_customer_customerId_1",
-        "summary": "GET /consent/customer/:customerId",
+        "operationId": "post__payments_events_1",
+        "summary": "POST /payments/events",
         "security": [
           {
             "bearerAuth": []
@@ -2038,6 +2568,114 @@
         }
       }
     },
+    "/promotions": {
+      "get": {
+        "operationId": "get__promotions_1",
+        "summary": "GET /promotions",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      },
+      "post": {
+        "operationId": "post__promotions_2",
+        "summary": "POST /promotions",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/promotions/coupons": {
+      "get": {
+        "operationId": "get__promotions_coupons_1",
+        "summary": "GET /promotions/coupons",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      },
+      "post": {
+        "operationId": "post__promotions_coupons_2",
+        "summary": "POST /promotions/coupons",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
     "/transactions": {
       "get": {
         "operationId": "get__transactions_1",
@@ -2068,6 +2706,140 @@
       "post": {
         "operationId": "post__transactions_2",
         "summary": "POST /transactions",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/users": {
+      "get": {
+        "operationId": "get__users_1",
+        "summary": "GET /users",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      },
+      "post": {
+        "operationId": "post__users_2",
+        "summary": "POST /users",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
+    "/users/:id": {
+      "get": {
+        "operationId": "get__users_id_1",
+        "summary": "GET /users/:id",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      },
+      "patch": {
+        "operationId": "patch__users_id_2",
+        "summary": "PATCH /users/:id",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      },
+      "delete": {
+        "operationId": "delete__users_id_3",
+        "summary": "DELETE /users/:id",
         "security": [
           {
             "bearerAuth": []
@@ -4438,910 +5210,6 @@
       "post": {
         "operationId": "post__whatsapp_numbers_id_typewriter_1",
         "summary": "POST /whatsapp/numbers/:id/typewriter",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successo"
-          },
-          "400": {
-            "description": "Requisição inválida"
-          },
-          "401": {
-            "description": "Não autenticado"
-          },
-          "403": {
-            "description": "Sem permissão"
-          },
-          "404": {
-            "description": "Não encontrado"
-          }
-        }
-      }
-    },
-    "/conversations": {
-      "get": {
-        "operationId": "get__conversations_1",
-        "summary": "GET /conversations",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successo"
-          },
-          "400": {
-            "description": "Requisição inválida"
-          },
-          "401": {
-            "description": "Não autenticado"
-          },
-          "403": {
-            "description": "Sem permissão"
-          },
-          "404": {
-            "description": "Não encontrado"
-          }
-        }
-      }
-    },
-    "/conversations/:id": {
-      "get": {
-        "operationId": "get__conversations_id_1",
-        "summary": "GET /conversations/:id",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successo"
-          },
-          "400": {
-            "description": "Requisição inválida"
-          },
-          "401": {
-            "description": "Não autenticado"
-          },
-          "403": {
-            "description": "Sem permissão"
-          },
-          "404": {
-            "description": "Não encontrado"
-          }
-        }
-      }
-    },
-    "/conversations/:id/messages": {
-      "get": {
-        "operationId": "get__conversations_id_messages_1",
-        "summary": "GET /conversations/:id/messages",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successo"
-          },
-          "400": {
-            "description": "Requisição inválida"
-          },
-          "401": {
-            "description": "Não autenticado"
-          },
-          "403": {
-            "description": "Sem permissão"
-          },
-          "404": {
-            "description": "Não encontrado"
-          }
-        }
-      }
-    },
-    "/conversations/:id/status": {
-      "patch": {
-        "operationId": "patch__conversations_id_status_1",
-        "summary": "PATCH /conversations/:id/status",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successo"
-          },
-          "400": {
-            "description": "Requisição inválida"
-          },
-          "401": {
-            "description": "Não autenticado"
-          },
-          "403": {
-            "description": "Sem permissão"
-          },
-          "404": {
-            "description": "Não encontrado"
-          }
-        }
-      }
-    },
-    "/conversations/:id/assign": {
-      "post": {
-        "operationId": "post__conversations_id_assign_1",
-        "summary": "POST /conversations/:id/assign",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successo"
-          },
-          "400": {
-            "description": "Requisição inválida"
-          },
-          "401": {
-            "description": "Não autenticado"
-          },
-          "403": {
-            "description": "Sem permissão"
-          },
-          "404": {
-            "description": "Não encontrado"
-          }
-        }
-      }
-    },
-    "/conversations/:id/send": {
-      "post": {
-        "operationId": "post__conversations_id_send_1",
-        "summary": "POST /conversations/:id/send",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successo"
-          },
-          "400": {
-            "description": "Requisição inválida"
-          },
-          "401": {
-            "description": "Não autenticado"
-          },
-          "403": {
-            "description": "Sem permissão"
-          },
-          "404": {
-            "description": "Não encontrado"
-          }
-        }
-      }
-    },
-    "/automation/flows": {
-      "get": {
-        "operationId": "get__automation_flows_1",
-        "summary": "GET /automation/flows",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successo"
-          },
-          "400": {
-            "description": "Requisição inválida"
-          },
-          "401": {
-            "description": "Não autenticado"
-          },
-          "403": {
-            "description": "Sem permissão"
-          },
-          "404": {
-            "description": "Não encontrado"
-          }
-        }
-      },
-      "post": {
-        "operationId": "post__automation_flows_2",
-        "summary": "POST /automation/flows",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successo"
-          },
-          "400": {
-            "description": "Requisição inválida"
-          },
-          "401": {
-            "description": "Não autenticado"
-          },
-          "403": {
-            "description": "Sem permissão"
-          },
-          "404": {
-            "description": "Não encontrado"
-          }
-        }
-      }
-    },
-    "/automation/flows/:id": {
-      "get": {
-        "operationId": "get__automation_flows_id_1",
-        "summary": "GET /automation/flows/:id",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successo"
-          },
-          "400": {
-            "description": "Requisição inválida"
-          },
-          "401": {
-            "description": "Não autenticado"
-          },
-          "403": {
-            "description": "Sem permissão"
-          },
-          "404": {
-            "description": "Não encontrado"
-          }
-        }
-      },
-      "put": {
-        "operationId": "put__automation_flows_id_2",
-        "summary": "PUT /automation/flows/:id",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successo"
-          },
-          "400": {
-            "description": "Requisição inválida"
-          },
-          "401": {
-            "description": "Não autenticado"
-          },
-          "403": {
-            "description": "Sem permissão"
-          },
-          "404": {
-            "description": "Não encontrado"
-          }
-        }
-      },
-      "delete": {
-        "operationId": "delete__automation_flows_id_3",
-        "summary": "DELETE /automation/flows/:id",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successo"
-          },
-          "400": {
-            "description": "Requisição inválida"
-          },
-          "401": {
-            "description": "Não autenticado"
-          },
-          "403": {
-            "description": "Sem permissão"
-          },
-          "404": {
-            "description": "Não encontrado"
-          }
-        }
-      }
-    },
-    "/automation/flows/:id/toggle": {
-      "patch": {
-        "operationId": "patch__automation_flows_id_toggle_1",
-        "summary": "PATCH /automation/flows/:id/toggle",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successo"
-          },
-          "400": {
-            "description": "Requisição inválida"
-          },
-          "401": {
-            "description": "Não autenticado"
-          },
-          "403": {
-            "description": "Sem permissão"
-          },
-          "404": {
-            "description": "Não encontrado"
-          }
-        }
-      }
-    },
-    "/automation/flows/:id/duplicate": {
-      "post": {
-        "operationId": "post__automation_flows_id_duplicate_1",
-        "summary": "POST /automation/flows/:id/duplicate",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successo"
-          },
-          "400": {
-            "description": "Requisição inválida"
-          },
-          "401": {
-            "description": "Não autenticado"
-          },
-          "403": {
-            "description": "Sem permissão"
-          },
-          "404": {
-            "description": "Não encontrado"
-          }
-        }
-      }
-    },
-    "/automation/flows/:id/test": {
-      "post": {
-        "operationId": "post__automation_flows_id_test_1",
-        "summary": "POST /automation/flows/:id/test",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successo"
-          },
-          "400": {
-            "description": "Requisição inválida"
-          },
-          "401": {
-            "description": "Não autenticado"
-          },
-          "403": {
-            "description": "Sem permissão"
-          },
-          "404": {
-            "description": "Não encontrado"
-          }
-        }
-      }
-    },
-    "/automation/quick-replies": {
-      "get": {
-        "operationId": "get__automation_quick_replies_1",
-        "summary": "GET /automation/quick-replies",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successo"
-          },
-          "400": {
-            "description": "Requisição inválida"
-          },
-          "401": {
-            "description": "Não autenticado"
-          },
-          "403": {
-            "description": "Sem permissão"
-          },
-          "404": {
-            "description": "Não encontrado"
-          }
-        }
-      },
-      "post": {
-        "operationId": "post__automation_quick_replies_2",
-        "summary": "POST /automation/quick-replies",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successo"
-          },
-          "400": {
-            "description": "Requisição inválida"
-          },
-          "401": {
-            "description": "Não autenticado"
-          },
-          "403": {
-            "description": "Sem permissão"
-          },
-          "404": {
-            "description": "Não encontrado"
-          }
-        }
-      }
-    },
-    "/automation/quick-replies/:id": {
-      "put": {
-        "operationId": "put__automation_quick_replies_id_1",
-        "summary": "PUT /automation/quick-replies/:id",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successo"
-          },
-          "400": {
-            "description": "Requisição inválida"
-          },
-          "401": {
-            "description": "Não autenticado"
-          },
-          "403": {
-            "description": "Sem permissão"
-          },
-          "404": {
-            "description": "Não encontrado"
-          }
-        }
-      },
-      "delete": {
-        "operationId": "delete__automation_quick_replies_id_2",
-        "summary": "DELETE /automation/quick-replies/:id",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successo"
-          },
-          "400": {
-            "description": "Requisição inválida"
-          },
-          "401": {
-            "description": "Não autenticado"
-          },
-          "403": {
-            "description": "Sem permissão"
-          },
-          "404": {
-            "description": "Não encontrado"
-          }
-        }
-      }
-    },
-    "/automation/quick-replies/:id/use": {
-      "post": {
-        "operationId": "post__automation_quick_replies_id_use_1",
-        "summary": "POST /automation/quick-replies/:id/use",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successo"
-          },
-          "400": {
-            "description": "Requisição inválida"
-          },
-          "401": {
-            "description": "Não autenticado"
-          },
-          "403": {
-            "description": "Sem permissão"
-          },
-          "404": {
-            "description": "Não encontrado"
-          }
-        }
-      }
-    },
-    "/notifications": {
-      "get": {
-        "operationId": "get__notifications_1",
-        "summary": "GET /notifications",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successo"
-          },
-          "400": {
-            "description": "Requisição inválida"
-          },
-          "401": {
-            "description": "Não autenticado"
-          },
-          "403": {
-            "description": "Sem permissão"
-          },
-          "404": {
-            "description": "Não encontrado"
-          }
-        }
-      }
-    },
-    "/notifications/:id/read": {
-      "patch": {
-        "operationId": "patch__notifications_id_read_1",
-        "summary": "PATCH /notifications/:id/read",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successo"
-          },
-          "400": {
-            "description": "Requisição inválida"
-          },
-          "401": {
-            "description": "Não autenticado"
-          },
-          "403": {
-            "description": "Sem permissão"
-          },
-          "404": {
-            "description": "Não encontrado"
-          }
-        }
-      }
-    },
-    "/notifications/read-all": {
-      "post": {
-        "operationId": "post__notifications_read_all_1",
-        "summary": "POST /notifications/read-all",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successo"
-          },
-          "400": {
-            "description": "Requisição inválida"
-          },
-          "401": {
-            "description": "Não autenticado"
-          },
-          "403": {
-            "description": "Sem permissão"
-          },
-          "404": {
-            "description": "Não encontrado"
-          }
-        }
-      }
-    },
-    "/notifications/logs": {
-      "get": {
-        "operationId": "get__notifications_logs_1",
-        "summary": "GET /notifications/logs",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successo"
-          },
-          "400": {
-            "description": "Requisição inválida"
-          },
-          "401": {
-            "description": "Não autenticado"
-          },
-          "403": {
-            "description": "Sem permissão"
-          },
-          "404": {
-            "description": "Não encontrado"
-          }
-        }
-      }
-    },
-    "/notifications/triggers": {
-      "get": {
-        "operationId": "get__notifications_triggers_1",
-        "summary": "GET /notifications/triggers",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successo"
-          },
-          "400": {
-            "description": "Requisição inválida"
-          },
-          "401": {
-            "description": "Não autenticado"
-          },
-          "403": {
-            "description": "Sem permissão"
-          },
-          "404": {
-            "description": "Não encontrado"
-          }
-        }
-      },
-      "post": {
-        "operationId": "post__notifications_triggers_2",
-        "summary": "POST /notifications/triggers",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successo"
-          },
-          "400": {
-            "description": "Requisição inválida"
-          },
-          "401": {
-            "description": "Não autenticado"
-          },
-          "403": {
-            "description": "Sem permissão"
-          },
-          "404": {
-            "description": "Não encontrado"
-          }
-        }
-      }
-    },
-    "/notifications/triggers/:id": {
-      "patch": {
-        "operationId": "patch__notifications_triggers_id_1",
-        "summary": "PATCH /notifications/triggers/:id",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successo"
-          },
-          "400": {
-            "description": "Requisição inválida"
-          },
-          "401": {
-            "description": "Não autenticado"
-          },
-          "403": {
-            "description": "Sem permissão"
-          },
-          "404": {
-            "description": "Não encontrado"
-          }
-        }
-      },
-      "delete": {
-        "operationId": "delete__notifications_triggers_id_2",
-        "summary": "DELETE /notifications/triggers/:id",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successo"
-          },
-          "400": {
-            "description": "Requisição inválida"
-          },
-          "401": {
-            "description": "Não autenticado"
-          },
-          "403": {
-            "description": "Sem permissão"
-          },
-          "404": {
-            "description": "Não encontrado"
-          }
-        }
-      }
-    },
-    "/dashboard/overview": {
-      "get": {
-        "operationId": "get__dashboard_overview_1",
-        "summary": "GET /dashboard/overview",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successo"
-          },
-          "400": {
-            "description": "Requisição inválida"
-          },
-          "401": {
-            "description": "Não autenticado"
-          },
-          "403": {
-            "description": "Sem permissão"
-          },
-          "404": {
-            "description": "Não encontrado"
-          }
-        }
-      }
-    },
-    "/users": {
-      "get": {
-        "operationId": "get__users_1",
-        "summary": "GET /users",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successo"
-          },
-          "400": {
-            "description": "Requisição inválida"
-          },
-          "401": {
-            "description": "Não autenticado"
-          },
-          "403": {
-            "description": "Sem permissão"
-          },
-          "404": {
-            "description": "Não encontrado"
-          }
-        }
-      },
-      "post": {
-        "operationId": "post__users_2",
-        "summary": "POST /users",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successo"
-          },
-          "400": {
-            "description": "Requisição inválida"
-          },
-          "401": {
-            "description": "Não autenticado"
-          },
-          "403": {
-            "description": "Sem permissão"
-          },
-          "404": {
-            "description": "Não encontrado"
-          }
-        }
-      }
-    },
-    "/users/:id": {
-      "get": {
-        "operationId": "get__users_id_1",
-        "summary": "GET /users/:id",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successo"
-          },
-          "400": {
-            "description": "Requisição inválida"
-          },
-          "401": {
-            "description": "Não autenticado"
-          },
-          "403": {
-            "description": "Sem permissão"
-          },
-          "404": {
-            "description": "Não encontrado"
-          }
-        }
-      },
-      "patch": {
-        "operationId": "patch__users_id_2",
-        "summary": "PATCH /users/:id",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successo"
-          },
-          "400": {
-            "description": "Requisição inválida"
-          },
-          "401": {
-            "description": "Não autenticado"
-          },
-          "403": {
-            "description": "Sem permissão"
-          },
-          "404": {
-            "description": "Não encontrado"
-          }
-        }
-      },
-      "delete": {
-        "operationId": "delete__users_id_3",
-        "summary": "DELETE /users/:id",
         "security": [
           {
             "bearerAuth": []

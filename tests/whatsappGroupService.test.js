@@ -9,7 +9,7 @@ const repository = {
 const cache = { nextRoundRobin: vi.fn() };
 
 vi.mock('../src/modules/whatsapp/repositories/whatsappRepository.js', () => repository);
-vi.mock('../src/infrastructure/cache/chatbotCache.js', () => ({ default: cache }));
+vi.mock('../src/modules/automation/cache/chatbotCache.js', () => ({ default: cache }));
 
 const { resolveForwardTarget } = await import('../src/modules/whatsapp/services/whatsappService.js');
 

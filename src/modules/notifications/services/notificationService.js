@@ -1,6 +1,9 @@
 import { NotFoundError, ConflictError } from '../../../shared/errors/AppError.js';
 import * as repo from '../repositories/notificationRepository.js';
 import { fillTemplate } from '../../automation/services/templateEngine.js';
+import prisma from '../../../infrastructure/database/prismaClient.js';
+import { sendText } from '../../../infrastructure/whatsapp/evolutionApiClient.js';
+import { enqueueNotification } from '../../../infrastructure/queue/notificationQueue.js';
 
 export async function list(userId, companyId, limit) {
   return repo.listNotifications(userId, companyId, { limit });
@@ -22,9 +25,8 @@ export async function markAllRead(userId, companyId) {
 
 export async function notifyAttendants({ companyId, title, message, type = 'message', relatedEntityType, relatedEntityId }) {
   const attendants = await repo.listAttendantUsers(companyId);
-  const results = [];
-  for (const uc of attendants) {
-    const n = await repo.createNotification({
+  return Promise.all(attendants.map((uc) =>
+    repo.createNotification({
       user_id: uc.user_id,
       company_id: companyId,
       type,
@@ -32,10 +34,13 @@ export async function notifyAttendants({ companyId, title, message, type = 'mess
       message,
       related_entity_type: relatedEntityType ?? null,
       related_entity_id: relatedEntityId ?? null,
-    });
-    results.push(n);
-  }
-  return results;
+    }).catch(() => null),
+  ));
+}
+
+export function notifyAttendantsAsync(payload) {
+  enqueueNotification({ type: 'notify_attendants', payload });
+  return { queued: true };
 }
 
 /* ===== Notification triggers ===== */
@@ -98,6 +103,8 @@ export async function dispatchEvent({ companyId, event, vars = {}, relatedEntity
   if (triggers.length === 0) return { dispatched: 0 };
 
   const results = [];
+  const number = await prisma.whatsAppNumber.findFirst({ where: { company_id: companyId, status: 'connected' } }).catch(() => null);
+
   for (const trigger of triggers) {
     const message = fillTemplate(trigger.template ?? event, vars);
     const recipients = await resolveRecipients(companyId, trigger.recipient_rule, vars);
@@ -117,19 +124,18 @@ export async function dispatchEvent({ companyId, event, vars = {}, relatedEntity
         }).catch(() => null);
         results.push({ channel: 'app', userId: recipient.userId });
       }
-      if (sendWhatsApp && recipient.phone) {
-        const { env } = await import('../../../config/env.js');
-        const prisma = (await import('../../../infrastructure/database/prismaClient.js')).default;
-        const number = await prisma.whatsAppNumber.findFirst({ where: { company_id: companyId, status: 'connected' } }).catch(() => null);
-        if (number?.external_account_id) {
-          const { sendText } = await import('../../../infrastructure/whatsapp/evolutionApiClient.js');
-          await sendText(number.external_account_id, recipient.phone, message, 500).catch(() => null);
-          results.push({ channel: 'whatsapp', phone: recipient.phone });
-        }
+      if (sendWhatsApp && recipient.phone && number?.external_account_id) {
+        await sendText(number.external_account_id, recipient.phone, message, 500).catch(() => null);
+        results.push({ channel: 'whatsapp', phone: recipient.phone });
       }
     }
   }
   return { dispatched: results.length, results };
+}
+
+export function dispatchEventAsync(payload) {
+  enqueueNotification({ type: 'dispatch_event', payload });
+  return { queued: true };
 }
 
 export default {
@@ -138,9 +144,11 @@ export default {
   markAsRead,
   markAllRead,
   notifyAttendants,
+  notifyAttendantsAsync,
   listTriggers,
   createTrigger,
   updateTrigger,
   deleteTrigger,
   dispatchEvent,
+  dispatchEventAsync,
 };

@@ -4,14 +4,54 @@ import * as automationRepo from '../repositories/automationRepository.js';
 import * as whatsappRepo from '../../whatsapp/repositories/whatsappRepository.js';
 import * as conversationRepo from '../../conversations/repositories/conversationRepository.js';
 import * as evolutionApi from '../../../infrastructure/whatsapp/evolutionApiClient.js';
-import chatbotCache from '../../../infrastructure/cache/chatbotCache.js';
+import chatbotCache from '../cache/chatbotCache.js';
 import { fillTemplate } from './templateEngine.js';
 import { evaluateExpression } from './expressionEvaluator.js';
 import { extractMessageText as extractMessageTextFromShared } from '../../../shared/whatsapp/extraction.js';
+import { normalizePhone } from '../../../shared/whatsapp/phone.js';
+import { syncConversation } from '../../../shared/whatsapp/conversation.js';
+import { findOrCreateCustomer } from '../../../shared/whatsapp/customer.js';
+import { createOrder } from '../../orders/services/orderService.js';
+import { notifyAttendantsAsync } from '../../notifications/services/notificationService.js';
 import { logger } from '../../../config/logger.js';
 
+function mapFlow(flow) {
+  if (!flow) return flow;
+  return {
+    id: flow.id,
+    companyId: flow.company_id,
+    name: flow.name,
+    type: flow.type,
+    description: flow.description,
+    iconEmoji: flow.icon_emoji,
+    messagesCount: flow.messages_count,
+    totalConversions: flow.total_conversions,
+    conversionRate: flow.conversion_rate,
+    growthPercentage: flow.growth_percentage,
+    isActive: flow.is_active,
+    configJson: flow.config_json,
+    createdAt: flow.created_at,
+    updatedAt: flow.updated_at,
+  };
+}
+
+function mapQuickReply(reply) {
+  if (!reply) return reply;
+  return {
+    id: reply.id,
+    companyId: reply.company_id,
+    shortcut: reply.shortcut,
+    messageText: reply.message_text,
+    createdBy: reply.created_by,
+    usageCount: reply.usage_count,
+    createdAt: reply.created_at,
+    updatedAt: reply.updated_at,
+  };
+}
+
 export async function listFlows(companyId, filters) {
-  return automationRepo.listFlows(companyId, filters);
+  const flows = await automationRepo.listFlows(companyId, filters);
+  return Array.isArray(flows) ? flows.map(mapFlow) : flows;
 }
 
 export function validateFlowConfig(config) {
@@ -56,13 +96,13 @@ export function validateFlowConfig(config) {
 export async function getFlowById(companyId, id) {
   const flow = await automationRepo.findFlowById(companyId, id);
   if (!flow) throw new NotFoundError('Fluxo não encontrado.');
-  return flow;
+  return mapFlow(flow);
 }
 
 export async function createFlow(companyId, data) {
   const config = { steps: data.config.steps, triggers: data.config.triggers ?? [], defaultStep: data.config.defaultStep ?? data.config.steps[0]?.id };
   validateFlowConfig(config);
-  return automationRepo.createFlow({
+  const flow = await automationRepo.createFlow({
     company_id: companyId,
     name: data.name,
     type: data.type,
@@ -71,6 +111,7 @@ export async function createFlow(companyId, data) {
     is_active: data.isActive ?? true,
     config_json: config,
   });
+  return mapFlow(flow);
 }
 
 export async function updateFlow(companyId, id, data) {
@@ -94,7 +135,8 @@ export async function updateFlow(companyId, id, data) {
   }
 
   await automationRepo.updateFlow(companyId, id, patch);
-  return automationRepo.findUpdatedFlow(companyId, id);
+  const updated = await automationRepo.findUpdatedFlow(companyId, id);
+  return mapFlow(updated);
 }
 
 export async function deleteFlow(companyId, id) {
@@ -123,6 +165,38 @@ export async function duplicateFlow(companyId, id) {
     is_active: false,
     config_json: existing.config_json,
   });
+}
+
+export async function exportFlow(companyId, id) {
+  const flow = await automationRepo.findFlowById(companyId, id);
+  if (!flow) throw new NotFoundError('Fluxo não encontrado.');
+  return {
+    name: flow.name,
+    type: flow.type,
+    description: flow.description,
+    iconEmoji: flow.icon_emoji,
+    isActive: flow.is_active,
+    config: flow.config_json ?? { steps: [], triggers: [], defaultStep: null },
+  };
+}
+
+export async function importFlow(companyId, data) {
+  const config = {
+    steps: data.config?.steps ?? [],
+    triggers: data.config?.triggers ?? [],
+    defaultStep: data.config?.defaultStep ?? data.config?.steps?.[0]?.id,
+  };
+  validateFlowConfig(config);
+  const flow = await automationRepo.createFlow({
+    company_id: companyId,
+    name: data.name,
+    type: data.type,
+    description: data.description ?? null,
+    icon_emoji: data.iconEmoji ?? null,
+    is_active: data.isActive ?? true,
+    config_json: config,
+  });
+  return mapFlow(flow);
 }
 
 export async function testFlow(companyId, id, data) {
@@ -156,7 +230,13 @@ export async function testFlow(companyId, id, data) {
 /* ===== Quick replies ===== */
 
 export async function listQuickReplies(companyId) {
-  return automationRepo.listQuickReplies(companyId);
+  const replies = await automationRepo.listQuickReplies(companyId);
+  return Array.isArray(replies) ? replies.map(mapQuickReply) : replies;
+}
+
+export async function findQuickReplyById(companyId, id) {
+  const reply = await automationRepo.findQuickReplyById(companyId, id);
+  return mapQuickReply(reply);
 }
 
 export async function createQuickReply(companyId, userId, data) {
@@ -164,12 +244,13 @@ export async function createQuickReply(companyId, userId, data) {
   if (duplicates.some((q) => q.shortcut.toLowerCase() === data.shortcut.toLowerCase())) {
     throw new ConflictError('Atalho já cadastrado.');
   }
-  return automationRepo.createQuickReply({
+  const reply = await automationRepo.createQuickReply({
     company_id: companyId,
     shortcut: data.shortcut,
     message_text: data.messageText,
     created_by: userId,
   });
+  return mapQuickReply(reply);
 }
 
 export async function updateQuickReply(companyId, id, data) {
@@ -179,7 +260,8 @@ export async function updateQuickReply(companyId, id, data) {
   if (data.shortcut) patch.shortcut = data.shortcut;
   if (data.messageText) patch.message_text = data.messageText;
   await automationRepo.updateQuickReply(companyId, id, patch);
-  return automationRepo.listQuickReplies(companyId).then((list) => list.find((q) => q.id === id));
+  const updated = await automationRepo.listQuickReplies(companyId).then((list) => list.find((q) => q.id === id));
+  return mapQuickReply(updated);
 }
 
 export async function deleteQuickReply(companyId, id) {
@@ -197,10 +279,6 @@ export async function useQuickReply(companyId, id) {
 }
 
 /* ===== Flow execution engine ===== */
-
-function normalizePhone(phone) {
-  return String(phone).replace('@c.us', '').replace('@s.whatsapp.net', '');
-}
 
 export function extractMessageText(data) {
   return extractMessageTextFromShared(data?.message ?? data);
@@ -222,7 +300,7 @@ async function sendFlowMessage(number, to, text) {
   } catch (err) {
     logger.error({ err: err.message, to, text }, 'bot: falha ao enviar resposta');
   }
-  await createConversationRecord({ companyId: number.company_id, number, from: to, text, sender: 'bot', messageType: 'text' }).catch(() => null);
+  await syncConversation({ companyId: number.company_id, from: to, content: text, sender: 'bot', messageType: 'text' }).catch(() => null);
 }
 
 async function sendFlowMedia(number, to, media) {
@@ -232,10 +310,10 @@ async function sendFlowMedia(number, to, media) {
   } catch (err) {
     logger.error({ err: err.message, to, type: media.type }, 'bot: falha ao enviar mídia');
   }
-  await createConversationRecord({ companyId: number.company_id, number, from: to, text: media.caption ?? media.type, sender: 'bot', messageType: media.type || 'image' }).catch(() => null);
+  await syncConversation({ companyId: number.company_id, from: to, content: media.caption ?? media.type, sender: 'bot', messageType: media.type || 'image' }).catch(() => null);
 }
 
-async function sendFlowButtons(number, to, { title, description, buttons, footer = 'diix', delay = 500 }) {
+async function sendFlowButtons(number, to, { title, description, buttons, footer = '', delay = 500 }) {
   if (!buttons || buttons.length === 0) { await sendFlowMessage(number, to, [title, description].filter(Boolean).join('\n\n')); return; }
   try {
     const mapped = buttons.map((b) => ({ type: 'reply', title: b, id: `btn_${Date.now()}_${b}` }));
@@ -302,12 +380,13 @@ async function checkoutCartStep({ companyId, number, from, vars, step }) {
   const cart = Array.isArray(vars?.cart) ? vars.cart : [];
   if (cart.length === 0) return null;
   const phone = normalizePhone(from);
-  let customer = await whatsappRepo.findCustomerByPhone(companyId, phone);
-  if (!customer) {
-    const { createCustomer } = await import('../../customers/services/customerService.js');
-    customer = await createCustomer(companyId, { name: phone, phone, segment: 'new' });
-  }
-  const { createOrder } = await import('../../orders/services/orderService.js');
+  const customer = await findOrCreateCustomer({
+    companyId,
+    whatsappNumberId: number.id,
+    phone,
+    preferredName: vars?.nome || null,
+  });
+  vars.customerId = customer.id;
   const items = cart.map((i) => ({ productId: i.productId, quantity: i.quantity }));
   const order = await createOrder(companyId, customer.id, step.paymentMethod ?? 'pix', items);
   return order;
@@ -319,35 +398,24 @@ async function updateContactFlowState(companyId, contactId, state) {
   await whatsappRepo.updateContactMetadata(contactId, merged);
 }
 
-async function createConversationRecord({ companyId, number, from, text, sender, messageType }) {
-  const channel = 'whatsapp';
-  let conversation = await conversationRepo.findConversationByContact(companyId, channel, from);
-  if (!conversation) {
-    conversation = await conversationRepo.createConversation({
-      company_id: companyId,
-      channel,
-      contact_name: from,
-      contact_phone: from,
-      last_message: text,
-      last_message_at: new Date(),
-      unread_count: sender === 'customer' ? 1 : 0,
-      status: sender === 'customer' ? 'open' : 'waiting',
-    });
-  } else {
-    conversation = await conversationRepo.updateConversationLastMessage(conversation.id, text, 0);
-  }
-  await conversationRepo.createMessage({
-    conversation_id: conversation.id,
-    sender_type: sender,
-    message_type: messageType || 'text',
-    content: text || '',
-    status: 'delivered',
-    sent_at: new Date(),
-  });
-}
-
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function logFlowAction({ companyId, number, from, step, flow }) {
+  if (!number?.id) return;
+  const event = step.action === 'alert' ? 'alert' : 'flow_action';
+  await whatsappRepo.createMessageLog({
+    company_id: companyId,
+    whatsapp_number_id: number.id,
+    event,
+    direction: 'outbound',
+    message_type: 'text',
+    content: step.action || step.type,
+    recipient: from,
+    remote_jid: `${from}@s.whatsapp.net`,
+    status: 'sent',
+  }).catch(() => null);
 }
 
 async function resolveFlow(companyId, number, group, text, priority = ['vendas', 'suporte', 'marketing']) {
@@ -365,17 +433,19 @@ async function resolveFlow(companyId, number, group, text, priority = ['vendas',
   return null;
 }
 
-function buildFlowContext({ number, from, text, state, flow, group }) {
+function buildFlowContext({ number, from, text, state, flow, group, media, step }) {
   const now = new Date();
   return {
     ...(state?.vars ?? {}),
     nome: state?.vars?.nome ?? null,
     telefone: normalizePhone(from),
     mensagem: text || '',
-    media: null,
+    media: media?.url ?? null,
+    media_type: media?.type ?? null,
+    media_caption: media?.caption ?? null,
     flow_name: flow?.name ?? '',
     flow_id: flow?.id ?? '',
-    step_id: '',
+    step_id: step?.id ?? '',
     data: now.toISOString().slice(0, 10),
     hora: now.toTimeString().slice(0, 8),
     grupo: group?.senderName ?? null,
@@ -479,9 +549,9 @@ async function runWebhook({ step, vars, text, from, flow, group, context }) {
   }
 }
 
-async function executeStep({ companyId, number, from, replyTo, text, contact, flow, step, state, group }) {
+async function executeStep({ companyId, number, from, replyTo, text, contact, flow, step, state, group, media }) {
   const vars = { ...(state?.vars ?? {}) };
-  const context = buildFlowContext({ number, from, text, state: { vars }, flow, group });
+  const context = buildFlowContext({ number, from, text, state: { vars }, flow, group, media, step });
   let nextStep = step.next ?? null;
   let clear = false;
   const target = replyTo ?? from;
@@ -584,6 +654,7 @@ async function executeStep({ companyId, number, from, replyTo, text, contact, fl
   }
 
   if (step.type === 'action') {
+    await logFlowAction({ companyId, number, from, step, flow });
     if (step.action === 'transfer_to_human') {
       const bc = (await whatsappRepo.getBotConfig(companyId).catch(() => ({}))) ?? {};
       const cart = (vars?.cart ?? []).length > 0 ? formatCartSummary(vars.cart) : '';
@@ -592,15 +663,14 @@ async function executeStep({ companyId, number, from, replyTo, text, contact, fl
       clear = true;
       const conv = await conversationRepo.findConversationByContact(companyId, 'whatsapp', from);
       if (conv) await conversationRepo.updateConversation(conv.id, { status: 'waiting' }).catch(() => null);
-      const { notifyAttendants } = await import('../../notifications/services/notificationService.js');
-      await notifyAttendants({
+      notifyAttendantsAsync({
         companyId,
         title: cart ? 'Cliente finalizou pedido' : 'Cliente pediu atendente',
         message: `${from}: "${text}"${cart ? `\n\n${cart}` : ''}`,
         type: 'message',
         relatedEntityType: 'conversation',
         relatedEntityId: conv?.id ?? null,
-      }).catch(() => null);
+      });
       nextStep = null;
     } else if (step.action === 'cart_summary') {
       const cart = vars?.cart ?? [];
@@ -626,16 +696,16 @@ async function executeStep({ companyId, number, from, replyTo, text, contact, fl
           clear = true;
           const conv = await conversationRepo.findConversationByContact(companyId, 'whatsapp', from);
           if (conv) await conversationRepo.updateConversation(conv.id, { status: 'waiting' }).catch(() => null);
-          const { notifyAttendants } = await import('../../notifications/services/notificationService.js');
+          
           const cartSummary = formatCartSummary(vars?.cart ?? []);
-          await notifyAttendants({
+          notifyAttendantsAsync({
             companyId,
             title: `Novo pedido: ${order.order_number}`,
             message: `${from} finalizou o pedido no WhatsApp.\n\nPedido: ${order.order_number}\nTotal: ${totalStr}\n\n${cartSummary}`,
             type: 'order',
             relatedEntityType: 'order',
             relatedEntityId: order.id,
-          }).catch(() => null);
+          });
           vars.cart = [];
           vars.cartSummaryPending = false;
         } else {
@@ -656,15 +726,14 @@ async function executeStep({ companyId, number, from, replyTo, text, contact, fl
       await sendFlowMessage(number, target, step.content || 'Carrinho limpo.');
       nextStep = step.next ?? null;
     } else if (step.action === 'alert') {
-      const { notifyAttendants } = await import('../../notifications/services/notificationService.js');
-      await notifyAttendants({
+      notifyAttendantsAsync({
         companyId,
         title: step.title || 'Alerta do fluxo',
         message: fillTemplate(step.content ?? '', { ...context, ...vars, mensagem: text || '' }),
         type: step.notificationType ?? 'automation',
         relatedEntityType: 'flow',
         relatedEntityId: flow.id,
-      }).catch(() => null);
+      });
       nextStep = step.next ?? null;
     } else if (step.action === 'webhook') {
       const result = await runWebhook({ step, vars, text, from, flow, group, context });
@@ -701,13 +770,13 @@ async function executeStep({ companyId, number, from, replyTo, text, contact, fl
   return { nextStep, vars, clear, switchFlow: null };
 }
 
-export async function processIncomingMessage({ companyId, number, from, text, contact, group }) {
+export async function processIncomingMessage({ companyId, number, from, text, contact, group, media }) {
   if (!number.is_bot_enabled) return null;
 
   const resolvedContact = contact ?? await whatsappRepo.findContactByPhone(companyId, number.id, from);
   const cachedState = await chatbotCache.getFlowState(companyId, from);
   const dbState = resolvedContact?.metadata ?? {};
-  const currentState = cachedState ?? dbState;
+  let currentState = cachedState ?? dbState;
   const currentStepId = currentState?.flowStep;
   const persistedFlowId = currentState?.flowId ?? null;
   const cacheRead = !!cachedState;
@@ -861,8 +930,8 @@ export async function processIncomingMessage({ companyId, number, from, text, co
           await sendFlowMessage(number, replyTo, transferMsg);
           if (resolvedContact?.id) await updateContactFlowState(companyId, resolvedContact.id, { flowId: null, flowStep: null, vars: currentState.vars ?? {} });
           await chatbotCache.clearFlowState(companyId, from);
-          const { notifyAttendants } = await import('../../notifications/services/notificationService.js');
-          await notifyAttendants({ companyId, title: 'Cliente sem resposta do bot', message: `${from} não entendeu as opções do fluxo: "${text}"`, type: 'message' }).catch(() => null);
+          
+          notifyAttendantsAsync({ companyId, title: 'Cliente sem resposta do bot', message: `${from} não entendeu as opções do fluxo: "${text}"`, type: 'message' });
           return { flowId: flow.id, stepId: currentStep.id, nextStepId: null, cacheRead, cleared: true };
         }
         nextStep = currentStep;
@@ -883,7 +952,7 @@ export async function processIncomingMessage({ companyId, number, from, text, co
 
   const state = { flowId: flow.id, flowStep: currentStepId, vars: currentState?.vars ?? {} };
   const replyTo = group?.remoteJid ?? from;
-  let result = await executeStep({ companyId, number, from, replyTo, text, contact: resolvedContact, flow, step: nextStep, state, group });
+  let result = await executeStep({ companyId, number, from, replyTo, text, contact: resolvedContact, flow, step: nextStep, state, group, media });
 
   let finalFlowId = flow.id;
   if (result.switchFlow) finalFlowId = result.switchFlow;
@@ -898,7 +967,7 @@ export async function processIncomingMessage({ companyId, number, from, text, co
     if (needsInput) break;
     if (chainStep.type === 'message' || chainStep.type === 'media' || chainStep.type === 'delay') await sleep(600);
     const chainState = { flowId: flow.id, flowStep: result.nextStep, vars: result.vars ?? state.vars };
-    result = await executeStep({ companyId, number, from, replyTo, text, contact: resolvedContact, flow, step: chainStep, state: chainState, group });
+    result = await executeStep({ companyId, number, from, replyTo, text, contact: resolvedContact, flow, step: chainStep, state: chainState, group, media });
     hops += 1;
     if (result.switchFlow) { finalFlowId = result.switchFlow; break; }
     if (result.clear) break;
@@ -927,6 +996,7 @@ export default {
   testFlow,
   validateFlowConfig,
   listQuickReplies,
+  findQuickReplyById,
   createQuickReply,
   updateQuickReply,
   deleteQuickReply,

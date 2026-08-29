@@ -26,11 +26,18 @@ export function extractMedia(message) {
   if (message.videoMessage?.url) return { type: 'video', url: message.videoMessage.url, caption: message.videoMessage.caption ?? null, fileName: null, mimeType: message.videoMessage.mimetype ?? null };
   if (message.audioMessage?.url) return { type: 'audio', url: message.audioMessage.url, caption: null, fileName: null, mimeType: message.audioMessage.mimetype ?? null };
   if (message.stickerMessage?.url) return { type: 'sticker', url: message.stickerMessage.url, caption: null, fileName: null, mimeType: message.stickerMessage.mimetype ?? null };
+  if (message.locationMessage && message.locationMessage.degreesLatitude !== undefined) {
+    return { type: 'location', url: null, caption: `${message.locationMessage.degreesLatitude},${message.locationMessage.degreesLongitude}`, fileName: null, mimeType: null };
+  }
+  if (message.contactMessage?.displayName) {
+    const vcard = message.contactMessage.vcard ?? '';
+    return { type: 'contact', url: null, caption: message.contactMessage.displayName, fileName: null, mimeType: null };
+  }
+  if (message.pollCreationMessage?.name) {
+    const options = (message.pollCreationMessage.options ?? []).map((o) => o.optionName).join(', ');
+    return { type: 'poll', url: null, caption: message.pollCreationMessage.name, fileName: null, mimeType: null };
+  }
   return null;
 }
 
-export function extractMessageTextFromData(data) {
-  return extractMessageText(data?.message ?? data);
-}
-
-export default { extractMessageText, extractMedia, extractMessageTextFromData };
+export default { extractMessageText, extractMedia };

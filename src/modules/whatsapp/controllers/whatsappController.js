@@ -1,4 +1,5 @@
 import * as whatsappService from '../services/whatsappService.js';
+import { listOrderNotificationLogs } from '../../notifications/repositories/notificationRepository.js';
 import {
   connectNumberSchema, sendMessageSchema, sendMediaSchema, sendAudioSchema, sendDocumentSchema,
   sendVideoSchema, sendStickerSchema, sendButtonsSchema, sendListSchema, sendLocationSchema,
@@ -14,447 +15,193 @@ import {
   requestPairingSchema, changeNumberSchema, linkPreviewSchema, typewriterSchema, sendBase64Schema, sendBulkSchema,
 } from '../validators/whatsappValidators.js';
 import { successResponse, createdResponse } from '../../../shared/utils/response.js';
+import { asyncHandler } from '../../../shared/utils/asyncHandler.js';
 
-export async function listNumbers(req, res, next) {
-  try { const data = await whatsappService.listNumbers(req.tenant.companyId); return successResponse(res, data); }
-  catch (error) { return next(error); }
-}
+export const listNumbers = asyncHandler(async (req, res) => { const data = await whatsappService.listNumbers(req.tenant.companyId); return successResponse(res, data); });
 
-export async function connectNumber(req, res, next) {
-  try { const data = connectNumberSchema.parse(req.body); const result = await whatsappService.connectNumber(req.tenant.companyId, data); return createdResponse(res, result); }
-  catch (error) { return next(error); }
-}
+export const connectNumber = asyncHandler(async (req, res) => { const data = connectNumberSchema.parse(req.body); const result = await whatsappService.connectNumber(req.tenant.companyId, data); return createdResponse(res, result); });
 
-export async function getQrCode(req, res, next) {
-  try { const result = await whatsappService.getQrCode(req.tenant.companyId, req.params.id); return successResponse(res, result); }
-  catch (error) { return next(error); }
-}
+export const getQrCode = asyncHandler(async (req, res) => { const result = await whatsappService.getQrCode(req.tenant.companyId, req.params.id); return successResponse(res, result); });
 
-export async function getStatus(req, res, next) {
-  try { const result = await whatsappService.getStatus(req.tenant.companyId, req.params.id); return successResponse(res, result); }
-  catch (error) { return next(error); }
-}
+export const getStatus = asyncHandler(async (req, res) => { const result = await whatsappService.getStatus(req.tenant.companyId, req.params.id); return successResponse(res, result); });
 
-export async function disconnectNumber(req, res, next) {
-  try { const result = await whatsappService.disconnectNumber(req.tenant.companyId, req.params.id); return successResponse(res, result); }
-  catch (error) { return next(error); }
-}
+export const disconnectNumber = asyncHandler(async (req, res) => { const result = await whatsappService.disconnectNumber(req.tenant.companyId, req.params.id); return successResponse(res, result); });
 
-export async function deleteNumber(req, res, next) {
-  try { const result = await whatsappService.deleteNumber(req.tenant.companyId, req.params.id); return successResponse(res, result); }
-  catch (error) { return next(error); }
-}
+export const deleteNumber = asyncHandler(async (req, res) => { const result = await whatsappService.deleteNumber(req.tenant.companyId, req.params.id); return successResponse(res, result); });
 
-export async function sendMessage(req, res, next) {
-  try { const data = sendMessageSchema.parse(req.body); const result = await whatsappService.sendMessage(req.tenant.companyId, req.params.id, data); return createdResponse(res, result); }
-  catch (error) { return next(error); }
-}
+export const sendMessage = asyncHandler(async (req, res) => { const data = sendMessageSchema.parse(req.body); const result = await whatsappService.sendMessage(req.tenant.companyId, req.params.id, data); return createdResponse(res, result); });
 
-export async function sendMedia(req, res, next) {
-  try { const data = sendMediaSchema.parse(req.body); const result = await whatsappService.sendMedia(req.tenant.companyId, req.params.id, data); return createdResponse(res, result); }
-  catch (error) { return next(error); }
-}
+export const sendMedia = asyncHandler(async (req, res) => { const data = sendMediaSchema.parse(req.body); const result = await whatsappService.sendMedia(req.tenant.companyId, req.params.id, data); return createdResponse(res, result); });
 
-export async function sendAudio(req, res, next) {
-  try { const data = sendAudioSchema.parse(req.body); const result = await whatsappService.sendAudioMessage(req.tenant.companyId, req.params.id, data); return createdResponse(res, result); }
-  catch (error) { return next(error); }
-}
+export const sendAudio = asyncHandler(async (req, res) => { const data = sendAudioSchema.parse(req.body); const result = await whatsappService.sendAudioMessage(req.tenant.companyId, req.params.id, data); return createdResponse(res, result); });
 
-export async function sendDocument(req, res, next) {
-  try { const data = sendDocumentSchema.parse(req.body); const result = await whatsappService.sendDocumentMessage(req.tenant.companyId, req.params.id, data); return createdResponse(res, result); }
-  catch (error) { return next(error); }
-}
+export const sendDocument = asyncHandler(async (req, res) => { const data = sendDocumentSchema.parse(req.body); const result = await whatsappService.sendDocumentMessage(req.tenant.companyId, req.params.id, data); return createdResponse(res, result); });
 
-export async function sendVideo(req, res, next) {
-  try { const data = sendVideoSchema.parse(req.body); const result = await whatsappService.sendVideoMessage(req.tenant.companyId, req.params.id, data); return createdResponse(res, result); }
-  catch (error) { return next(error); }
-}
+export const sendVideo = asyncHandler(async (req, res) => { const data = sendVideoSchema.parse(req.body); const result = await whatsappService.sendVideoMessage(req.tenant.companyId, req.params.id, data); return createdResponse(res, result); });
 
-export async function sendSticker(req, res, next) {
-  try { const data = sendStickerSchema.parse(req.body); const result = await whatsappService.sendStickerMessage(req.tenant.companyId, req.params.id, data); return createdResponse(res, result); }
-  catch (error) { return next(error); }
-}
+export const sendSticker = asyncHandler(async (req, res) => { const data = sendStickerSchema.parse(req.body); const result = await whatsappService.sendStickerMessage(req.tenant.companyId, req.params.id, data); return createdResponse(res, result); });
 
-export async function sendButtons(req, res, next) {
-  try { const data = sendButtonsSchema.parse(req.body); const result = await whatsappService.sendButtonsMessage(req.tenant.companyId, req.params.id, data); return createdResponse(res, result); }
-  catch (error) { return next(error); }
-}
+export const sendButtons = asyncHandler(async (req, res) => { const data = sendButtonsSchema.parse(req.body); const result = await whatsappService.sendButtonsMessage(req.tenant.companyId, req.params.id, data); return createdResponse(res, result); });
 
-export async function sendList(req, res, next) {
-  try { const data = sendListSchema.parse(req.body); const result = await whatsappService.sendListMessage(req.tenant.companyId, req.params.id, data); return createdResponse(res, result); }
-  catch (error) { return next(error); }
-}
+export const sendList = asyncHandler(async (req, res) => { const data = sendListSchema.parse(req.body); const result = await whatsappService.sendListMessage(req.tenant.companyId, req.params.id, data); return createdResponse(res, result); });
 
-export async function sendLocation(req, res, next) {
-  try { const data = sendLocationSchema.parse(req.body); const result = await whatsappService.sendLocationMessage(req.tenant.companyId, req.params.id, data); return createdResponse(res, result); }
-  catch (error) { return next(error); }
-}
+export const sendLocation = asyncHandler(async (req, res) => { const data = sendLocationSchema.parse(req.body); const result = await whatsappService.sendLocationMessage(req.tenant.companyId, req.params.id, data); return createdResponse(res, result); });
 
-export async function sendReaction(req, res, next) {
-  try { const data = sendReactionSchema.parse(req.body); const result = await whatsappService.sendReactionMessage(req.tenant.companyId, req.params.id, data); return createdResponse(res, result); }
-  catch (error) { return next(error); }
-}
+export const sendReaction = asyncHandler(async (req, res) => { const data = sendReactionSchema.parse(req.body); const result = await whatsappService.sendReactionMessage(req.tenant.companyId, req.params.id, data); return createdResponse(res, result); });
 
-export async function sendStatus(req, res, next) {
-  try { const data = sendStatusSchema.parse(req.body); const result = await whatsappService.sendStatus(req.tenant.companyId, req.params.id, data); return createdResponse(res, result); }
-  catch (error) { return next(error); }
-}
+export const sendStatus = asyncHandler(async (req, res) => { const data = sendStatusSchema.parse(req.body); const result = await whatsappService.sendStatus(req.tenant.companyId, req.params.id, data); return createdResponse(res, result); });
 
-export async function sendStatusMedia(req, res, next) {
-  try { const data = sendStatusMediaSchema.parse(req.body); const result = await whatsappService.sendStatusMedia(req.tenant.companyId, req.params.id, data); return createdResponse(res, result); }
-  catch (error) { return next(error); }
-}
+export const sendStatusMedia = asyncHandler(async (req, res) => { const data = sendStatusMediaSchema.parse(req.body); const result = await whatsappService.sendStatusMedia(req.tenant.companyId, req.params.id, data); return createdResponse(res, result); });
 
-export async function markRead(req, res, next) {
-  try { const data = markAsReadSchema.parse(req.body); const result = await whatsappService.markAsRead(req.tenant.companyId, req.params.id, data); return successResponse(res, result); }
-  catch (error) { return next(error); }
-}
+export const markRead = asyncHandler(async (req, res) => { const data = markAsReadSchema.parse(req.body); const result = await whatsappService.markAsRead(req.tenant.companyId, req.params.id, data); return successResponse(res, result); });
 
-export async function typing(req, res, next) {
-  try { const data = presenceSchema.parse(req.body); const result = await whatsappService.setTyping(req.tenant.companyId, req.params.id, data); return successResponse(res, result); }
-  catch (error) { return next(error); }
-}
+export const typing = asyncHandler(async (req, res) => { const data = presenceSchema.parse(req.body); const result = await whatsappService.setTyping(req.tenant.companyId, req.params.id, data); return successResponse(res, result); });
 
-export async function presence(req, res, next) {
-  try { const data = presenceSchema.parse(req.body); const result = await whatsappService.setOnlinePresence(req.tenant.companyId, req.params.id, data); return successResponse(res, result); }
-  catch (error) { return next(error); }
-}
+export const presence = asyncHandler(async (req, res) => { const data = presenceSchema.parse(req.body); const result = await whatsappService.setOnlinePresence(req.tenant.companyId, req.params.id, data); return successResponse(res, result); });
 
-export async function getChats(req, res, next) {
-  try { const result = await whatsappService.listChats(req.tenant.companyId, req.params.id); return successResponse(res, result); }
-  catch (error) { return next(error); }
-}
+export const getChats = asyncHandler(async (req, res) => { const result = await whatsappService.listChats(req.tenant.companyId, req.params.id); return successResponse(res, result); });
 
-export async function getChatMessages(req, res, next) {
-  try { const query = chatMessagesQuerySchema.parse(req.query); const result = await whatsappService.listChatMessages(req.tenant.companyId, req.params.id, query.chatId, query.limit); return successResponse(res, result); }
-  catch (error) { return next(error); }
-}
+export const getChatMessages = asyncHandler(async (req, res) => { const query = chatMessagesQuerySchema.parse(req.query); const result = await whatsappService.listChatMessages(req.tenant.companyId, req.params.id, query.chatId, query.limit); return successResponse(res, result); });
 
 /* ===== Groups ===== */
 
-export async function createGroup(req, res, next) {
-  try { const data = createGroupSchema.parse(req.body); const result = await whatsappService.createGroup(req.tenant.companyId, req.params.id, data); return createdResponse(res, result); }
-  catch (error) { return next(error); }
-}
+export const createGroup = asyncHandler(async (req, res) => { const data = createGroupSchema.parse(req.body); const result = await whatsappService.createGroup(req.tenant.companyId, req.params.id, data); return createdResponse(res, result); });
 
-export async function getGroups(req, res, next) {
-  try { const result = await whatsappService.listGroups(req.tenant.companyId, req.params.id); return successResponse(res, result); }
-  catch (error) { return next(error); }
-}
+export const getGroups = asyncHandler(async (req, res) => { const result = await whatsappService.listGroups(req.tenant.companyId, req.params.id); return successResponse(res, result); });
 
-export async function getGroup(req, res, next) {
-  try { const result = await whatsappService.findGroup(req.tenant.companyId, req.params.id, req.params.groupId); return successResponse(res, result); }
-  catch (error) { return next(error); }
-}
+export const getGroup = asyncHandler(async (req, res) => { const result = await whatsappService.findGroup(req.tenant.companyId, req.params.id, req.params.groupId); return successResponse(res, result); });
 
-export async function updateGroup(req, res, next) {
-  try { const data = updateGroupSchema.parse(req.body); const result = await whatsappService.updateGroup(req.tenant.companyId, req.params.id, req.params.groupId, data); return successResponse(res, result); }
-  catch (error) { return next(error); }
-}
+export const updateGroup = asyncHandler(async (req, res) => { const data = updateGroupSchema.parse(req.body); const result = await whatsappService.updateGroup(req.tenant.companyId, req.params.id, req.params.groupId, data); return successResponse(res, result); });
 
-export async function groupSettings(req, res, next) {
-  try { const data = updateGroupSchema.parse(req.body); const result = await whatsappService.groupSettings(req.tenant.companyId, req.params.id, req.params.groupId, data); return successResponse(res, result); }
-  catch (error) { return next(error); }
-}
+export const groupSettings = asyncHandler(async (req, res) => { const data = updateGroupSchema.parse(req.body); const result = await whatsappService.groupSettings(req.tenant.companyId, req.params.id, req.params.groupId, data); return successResponse(res, result); });
 
-export async function addGroupParticipant(req, res, next) {
-  try { const data = groupActionSchema.parse(req.body); const result = await whatsappService.addParticipant(req.tenant.companyId, req.params.id, req.params.groupId, data); return successResponse(res, result); }
-  catch (error) { return next(error); }
-}
+export const addGroupParticipant = asyncHandler(async (req, res) => { const data = groupActionSchema.parse(req.body); const result = await whatsappService.addParticipant(req.tenant.companyId, req.params.id, req.params.groupId, data); return successResponse(res, result); });
 
-export async function removeGroupParticipant(req, res, next) {
-  try { const data = groupActionSchema.parse(req.body); const result = await whatsappService.removeParticipant(req.tenant.companyId, req.params.id, req.params.groupId, data); return successResponse(res, result); }
-  catch (error) { return next(error); }
-}
+export const removeGroupParticipant = asyncHandler(async (req, res) => { const data = groupActionSchema.parse(req.body); const result = await whatsappService.removeParticipant(req.tenant.companyId, req.params.id, req.params.groupId, data); return successResponse(res, result); });
 
-export async function promoteGroupParticipant(req, res, next) {
-  try { const data = groupActionSchema.parse(req.body); const result = await whatsappService.promoteParticipant(req.tenant.companyId, req.params.id, req.params.groupId, data); return successResponse(res, result); }
-  catch (error) { return next(error); }
-}
+export const promoteGroupParticipant = asyncHandler(async (req, res) => { const data = groupActionSchema.parse(req.body); const result = await whatsappService.promoteParticipant(req.tenant.companyId, req.params.id, req.params.groupId, data); return successResponse(res, result); });
 
-export async function demoteGroupParticipant(req, res, next) {
-  try { const data = groupActionSchema.parse(req.body); const result = await whatsappService.demoteParticipant(req.tenant.companyId, req.params.id, req.params.groupId, data); return successResponse(res, result); }
-  catch (error) { return next(error); }
-}
+export const demoteGroupParticipant = asyncHandler(async (req, res) => { const data = groupActionSchema.parse(req.body); const result = await whatsappService.demoteParticipant(req.tenant.companyId, req.params.id, req.params.groupId, data); return successResponse(res, result); });
 
-export async function getInviteLink(req, res, next) {
-  try { const result = await whatsappService.inviteLink(req.tenant.companyId, req.params.id, req.params.groupId); return successResponse(res, result); }
-  catch (error) { return next(error); }
-}
+export const getInviteLink = asyncHandler(async (req, res) => { const result = await whatsappService.inviteLink(req.tenant.companyId, req.params.id, req.params.groupId); return successResponse(res, result); });
 
-export async function revokeInviteLink(req, res, next) {
-  try { const result = await whatsappService.revokeInvite(req.tenant.companyId, req.params.id, req.params.groupId); return successResponse(res, result); }
-  catch (error) { return next(error); }
-}
+export const revokeInviteLink = asyncHandler(async (req, res) => { const result = await whatsappService.revokeInvite(req.tenant.companyId, req.params.id, req.params.groupId); return successResponse(res, result); });
 
-export async function acceptInviteCode(req, res, next) {
-  try { const data = inviteCodeSchema.parse(req.body); const result = await whatsappService.acceptInvite(req.tenant.companyId, req.params.id, data); return successResponse(res, result); }
-  catch (error) { return next(error); }
-}
+export const acceptInviteCode = asyncHandler(async (req, res) => { const data = inviteCodeSchema.parse(req.body); const result = await whatsappService.acceptInvite(req.tenant.companyId, req.params.id, data); return successResponse(res, result); });
 
-export async function updateGroupPicture(req, res, next) {
-  try { const data = groupPictureSchema.parse(req.body); const result = await whatsappService.groupPicture(req.tenant.companyId, req.params.id, req.params.groupId, data); return successResponse(res, result); }
-  catch (error) { return next(error); }
-}
+export const updateGroupPicture = asyncHandler(async (req, res) => { const data = groupPictureSchema.parse(req.body); const result = await whatsappService.groupPicture(req.tenant.companyId, req.params.id, req.params.groupId, data); return successResponse(res, result); });
 
-export async function leaveGroup(req, res, next) {
-  try { const result = await whatsappService.leaveGroup(req.tenant.companyId, req.params.id, req.params.groupId); return successResponse(res, result); }
-  catch (error) { return next(error); }
-}
+export const leaveGroup = asyncHandler(async (req, res) => { const result = await whatsappService.leaveGroup(req.tenant.companyId, req.params.id, req.params.groupId); return successResponse(res, result); });
 
 /* ===== Status / Stories ===== */
 
-export async function getStories(req, res, next) {
-  try { const result = await whatsappService.listStatus(req.tenant.companyId, req.params.id); return successResponse(res, result); }
-  catch (error) { return next(error); }
-}
+export const getStories = asyncHandler(async (req, res) => { const result = await whatsappService.listStatus(req.tenant.companyId, req.params.id); return successResponse(res, result); });
 
-export async function getStoryById(req, res, next) {
-  try { const result = await whatsappService.getStatusById(req.tenant.companyId, req.params.id, req.params.statusId); return successResponse(res, result); }
-  catch (error) { return next(error); }
-}
+export const getStoryById = asyncHandler(async (req, res) => { const result = await whatsappService.getStatusById(req.tenant.companyId, req.params.id, req.params.statusId); return successResponse(res, result); });
 
-export async function reactStory(req, res, next) {
-  try { const data = reactStatusSchema.parse(req.body); const result = await whatsappService.reactStatus(req.tenant.companyId, req.params.id, data); return successResponse(res, result); }
-  catch (error) { return next(error); }
-}
+export const reactStory = asyncHandler(async (req, res) => { const data = reactStatusSchema.parse(req.body); const result = await whatsappService.reactStatus(req.tenant.companyId, req.params.id, data); return successResponse(res, result); });
 
 /* ===== Chats (extra) ===== */
 
-export async function findChat(req, res, next) {
-  try { const data = findChatSchema.parse(req.body); const result = await whatsappService.findChat(req.tenant.companyId, req.params.id, data); return successResponse(res, result); }
-  catch (error) { return next(error); }
-}
+export const findChat = asyncHandler(async (req, res) => { const data = findChatSchema.parse(req.body); const result = await whatsappService.findChat(req.tenant.companyId, req.params.id, data); return successResponse(res, result); });
 
-export async function archiveChat(req, res, next) {
-  try { const result = await whatsappService.archiveChat(req.tenant.companyId, req.params.id, req.params.chatId); return successResponse(res, result); }
-  catch (error) { return next(error); }
-}
+export const archiveChat = asyncHandler(async (req, res) => { const result = await whatsappService.archiveChat(req.tenant.companyId, req.params.id, req.params.chatId); return successResponse(res, result); });
 
-export async function unarchiveChat(req, res, next) {
-  try { const result = await whatsappService.unarchiveChat(req.tenant.companyId, req.params.id, req.params.chatId); return successResponse(res, result); }
-  catch (error) { return next(error); }
-}
+export const unarchiveChat = asyncHandler(async (req, res) => { const result = await whatsappService.unarchiveChat(req.tenant.companyId, req.params.id, req.params.chatId); return successResponse(res, result); });
 
-export async function fetchAllMessages(req, res, next) {
-  try { const result = await whatsappService.fetchAllMessages(req.tenant.companyId, req.params.id, req.params.chatId); return successResponse(res, result); }
-  catch (error) { return next(error); }
-}
+export const fetchAllMessages = asyncHandler(async (req, res) => { const result = await whatsappService.fetchAllMessages(req.tenant.companyId, req.params.id, req.params.chatId); return successResponse(res, result); });
 
-export async function checkNumber(req, res, next) {
-  try { const data = checkNumberSchema.parse(req.body); const result = await whatsappService.checkNumber(req.tenant.companyId, req.params.id, data); return successResponse(res, result); }
-  catch (error) { return next(error); }
-}
+export const checkNumber = asyncHandler(async (req, res) => { const data = checkNumberSchema.parse(req.body); const result = await whatsappService.checkNumber(req.tenant.companyId, req.params.id, data); return successResponse(res, result); });
 
 /* ===== Messages (advanced) ===== */
 
-export async function sendPoll(req, res, next) {
-  try { const data = sendPollSchema.parse(req.body); const result = await whatsappService.sendPoll(req.tenant.companyId, req.params.id, data); return createdResponse(res, result); }
-  catch (error) { return next(error); }
-}
+export const sendPoll = asyncHandler(async (req, res) => { const data = sendPollSchema.parse(req.body); const result = await whatsappService.sendPoll(req.tenant.companyId, req.params.id, data); return createdResponse(res, result); });
 
-export async function editMessage(req, res, next) {
-  try { const data = editMessageSchema.parse(req.body); const result = await whatsappService.editMessage(req.tenant.companyId, req.params.id, data); return successResponse(res, result); }
-  catch (error) { return next(error); }
-}
+export const editMessage = asyncHandler(async (req, res) => { const data = editMessageSchema.parse(req.body); const result = await whatsappService.editMessage(req.tenant.companyId, req.params.id, data); return successResponse(res, result); });
 
-export async function deleteMessage(req, res, next) {
-  try { const data = deleteMessageSchema.parse(req.body); const result = await whatsappService.deleteMessage(req.tenant.companyId, req.params.id, data); return successResponse(res, result); }
-  catch (error) { return next(error); }
-}
+export const deleteMessage = asyncHandler(async (req, res) => { const data = deleteMessageSchema.parse(req.body); const result = await whatsappService.deleteMessage(req.tenant.companyId, req.params.id, data); return successResponse(res, result); });
 
-export async function sendContact(req, res, next) {
-  try { const data = sendContactSchema.parse(req.body); const result = await whatsappService.sendContact(req.tenant.companyId, req.params.id, data); return createdResponse(res, result); }
-  catch (error) { return next(error); }
-}
+export const sendContact = asyncHandler(async (req, res) => { const data = sendContactSchema.parse(req.body); const result = await whatsappService.sendContact(req.tenant.companyId, req.params.id, data); return createdResponse(res, result); });
 
 /* ===== Profile ===== */
 
-export async function getProfilePicture(req, res, next) {
-  try { const data = profilePictureSchema.parse(req.body); const result = await whatsappService.getProfilePicture(req.tenant.companyId, req.params.id, data); return successResponse(res, result); }
-  catch (error) { return next(error); }
-}
+export const getProfilePicture = asyncHandler(async (req, res) => { const data = profilePictureSchema.parse(req.body); const result = await whatsappService.getProfilePicture(req.tenant.companyId, req.params.id, data); return successResponse(res, result); });
 
-export async function getProfileName(req, res, next) {
-  try { const data = profileNameSchema.parse(req.body); const result = await whatsappService.getProfileName(req.tenant.companyId, req.params.id, data); return successResponse(res, result); }
-  catch (error) { return next(error); }
-}
+export const getProfileName = asyncHandler(async (req, res) => { const data = profileNameSchema.parse(req.body); const result = await whatsappService.getProfileName(req.tenant.companyId, req.params.id, data); return successResponse(res, result); });
 
-export async function updateProfileStatus(req, res, next) {
-  try { const data = updateProfileStatusSchema.parse(req.body); const result = await whatsappService.updateProfileStatus(req.tenant.companyId, req.params.id, data); return successResponse(res, result); }
-  catch (error) { return next(error); }
-}
+export const updateProfileStatus = asyncHandler(async (req, res) => { const data = updateProfileStatusSchema.parse(req.body); const result = await whatsappService.updateProfileStatus(req.tenant.companyId, req.params.id, data); return successResponse(res, result); });
 
-export async function getBotConfig(req, res, next) {
-  try { const result = await whatsappService.getBotConfig(req.tenant.companyId, req.params.id); return successResponse(res, result); }
-  catch (error) { return next(error); }
-}
+export const getBotConfig = asyncHandler(async (req, res) => { const result = await whatsappService.getBotConfig(req.tenant.companyId, req.params.id); return successResponse(res, result); });
 
-export async function updateBotConfig(req, res, next) {
-  try { const data = botConfigSchema.parse(req.body); const result = await whatsappService.updateBotConfig(req.tenant.companyId, req.params.id, data); return successResponse(res, result); }
-  catch (error) { return next(error); }
-}
+export const updateBotConfig = asyncHandler(async (req, res) => { const data = botConfigSchema.parse(req.body); const result = await whatsappService.updateBotConfig(req.tenant.companyId, req.params.id, data); return successResponse(res, result); });
 
-export async function getCatalog(req, res, next) {
-  try { const query = catalogQuerySchema.parse(req.query); const result = await whatsappService.getCatalog(req.tenant.companyId, req.params.id, query.limit); return successResponse(res, result); }
-  catch (error) { return next(error); }
-}
+export const getCatalog = asyncHandler(async (req, res) => { const query = catalogQuerySchema.parse(req.query); const result = await whatsappService.getCatalog(req.tenant.companyId, req.params.id, query.limit); return successResponse(res, result); });
 
-export async function getNotificationLogs(req, res, next) {
-  try {
-    const { listOrderNotificationLogs } = await import('../../notifications/repositories/notificationRepository.js');
-    const limit = parseInt(req.query.limit, 10) || 50;
-    const result = await listOrderNotificationLogs(req.tenant.companyId, { limit });
-    return successResponse(res, result);
-  } catch (error) { return next(error); }
-}
+export const getNotificationLogs = asyncHandler(async (req, res) => {
+  const limit = parseInt(req.query.limit, 10) || 50;
+  const result = await listOrderNotificationLogs(req.tenant.companyId, { limit });
+  return successResponse(res, result);
+});
 
-export async function getLinkedGroups(req, res, next) {
-  try { const result = await whatsappService.listLinkedGroups(req.tenant.companyId, req.params.id); return successResponse(res, result); }
-  catch (error) { return next(error); }
-}
+export const getLinkedGroups = asyncHandler(async (req, res) => { const result = await whatsappService.listLinkedGroups(req.tenant.companyId, req.params.id); return successResponse(res, result); });
 
-export async function createLinkedGroup(req, res, next) {
-  try { const data = linkGroupSchema.parse(req.body); const result = await whatsappService.linkGroup(req.tenant.companyId, req.params.id, data); return createdResponse(res, result); }
-  catch (error) { return next(error); }
-}
+export const createLinkedGroup = asyncHandler(async (req, res) => { const data = linkGroupSchema.parse(req.body); const result = await whatsappService.linkGroup(req.tenant.companyId, req.params.id, data); return createdResponse(res, result); });
 
-export async function updateLinkedGroup(req, res, next) {
-  try { const data = updateLinkedGroupSchema.parse(req.body); const result = await whatsappService.updateLinkedGroup(req.tenant.companyId, req.params.id, req.params.lgId, data); return successResponse(res, result); }
-  catch (error) { return next(error); }
-}
+export const updateLinkedGroup = asyncHandler(async (req, res) => { const data = updateLinkedGroupSchema.parse(req.body); const result = await whatsappService.updateLinkedGroup(req.tenant.companyId, req.params.id, req.params.lgId, data); return successResponse(res, result); });
 
-export async function removeLinkedGroup(req, res, next) {
-  try { const result = await whatsappService.unlinkGroup(req.tenant.companyId, req.params.id, req.params.lgId); return successResponse(res, result); }
-  catch (error) { return next(error); }
-}
+export const removeLinkedGroup = asyncHandler(async (req, res) => { const result = await whatsappService.unlinkGroup(req.tenant.companyId, req.params.id, req.params.lgId); return successResponse(res, result); });
 
-export async function syncLinkedGroups(req, res, next) {
-  try { const data = syncLinkedGroupsSchema.parse(req.body ?? {}); const result = await whatsappService.syncLinkedGroups(req.tenant.companyId, req.params.id, data); return successResponse(res, result); }
-  catch (error) { return next(error); }
-}
+export const syncLinkedGroups = asyncHandler(async (req, res) => { const data = syncLinkedGroupsSchema.parse(req.body ?? {}); const result = await whatsappService.syncLinkedGroups(req.tenant.companyId, req.params.id, data); return successResponse(res, result); });
 
-export async function getMessageLogs(req, res, next) {
-  try { const query = messageLogsQuerySchema.parse(req.query); const result = await whatsappService.listMessageLogs(req.tenant.companyId, req.params.id, query); return successResponse(res, result); }
-  catch (error) { return next(error); }
-}
+export const getMessageLogs = asyncHandler(async (req, res) => { const query = messageLogsQuerySchema.parse(req.query); const result = await whatsappService.listMessageLogs(req.tenant.companyId, req.params.id, query); return successResponse(res, result); });
 
-export async function updateProfile(req, res, next) {
-  try { const data = updateProfileSchema.parse(req.body); const result = await whatsappService.updateProfile(req.tenant.companyId, req.params.id, data); return successResponse(res, result); }
-  catch (error) { return next(error); }
-}
+export const updateProfile = asyncHandler(async (req, res) => { const data = updateProfileSchema.parse(req.body); const result = await whatsappService.updateProfile(req.tenant.companyId, req.params.id, data); return successResponse(res, result); });
 
-export async function updatePicture(req, res, next) {
-  try { const data = updateProfilePictureSchema.parse(req.body); const result = await whatsappService.updateProfilePicture(req.tenant.companyId, req.params.id, data); return successResponse(res, result); }
-  catch (error) { return next(error); }
-}
+export const updatePicture = asyncHandler(async (req, res) => { const data = updateProfilePictureSchema.parse(req.body); const result = await whatsappService.updateProfilePicture(req.tenant.companyId, req.params.id, data); return successResponse(res, result); });
 
-export async function restartNumber(req, res, next) {
-  try { const result = await whatsappService.restartInstance(req.tenant.companyId, req.params.id); return successResponse(res, result); }
-  catch (error) { return next(error); }
-}
+export const restartNumber = asyncHandler(async (req, res) => { const result = await whatsappService.restartInstance(req.tenant.companyId, req.params.id); return successResponse(res, result); });
 
-export async function logoutNumber(req, res, next) {
-  try { const result = await whatsappService.logoutOnly(req.tenant.companyId, req.params.id); return successResponse(res, result); }
-  catch (error) { return next(error); }
-}
+export const logoutNumber = asyncHandler(async (req, res) => { const result = await whatsappService.logoutOnly(req.tenant.companyId, req.params.id); return successResponse(res, result); });
 
-export async function getWebhook(req, res, next) {
-  try { const result = await whatsappService.getInstanceWebhook(req.tenant.companyId, req.params.id); return successResponse(res, result); }
-  catch (error) { return next(error); }
-}
+export const getWebhook = asyncHandler(async (req, res) => { const result = await whatsappService.getInstanceWebhook(req.tenant.companyId, req.params.id); return successResponse(res, result); });
 
-export async function setupWebhook(req, res, next) {
-  try { const result = await whatsappService.updateInstanceWebhook(req.tenant.companyId, req.params.id); return successResponse(res, result); }
-  catch (error) { return next(error); }
-}
+export const setupWebhook = asyncHandler(async (req, res) => { const result = await whatsappService.updateInstanceWebhook(req.tenant.companyId, req.params.id); return successResponse(res, result); });
 
-export async function webhook(req, res, next) {
-  try { await whatsappService.handleWebhook(req.params.instanceName, req.body); return res.status(200).json({ success: true }); }
-  catch (error) { return next(error); }
-}
+export const webhook = asyncHandler(async (req, res) => { await whatsappService.handleWebhook(req.params.instanceName, req.body); return res.status(200).json({ success: true }); });
 
 /* ===== Capabilities EvolutionAPI (novos endpoints) ===== */
 
-export async function blockContact(req, res, next) {
-  try { const data = blockContactSchema.parse(req.body); const result = await whatsappService.blockContact(req.tenant.companyId, req.params.id, data); return successResponse(res, result); }
-  catch (error) { return next(error); }
-}
+export const blockContact = asyncHandler(async (req, res) => { const data = blockContactSchema.parse(req.body); const result = await whatsappService.blockContact(req.tenant.companyId, req.params.id, data); return successResponse(res, result); });
 
-export async function requestPairingCode(req, res, next) {
-  try { const data = requestPairingSchema.parse(req.body); const result = await whatsappService.requestPairingCode(req.tenant.companyId, req.params.id, data); return successResponse(res, result); }
-  catch (error) { return next(error); }
-}
+export const requestPairingCode = asyncHandler(async (req, res) => { const data = requestPairingSchema.parse(req.body); const result = await whatsappService.requestPairingCode(req.tenant.companyId, req.params.id, data); return successResponse(res, result); });
 
-export async function getGroupParticipants(req, res, next) {
-  try { const result = await whatsappService.listGroupParticipants(req.tenant.companyId, req.params.id, req.params.groupId); return successResponse(res, result); }
-  catch (error) { return next(error); }
-}
+export const getGroupParticipants = asyncHandler(async (req, res) => { const result = await whatsappService.listGroupParticipants(req.tenant.companyId, req.params.id, req.params.groupId); return successResponse(res, result); });
 
-export async function sendTemplate(req, res, next) {
-  try { const data = sendTemplateSchema.parse(req.body); const result = await whatsappService.sendTemplateMessage(req.tenant.companyId, req.params.id, data); return createdResponse(res, result); }
-  catch (error) { return next(error); }
-}
+export const sendTemplate = asyncHandler(async (req, res) => { const data = sendTemplateSchema.parse(req.body); const result = await whatsappService.sendTemplateMessage(req.tenant.companyId, req.params.id, data); return createdResponse(res, result); });
 
-export async function sendPtv(req, res, next) {
-  try { const data = sendPtvSchema.parse(req.body); const result = await whatsappService.sendPtvMessage(req.tenant.companyId, req.params.id, data); return createdResponse(res, result); }
-  catch (error) { return next(error); }
-}
+export const sendPtv = asyncHandler(async (req, res) => { const data = sendPtvSchema.parse(req.body); const result = await whatsappService.sendPtvMessage(req.tenant.companyId, req.params.id, data); return createdResponse(res, result); });
 
-export async function toggleEphemeral(req, res, next) {
-  try { const data = ephemeralSchema.parse(req.body); const result = await whatsappService.toggleEphemeralMessage(req.tenant.companyId, req.params.id, data); return successResponse(res, result); }
-  catch (error) { return next(error); }
-}
+export const toggleEphemeral = asyncHandler(async (req, res) => { const data = ephemeralSchema.parse(req.body); const result = await whatsappService.toggleEphemeralMessage(req.tenant.companyId, req.params.id, data); return successResponse(res, result); });
 
-export async function sendBulk(req, res, next) {
-  try { const data = sendBulkSchema.parse(req.body); const result = await whatsappService.sendBulkMessages(req.tenant.companyId, req.params.id, data); return createdResponse(res, result); }
-  catch (error) { return next(error); }
-}
+export const sendBulk = asyncHandler(async (req, res) => { const data = sendBulkSchema.parse(req.body); const result = await whatsappService.sendBulkMessages(req.tenant.companyId, req.params.id, data); return createdResponse(res, result); });
 
-export async function sendBase64(req, res, next) {
-  try { const data = sendBase64Schema.parse(req.body); const result = await whatsappService.sendBase64Message(req.tenant.companyId, req.params.id, data); return createdResponse(res, result); }
-  catch (error) { return next(error); }
-}
+export const sendBase64 = asyncHandler(async (req, res) => { const data = sendBase64Schema.parse(req.body); const result = await whatsappService.sendBase64Message(req.tenant.companyId, req.params.id, data); return createdResponse(res, result); });
 
-export async function getGroupInviteInfo(req, res, next) {
-  try { const data = groupInviteInfoSchema.parse(req.body); const result = await whatsappService.groupInviteInfo(req.tenant.companyId, req.params.id, data); return successResponse(res, result); }
-  catch (error) { return next(error); }
-}
+export const getGroupInviteInfo = asyncHandler(async (req, res) => { const data = groupInviteInfoSchema.parse(req.body); const result = await whatsappService.groupInviteInfo(req.tenant.companyId, req.params.id, data); return successResponse(res, result); });
 
-export async function sendGroupInvite(req, res, next) {
-  try { const data = sendGroupInviteSchema.parse(req.body); const result = await whatsappService.sendGroupInvite(req.tenant.companyId, req.params.id, data); return createdResponse(res, result); }
-  catch (error) { return next(error); }
-}
+export const sendGroupInvite = asyncHandler(async (req, res) => { const data = sendGroupInviteSchema.parse(req.body); const result = await whatsappService.sendGroupInvite(req.tenant.companyId, req.params.id, data); return createdResponse(res, result); });
 
-export async function findContacts(req, res, next) {
-  try { const data = findContactsSchema.parse(req.body); const result = await whatsappService.findContacts(req.tenant.companyId, req.params.id, data); return successResponse(res, result); }
-  catch (error) { return next(error); }
-}
+export const findContacts = asyncHandler(async (req, res) => { const data = findContactsSchema.parse(req.body); const result = await whatsappService.findContacts(req.tenant.companyId, req.params.id, data); return successResponse(res, result); });
 
-export async function removeProfilePicture(req, res, next) {
-  try { const result = await whatsappService.removeProfilePicture(req.tenant.companyId, req.params.id); return successResponse(res, result); }
-  catch (error) { return next(error); }
-}
+export const removeProfilePicture = asyncHandler(async (req, res) => { const result = await whatsappService.removeProfilePicture(req.tenant.companyId, req.params.id); return successResponse(res, result); });
 
-export async function fetchBusinessProfile(req, res, next) {
-  try { const data = fetchBusinessProfileSchema.parse(req.body); const result = await whatsappService.fetchBusinessProfile(req.tenant.companyId, req.params.id, data); return successResponse(res, result); }
-  catch (error) { return next(error); }
-}
+export const fetchBusinessProfile = asyncHandler(async (req, res) => { const data = fetchBusinessProfileSchema.parse(req.body); const result = await whatsappService.fetchBusinessProfile(req.tenant.companyId, req.params.id, data); return successResponse(res, result); });
 
-export async function changeNumber(req, res, next) {
-  try { const data = changeNumberSchema.parse(req.body); const result = await whatsappService.changeNumber(req.tenant.companyId, req.params.id, data); return successResponse(res, result); }
-  catch (error) { return next(error); }
-}
+export const changeNumber = asyncHandler(async (req, res) => { const data = changeNumberSchema.parse(req.body); const result = await whatsappService.changeNumber(req.tenant.companyId, req.params.id, data); return successResponse(res, result); });
 
-export async function sendLinkPreview(req, res, next) {
-  try { const data = linkPreviewSchema.parse(req.body); const result = await whatsappService.sendLinkPreview(req.tenant.companyId, req.params.id, data); return createdResponse(res, result); }
-  catch (error) { return next(error); }
-}
+export const sendLinkPreview = asyncHandler(async (req, res) => { const data = linkPreviewSchema.parse(req.body); const result = await whatsappService.sendLinkPreview(req.tenant.companyId, req.params.id, data); return createdResponse(res, result); });
 
-export async function typewriter(req, res, next) {
-  try { const data = typewriterSchema.parse(req.body); const result = await whatsappService.typewriterEffect(req.tenant.companyId, req.params.id, data); return createdResponse(res, result); }
-  catch (error) { return next(error); }
-}
+export const typewriter = asyncHandler(async (req, res) => { const data = typewriterSchema.parse(req.body); const result = await whatsappService.typewriterEffect(req.tenant.companyId, req.params.id, data); return createdResponse(res, result); });
 
 export default {
   listNumbers, connectNumber, getQrCode, getStatus, disconnectNumber, deleteNumber,

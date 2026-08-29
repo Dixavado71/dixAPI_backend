@@ -61,13 +61,12 @@ function webhookConfig(url, events = ['MESSAGES_UPSERT', 'CONNECTION_UPDATE', 'Q
 
 /* ===== Instance (v2.3.7) ===== */
 
-export async function createInstance(instanceName) {
-  const webhookUrl = `${env.publicApiUrl}/api/v1/whatsapp/webhook/${instanceName}`;
+export async function createInstance(instanceName, webhookUrl) {
   return request('POST', '/instance/create', {
     instanceName,
     qrcode: true,
     integration: 'WHATSAPP-BAILEYS',
-    webhook: webhookConfig(webhookUrl),
+    webhook: webhookUrl ? webhookConfig(webhookUrl) : undefined,
   });
 }
 
@@ -100,23 +99,16 @@ export async function setPresence(instanceName, presence = 'available') {
 }
 
 export async function requestPairing(instanceName, phone) {
-  return instanceRequest('POST', instanceName, `/instance/requestCode/${instanceName}`, { phone });
+  const qr = await getInstanceQrCode(instanceName);
+  return { pairingCode: qr?.pairingCode ?? null, code: qr?.code ?? null, base64: qr?.base64 ?? null };
 }
 
-export async function changeNumber(instanceName, number) {
-  return instanceRequest('POST', instanceName, `/chat/changeNumber/${instanceName}`, { number });
+export async function sendLinkPreview(instanceName, number, text) {
+  return instanceRequest('POST', instanceName, `/message/sendText/${instanceName}`, { number, text, linkPreview: true });
 }
 
-export async function sendLinkPreview(instanceName, data) {
-  return instanceRequest('POST', instanceName, `/chat/sendLinkPreview/${instanceName}`, data);
-}
-
-export async function typewriter(instanceName, data) {
-  return instanceRequest('POST', instanceName, `/chat/typewriter/${instanceName}`, data);
-}
-
-export async function sendBulk(instanceName, messages) {
-  return instanceRequest('POST', instanceName, `/chat/sendBulk/${instanceName}`, { messages });
+export async function typewriter(instanceName, number) {
+  return instanceRequest('POST', instanceName, `/chat/sendPresence/${instanceName}`, { number, presence: 'composing', delay: 1000 });
 }
 
 export async function sendBase64(instanceName, number, mediaType, base64, fileName) {
@@ -142,7 +134,7 @@ export async function sendWhatsAppAudio(instanceName, number, audioUrl, delay = 
 }
 
 export async function sendPtv(instanceName, number, videoUrl, caption, delay = 1000) {
-  return instanceRequest('POST', instanceName, `/message/sendPtv/${instanceName}`, { number, ptv: videoUrl, caption, delay });
+  return instanceRequest('POST', instanceName, `/message/sendPtv/${instanceName}`, { number, video: videoUrl, delay });
 }
 
 export async function sendDocument(instanceName, number, documentUrl, caption, fileName, delay = 1000) {
@@ -161,7 +153,7 @@ export async function sendSticker(instanceName, number, stickerUrl, delay = 1000
   return instanceRequest('POST', instanceName, `/message/sendSticker/${instanceName}`, { number, sticker: stickerUrl, delay });
 }
 
-export async function sendButtons(instanceName, number, title, description, buttons, footer = 'diix', delay = 1000) {
+export async function sendButtons(instanceName, number, title, description, buttons, footer = '', delay = 1000) {
   return instanceRequest('POST', instanceName, `/message/sendButtons/${instanceName}`, {
     number, title, description, footer, buttons, delay,
   });
@@ -169,7 +161,7 @@ export async function sendButtons(instanceName, number, title, description, butt
 
 export async function sendList(instanceName, number, title, description, buttonText, sections, delay = 1000) {
   return instanceRequest('POST', instanceName, `/message/sendList/${instanceName}`, {
-    number, title, description, buttonText, sections, delay,
+    number, title, description, footerText: description ?? '', buttonText, sections, delay,
   });
 }
 
@@ -180,38 +172,42 @@ export async function sendLocation(instanceName, number, name, address, latitude
 }
 
 export async function sendStatusText(instanceName, content, statusJidList = []) {
-  return instanceRequest('POST', instanceName, `/message/sendStatus/${instanceName}`, {
-    type: 'text',
-    content,
-    statusJidList,
-    backgroundColor: '#075E54',
-    font: 0,
-  });
+  const body = { type: 'text', content, backgroundColor: '#075E54', font: 0 };
+  if (statusJidList.length > 0) body.statusJidList = statusJidList; else body.allContacts = true;
+  return instanceRequest('POST', instanceName, `/message/sendStatus/${instanceName}`, body);
 }
 
 export async function sendStatusMedia(instanceName, mediaType, mediaUrl, caption, statusJidList = []) {
-  return instanceRequest('POST', instanceName, `/message/sendStatus/${instanceName}`, {
-    type: mediaType,
-    content: mediaUrl,
-    caption,
-    statusJidList,
+  const body = { type: mediaType, content: mediaUrl, caption };
+  if (statusJidList.length > 0) body.statusJidList = statusJidList; else body.allContacts = true;
+  return instanceRequest('POST', instanceName, `/message/sendStatus/${instanceName}`, body);
+}
+
+export async function sendReaction(instanceName, number, messageId, reaction, fromMe = false) {
+  const remoteJid = String(number).includes('@') ? number : `${String(number).replace(/[^\d]/g, '')}@s.whatsapp.net`;
+  return instanceRequest('POST', instanceName, `/message/sendReaction/${instanceName}`, {
+    key: { id: messageId, remoteJid, fromMe },
+    reaction,
   });
 }
 
-export async function sendReaction(instanceName, number, messageId, reaction) {
-  return instanceRequest('POST', instanceName, `/message/sendReaction/${instanceName}`, { number, messageId, reaction });
-}
-
 export async function sendContactVcard(instanceName, number, name, phone) {
-  return instanceRequest('POST', instanceName, `/message/sendContact/${instanceName}`, { number, name, phone });
+  return instanceRequest('POST', instanceName, `/message/sendContact/${instanceName}`, {
+    number, contact: [{ fullName: name, phoneNumber: phone }],
+  });
 }
 
 export async function sendPoll(instanceName, number, name, values) {
-  return instanceRequest('POST', instanceName, `/message/sendPoll/${instanceName}`, { number, name, values });
+  return instanceRequest('POST', instanceName, `/message/sendPoll/${instanceName}`, {
+    number, name, selectableCount: Math.max(1, Math.min(values.length, 10)), values,
+  });
 }
 
 export async function sendTemplate(instanceName, number, template) {
-  return instanceRequest('POST', instanceName, `/message/sendTemplate/${instanceName}`, { number, template });
+  const name = template?.name;
+  const language = template?.language ?? { code: 'pt_BR' };
+  const components = template?.components ?? template?.template?.components ?? [];
+  return instanceRequest('POST', instanceName, `/message/sendTemplate/${instanceName}`, { number, name, language, components });
 }
 
 /* ===== Chat (v2.3.7) ===== */
@@ -221,15 +217,18 @@ export async function fetchChats(instanceName) {
 }
 
 export async function fetchChatMessages(instanceName, chatId, limit = 50) {
-  return instanceRequest('POST', instanceName, `/chat/findMessages/${instanceName}`, { chatId, limit });
+  return instanceRequest('POST', instanceName, `/chat/findMessages/${instanceName}`, { where: { key: { remoteJid: chatId } }, limit });
 }
 
 export async function findChatByRemoteJid(instanceName, chatId) {
-  return instanceRequest('GET', instanceName, `/chat/findChatByRemoteJid/${instanceName}?chatId=${encodeURIComponent(chatId)}`);
+  return instanceRequest('GET', instanceName, `/chat/findChatByRemoteJid/${instanceName}?remoteJid=${encodeURIComponent(chatId)}`);
 }
 
 export async function markMessageAsRead(instanceName, number, messageId) {
-  return instanceRequest('POST', instanceName, `/chat/markMessageAsRead/${instanceName}`, { number, messageId });
+  const remoteJid = String(number).includes('@') ? number : `${String(number).replace(/[^\d]/g, '')}@s.whatsapp.net`;
+  return instanceRequest('POST', instanceName, `/chat/markMessageAsRead/${instanceName}`, {
+    readMessages: [{ id: messageId, fromMe: false, remoteJid }],
+  });
 }
 
 export async function sendTyping(instanceName, number) {
@@ -240,20 +239,26 @@ export async function sendPresencePaused(instanceName, number) {
   return instanceRequest('POST', instanceName, `/chat/sendPresence/${instanceName}`, { number, presence: 'paused', delay: 1000 });
 }
 
-export async function archiveChat(instanceName, chatId) {
-  return instanceRequest('POST', instanceName, `/chat/archiveChat/${instanceName}`, { chatId });
+export async function archiveChat(instanceName, chatId, archive = true) {
+  return instanceRequest('POST', instanceName, `/chat/archiveChat/${instanceName}`, { archive, chat: { id: chatId } });
 }
 
-export async function markChatUnread(instanceName, chatId) {
-  return instanceRequest('POST', instanceName, `/chat/markChatUnread/${instanceName}`, { chatId });
+export async function markChatUnread(instanceName, chatId, lastMessage) {
+  return instanceRequest('POST', instanceName, `/chat/markChatUnread/${instanceName}`, { chat: { id: chatId }, lastMessage });
 }
 
 export async function updateMessage(instanceName, number, messageId, text) {
-  return instanceRequest('POST', instanceName, `/chat/updateMessage/${instanceName}`, { number, messageId, text });
+  const remoteJid = String(number).includes('@') ? number : `${String(number).replace(/[^\d]/g, '')}@s.whatsapp.net`;
+  return instanceRequest('POST', instanceName, `/chat/updateMessage/${instanceName}`, {
+    number, text, key: { id: messageId, remoteJid, fromMe: false },
+  });
 }
 
 export async function deleteMessageForEveryone(instanceName, number, messageId) {
-  return instanceRequest('DELETE', instanceName, `/chat/deleteMessageForEveryone/${instanceName}`, { number, messageId });
+  const remoteJid = String(number).includes('@') ? number : `${String(number).replace(/[^\d]/g, '')}@s.whatsapp.net`;
+  return instanceRequest('DELETE', instanceName, `/chat/deleteMessageForEveryone/${instanceName}`, {
+    id: messageId, fromMe: false, remoteJid,
+  });
 }
 
 export async function fetchProfilePictureUrl(instanceName, number) {
@@ -273,7 +278,7 @@ export async function whatsappNumbers(instanceName, numbers) {
 }
 
 export async function findStatusMessage(instanceName, chatId, limit = 50) {
-  return instanceRequest('POST', instanceName, `/chat/findStatusMessage/${instanceName}`, { chatId, limit });
+  return instanceRequest('POST', instanceName, `/chat/findStatusMessage/${instanceName}`, { where: { remoteJid: chatId }, limit });
 }
 
 export async function updateProfileName(instanceName, name) {
@@ -285,7 +290,7 @@ export async function updateProfileStatus(instanceName, status) {
 }
 
 export async function updateProfilePicture(instanceName, image) {
-  return instanceRequest('POST', instanceName, `/chat/updateProfilePicture/${instanceName}`, { image });
+  return instanceRequest('POST', instanceName, `/chat/updateProfilePicture/${instanceName}`, { picture: image });
 }
 
 export async function removeProfilePicture(instanceName) {
@@ -293,7 +298,7 @@ export async function removeProfilePicture(instanceName) {
 }
 
 export async function updateBlockStatus(instanceName, number, action) {
-  return instanceRequest('POST', instanceName, `/chat/updateBlockStatus/${instanceName}`, { number, action });
+  return instanceRequest('POST', instanceName, `/chat/updateBlockStatus/${instanceName}`, { number, status: action });
 }
 
 export async function fetchBusinessProfile(instanceName, number) {
@@ -324,8 +329,8 @@ export async function findGroupInfos(instanceName, groupJid) {
   return instanceRequest('GET', instanceName, `/group/findGroupInfos/${instanceName}?groupJid=${encodeURIComponent(groupJid)}`);
 }
 
-export async function fetchAllGroups(instanceName) {
-  return instanceRequest('GET', instanceName, `/group/fetchAllGroups/${instanceName}`);
+export async function fetchAllGroups(instanceName, getParticipants = false) {
+  return instanceRequest('GET', instanceName, `/group/fetchAllGroups/${instanceName}?getParticipants=${getParticipants ? 'true' : 'false'}`);
 }
 
 export async function groupParticipants(instanceName, groupJid) {
@@ -377,7 +382,7 @@ export async function setWebhook(instanceName, webhookUrl, events = ['MESSAGES_U
 }
 
 export async function getWebhook(instanceName) {
-  return instanceRequest('POST', instanceName, `/webhook/find/${instanceName}`).catch(() => ({ webhook: null }));
+  return instanceRequest('GET', instanceName, `/webhook/find/${instanceName}`).catch(() => ({ webhook: null }));
 }
 
 export default {
@@ -390,10 +395,8 @@ export default {
   restartInstance,
   setPresence,
   requestPairing,
-  changeNumber,
   sendLinkPreview,
   typewriter,
-  sendBulk,
   sendBase64,
   downloadMedia,
   sendText,

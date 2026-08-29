@@ -70,7 +70,3 @@ export function verifyPasswordResetToken(token) {
   if (decoded.purpose !== 'password_reset' || !decoded.sub) throw new Error('Invalid reset token');
   return decoded.sub;
 }
-
-export function decodeToken(token) {
-  return jwt.decode(token);
-}

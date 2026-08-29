@@ -4,6 +4,21 @@ import { hashPassword } from '../../../infrastructure/security/password.js';
 
 const STORE_ROLES = ['admin', 'manager', 'operator'];
 
+function mapUser(u) {
+  return {
+    id: u.id,
+    name: u.name,
+    email: u.email,
+    phone: u.phone,
+    avatarUrl: u.avatar_url,
+    role: u.role,
+    isActive: u.is_active,
+    lastLoginAt: u.last_login_at,
+    createdAt: u.created_at,
+    membership: u.UserCompany?.[0] ?? null,
+  };
+}
+
 function canManage(requestedRole, actorRole) {
   if (actorRole === 'admin') return STORE_ROLES.includes(requestedRole);
   if (actorRole === 'manager') return requestedRole === 'operator';
@@ -12,18 +27,7 @@ function canManage(requestedRole, actorRole) {
 
 export async function listUsers(companyId, filters) {
   const users = await repo.listUsers(companyId, filters);
-  return users.map((u) => ({
-    id: u.id,
-    name: u.name,
-    email: u.email,
-    phone: u.phone,
-    avatar_url: u.avatar_url,
-    role: u.role,
-    is_active: u.is_active,
-    last_login_at: u.last_login_at,
-    created_at: u.created_at,
-    membership: u.UserCompany?.[0] ?? null,
-  }));
+  return users.map(mapUser);
 }
 
 export async function createUser(companyId, actorRole, data) {
@@ -58,12 +62,17 @@ export async function createUser(companyId, actorRole, data) {
   return findUserById(companyId, user.id);
 }
 
-export async function updateUser(companyId, actorRole, id, data) {
+export async function updateUser(companyId, actorRole, actorId, id, data) {
   const user = await repo.findUserById(companyId, id);
   if (!user) throw new NotFoundError('Usuário não encontrado.');
 
-  if (data.role && !canManage(data.role, actorRole)) {
-    throw new ForbiddenError('Você não tem permissão para atribuir este papel.');
+  const targetRole = data.role ?? user.role;
+  if (!canManage(targetRole, actorRole)) {
+    throw new ForbiddenError('Você não tem permissão para gerenciar usuários com este papel.');
+  }
+
+  if (data.isActive === false && id === actorId) {
+    throw new ForbiddenError('Você não pode desativar a si mesmo.');
   }
 
   const patch = {};
@@ -87,10 +96,16 @@ export async function updateUser(companyId, actorRole, id, data) {
   return findUserById(companyId, id);
 }
 
-export async function removeUser(companyId, actorRole, id) {
+export async function removeUser(companyId, actorRole, actorId, id) {
   const user = await repo.findUserById(companyId, id);
   if (!user) throw new NotFoundError('Usuário não encontrado.');
   if (actorRole !== 'admin') throw new ForbiddenError('Apenas administradores podem remover usuários.');
+  if (!canManage(user.role, actorRole)) {
+    throw new ForbiddenError('Você não tem permissão para remover este usuário.');
+  }
+  if (id === actorId) {
+    throw new ForbiddenError('Você não pode remover a si mesmo.');
+  }
 
   await repo.updateUser(companyId, id, { is_active: false });
   await repo.updateMembership(companyId, id, { status: 'inactive', removed_at: new Date() });
@@ -100,18 +115,7 @@ export async function removeUser(companyId, actorRole, id) {
 export async function findUserById(companyId, id) {
   const user = await repo.findUserById(companyId, id);
   if (!user) throw new NotFoundError('Usuário não encontrado.');
-  return {
-    id: user.id,
-    name: user.name,
-    email: user.email,
-    phone: user.phone,
-    avatar_url: user.avatar_url,
-    role: user.role,
-    is_active: user.is_active,
-    last_login_at: user.last_login_at,
-    created_at: user.created_at,
-    membership: user.UserCompany?.[0] ?? null,
-  };
+  return mapUser(user);
 }
 
 export default { listUsers, createUser, updateUser, removeUser, findUserById };

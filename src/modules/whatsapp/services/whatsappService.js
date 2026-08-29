@@ -2,57 +2,38 @@ import { BadRequestError, NotFoundError, ConflictError } from '../../../shared/e
 import * as whatsappRepo from '../repositories/whatsappRepository.js';
 import * as conversationRepo from '../../conversations/repositories/conversationRepository.js';
 import * as evolutionApi from '../../../infrastructure/whatsapp/evolutionApiClient.js';
-import chatbotCache from '../../../infrastructure/cache/chatbotCache.js';
+import chatbotCache from '../../automation/cache/chatbotCache.js';
 import { env } from '../../../config/env.js';
 import { extractMessageText, extractMedia } from '../../../shared/whatsapp/extraction.js';
+import { cleanPhone, jidFromPhone } from '../../../shared/whatsapp/phone.js';
+import { syncConversation } from '../../../shared/whatsapp/conversation.js';
+import { handleCustomerCommand } from '../../../shared/whatsapp/customer.js';
+import { processIncomingMessage } from '../../automation/services/automationService.js';
+import { notifyAttendantsAsync } from '../../notifications/services/notificationService.js';
 import { logger } from '../../../config/logger.js';
 
-function jidFromPhone(phone) {
-  if (!phone) return null;
-  const p = String(phone);
-  if (p.includes('@')) return p;
-  if (p.endsWith('@g.us') || p.endsWith('@s.whatsapp.net') || p.endsWith('@c.us') || p.endsWith('@lid')) return p;
-  return `${p}@s.whatsapp.net`;
-}
-
-async function syncConversation({ companyId, number, phoneNumber, sender, content, messageType, sentAt }) {
-  const channel = 'whatsapp';
-  let conversation = await conversationRepo.findConversationByContact(companyId, channel, phoneNumber);
-  const name = content || messageType;
-
-  if (!conversation) {
-    conversation = await conversationRepo.createConversation({
-      company_id: companyId,
-      channel,
-      contact_name: phoneNumber,
-      contact_phone: phoneNumber,
-      last_message: content || null,
-      last_message_at: sentAt,
-      unread_count: sender === 'customer' ? 1 : 0,
-      status: sender === 'customer' ? 'open' : 'waiting',
-    });
-  } else {
-    conversation = await conversationRepo.updateConversationLastMessage(conversation.id, content || null, sender === 'customer' ? 1 : 0);
-    if (sender === 'customer') {
-      conversation = await conversationRepo.updateConversation(conversation.id, { status: 'open' });
-    }
-  }
-
-  await conversationRepo.createMessage({
-    conversation_id: conversation.id,
-    sender_type: sender,
-    message_type: messageType === 'audio' ? 'audio' : messageType === 'image' ? 'image' : messageType === 'document' ? 'file' : 'text',
-    content: content || '',
-    status: 'delivered',
-    sent_at: sentAt,
-  });
-
-  void number;
-  return conversation;
+function mapNumber(number) {
+  if (!number) return number;
+  return {
+    id: number.id,
+    companyId: number.company_id,
+    phoneNumber: number.phone_number,
+    displayName: number.display_name,
+    provider: number.provider,
+    externalAccountId: number.external_account_id,
+    status: number.status,
+    isBotEnabled: number.is_bot_enabled,
+    webhookVerified: number.webhook_verified,
+    lastConnectedAt: number.last_connected_at,
+    createdAt: number.created_at,
+    updatedAt: number.updated_at,
+    _count: number._count,
+  };
 }
 
 export async function listNumbers(companyId) {
-  return whatsappRepo.listNumbers(companyId);
+  const numbers = await whatsappRepo.listNumbers(companyId);
+  return Array.isArray(numbers) ? numbers.map(mapNumber) : numbers;
 }
 
 export async function connectNumber(companyId, data) {
@@ -62,16 +43,16 @@ export async function connectNumber(companyId, data) {
   if (existing && existing.status !== 'disconnected') throw new ConflictError('Este número já está cadastrado.');
 
   const instanceName = `${companyId.slice(0, 8)}_${data.phoneNumber}`;
+  const webhookUrl = `${env.publicApiUrl}/api/v1/whatsapp/webhook/${instanceName}`;
   let evolutionInstance;
   try {
-    evolutionInstance = await evolutionApi.createInstance(instanceName);
+    evolutionInstance = await evolutionApi.createInstance(instanceName, webhookUrl);
   } catch (error) {
     throw new BadRequestError(`Não foi possível criar a instância no EvolutionAPI: ${error.message}`);
   }
 
   if (!evolutionInstance) throw new BadRequestError('Não foi possível criar a instância no EvolutionAPI.');
 
-  const webhookUrl = `${env.publicApiUrl}/api/v1/whatsapp/webhook/${instanceName}`;
   await evolutionApi.setWebhook(instanceName, webhookUrl).catch(() => null);
 
   const number = await whatsappRepo.upsertNumber(companyId, {
@@ -83,7 +64,7 @@ export async function connectNumber(companyId, data) {
     webhookVerified: true,
   });
 
-  return { number, qrcode: evolutionInstance?.qrcode?.base64 ?? null, instanceName };
+  return { number: mapNumber(number), qrcode: evolutionInstance?.qrcode?.base64 ?? null, instanceName };
 }
 
 export async function getQrCode(companyId, numberId) {
@@ -112,7 +93,7 @@ export async function getStatus(companyId, numberId) {
   }
 
   return {
-    number: { ...number, status: mappedStatus },
+    number: mapNumber({ ...number, status: mappedStatus }),
     connectionState: state,
     rawState,
     isConnecting: rawState === 'connecting' || rawState === 'pending' || rawState === 'qrcode',
@@ -151,6 +132,9 @@ export async function sendMessage(companyId, numberId, data) {
   if (number.status !== 'connected') throw new BadRequestError('Número não está conectado.');
   if (!number.external_account_id) throw new BadRequestError('Número não possui instância EvolutionAPI.');
 
+  const commandResult = await handleCustomerCommand(companyId, number, data.to, data.text);
+  if (commandResult) return { sent: false, registered: true, customer: commandResult.customer };
+
   let result;
   try {
     result = await evolutionApi.sendText(number.external_account_id, data.to, data.text, data.delay);
@@ -174,8 +158,7 @@ export async function sendMessage(companyId, numberId, data) {
 
   await syncConversation({
     companyId,
-    number,
-    phoneNumber: data.to,
+    from: data.to,
     sender: 'user',
     content: data.text,
     messageType: 'text',
@@ -207,8 +190,7 @@ export async function sendMedia(companyId, numberId, data) {
 
   await syncConversation({
     companyId,
-    number,
-    phoneNumber: data.to,
+    from: data.to,
     sender: 'user',
     content: data.caption ?? data.mediaUrl,
     messageType: data.mediaType,
@@ -242,8 +224,7 @@ async function recordOutboundMessage(number, to, content, messageType, externalI
   }).catch(() => null);
   await syncConversation({
     companyId: number.company_id,
-    number,
-    phoneNumber: to,
+    from: to,
     sender: 'user',
     content: content || messageType,
     messageType,
@@ -881,7 +862,8 @@ export async function getStatusById(companyId, numberId, statusId) {
 
 export async function reactStatus(companyId, numberId, data) {
   const number = await requireNumber(companyId, numberId);
-  return evolutionApi.sendReaction(number.external_account_id, data.number, data.statusId, data.reaction);
+  const target = data.number || jidFromPhone(number.phone_number);
+  return evolutionApi.sendReaction(number.external_account_id, target, data.statusId, data.reaction);
 }
 
 /* ===== Chats (extra) ===== */
@@ -893,12 +875,12 @@ export async function findChat(companyId, numberId, data) {
 
 export async function archiveChat(companyId, numberId, chatId) {
   const number = await requireNumber(companyId, numberId);
-  return evolutionApi.archiveChat(number.external_account_id, chatId);
+  return evolutionApi.archiveChat(number.external_account_id, chatId, true);
 }
 
 export async function unarchiveChat(companyId, numberId, chatId) {
   const number = await requireNumber(companyId, numberId);
-  return evolutionApi.markChatUnread(number.external_account_id, chatId);
+  return evolutionApi.archiveChat(number.external_account_id, chatId, false);
 }
 
 export async function fetchAllMessages(companyId, numberId, chatId) {
@@ -985,7 +967,7 @@ export async function getCatalog(companyId, numberId, limit) {
     category: p.category,
     price: Number(p.price),
     stock: p.stock,
-    image_url: p.image_url,
+    imageUrl: p.image_url,
   }));
 }
 
@@ -1223,6 +1205,7 @@ async function processUpsertMessage(number, data) {
     const externalId = data.key.id;
     const messageContent = extractMessageText(data.message) || '';
     const messageType = (!data.messageType || data.messageType === 'conversation') ? 'text' : data.messageType;
+    const media = extractMedia(data.message);
 
     const existing = await whatsappRepo.findMessageByExternalId(number.id, externalId);
     if (existing) return;
@@ -1248,8 +1231,7 @@ async function processUpsertMessage(number, data) {
 
     await syncConversation({
       companyId: number.company_id,
-      number,
-      phoneNumber,
+      from: phoneNumber,
       sender: 'customer',
       content: messageContent,
       messageType,
@@ -1261,13 +1243,11 @@ async function processUpsertMessage(number, data) {
     }
 
     if (number.is_bot_enabled && messageContent) {
-      const { processIncomingMessage } = await import('../../automation/services/automationService.js');
-      const { notifyAttendants } = await import('../../notifications/services/notificationService.js');
       const botConfig = (await whatsappRepo.getBotConfig(number.company_id).catch(() => ({}))) ?? {};
       const check = await shouldBotRespond(number.company_id, number.id, phoneNumber, botConfig);
       if (check.allowed) {
         try {
-          const result = await processIncomingMessage({ companyId: number.company_id, number, from: phoneNumber, text: messageContent, contact });
+          const result = await processIncomingMessage({ companyId: number.company_id, number, from: phoneNumber, text: messageContent, contact, media });
           if (result) {
             logger.info({ companyId: number.company_id, from: phoneNumber, text: messageContent, flowId: result.flowId, stepId: result.stepId }, 'bot respondeu');
           } else {
@@ -1283,14 +1263,14 @@ async function processUpsertMessage(number, data) {
         if (conv) {
           await conversationRepo.updateConversation(conv.id, { status: 'waiting' }).catch(() => null);
         }
-        await notifyAttendants({
+        notifyAttendantsAsync({
           companyId: number.company_id,
           title: 'Novo contato desconhecido',
           message: `${data.pushName || phoneNumber} enviou: "${messageContent}"`,
           type: 'message',
           relatedEntityType: 'conversation',
           relatedEntityId: conv?.id ?? null,
-        }).catch(() => null);
+        });
         if (config.forwardTo) {
           const forwardMsg = (config.forwardMessage || '📩 Novo contato: {nome} ({phone}) — {mensagem}')
             .replace(/{nome}/g, data.pushName || phoneNumber)
@@ -1336,14 +1316,14 @@ async function handleGroupMessage({ number, data }) {
     await forwardGroupMessage(number, linkedGroup, { senderJid, senderName, text, media }).catch(() => null);
   }
 
-  if (linkedGroup.flow_id && number.is_bot_enabled && text) {
-    const { processIncomingMessage } = await import('../../automation/services/automationService.js');
+  if (linkedGroup.flow_id && number.is_bot_enabled && (text || media)) {
     await processIncomingMessage({
       companyId: number.company_id,
       number,
       from: senderJid,
       text,
       group: { remoteJid, participant: senderJid, senderName },
+      media,
     }).catch(() => null);
   }
 }
@@ -1389,10 +1369,14 @@ export async function sendBulkMessages(companyId, numberId, data) {
   }));
   const results = [];
   for (const m of messages) {
-    await evolutionApi.sendText(number.external_account_id, m.number, m.text, m.delay).catch((e) => results.push({ number: m.number, ok: false, error: e.message }));
-    results.push({ number: m.number, ok: true });
+    try {
+      await evolutionApi.sendText(number.external_account_id, m.number, m.text, m.delay);
+      results.push({ number: m.number, ok: true });
+    } catch (e) {
+      results.push({ number: m.number, ok: false, error: e.message });
+    }
   }
-  return { sent: results.length, results };
+  return { sent: results.filter((r) => r.ok).length, results };
 }
 
 export async function sendBase64Message(companyId, numberId, data) {
@@ -1427,18 +1411,19 @@ export async function fetchBusinessProfile(companyId, numberId, data) {
 }
 
 export async function changeNumber(companyId, numberId, data) {
-  const number = await requireNumber(companyId, numberId);
-  return evolutionApi.changeNumber(number.external_account_id, String(data.number).replace(/\D/g, ''));
+  throw new BadRequestError('Troca de número não suportada pela EvolutionAPI v2.3.7. Desconecte e conecte com o novo número.');
 }
 
 export async function sendLinkPreview(companyId, numberId, data) {
   const number = await requireNumber(companyId, numberId);
-  return evolutionApi.sendLinkPreview(number.external_account_id, { ...data, number: String(data.number).replace(/\D/g, '') });
+  const cleanNumber = String(data.number).replace(/\D/g, '');
+  return evolutionApi.sendLinkPreview(number.external_account_id, cleanNumber, data.url ?? '');
 }
 
 export async function typewriterEffect(companyId, numberId, data) {
   const number = await requireNumber(companyId, numberId);
-  return evolutionApi.typewriter(number.external_account_id, { ...data, number: String(data.number).replace(/\D/g, '') });
+  const cleanNumber = String(data.number).replace(/\D/g, '');
+  return evolutionApi.typewriter(number.external_account_id, cleanNumber);
 }
 
 export default {
@@ -1533,4 +1518,5 @@ export default {
   changeNumber,
   sendLinkPreview,
   typewriterEffect,
+  handleCustomerCommand,
 };

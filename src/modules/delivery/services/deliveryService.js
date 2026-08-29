@@ -1,5 +1,7 @@
 import { BadRequestError, ConflictError, NotFoundError } from '../../../shared/errors/AppError.js';
 import * as repository from '../repositories/deliveryRepository.js';
+import { handleOrderEvent } from '../../notifications/services/orderNotificationService.js';
+import { dispatchEventAsync } from '../../notifications/services/notificationService.js';
 
 export const getSettings = (companyId) => repository.findSettings(companyId);
 export const saveSettings = (companyId, data) => repository.upsertSettings(companyId, data);
@@ -60,8 +62,8 @@ export async function updateStatus(companyId, id, data) {
   if (!result.count) throw new NotFoundError('Delivery');
 
   if (['assigned', 'in_transit', 'at_location', 'delivered'].includes(data.status)) {
-    const { handleOrderEvent } = await import('../../notifications/services/orderNotificationService.js');
     await handleOrderEvent(companyId, delivery.order_id, `delivery_${data.status}`).catch(() => null);
+    dispatchEventAsync({ companyId, event: `delivery_${data.status}`, vars: { orderId: delivery.order_id, status: data.status }, relatedEntityType: 'delivery', relatedEntityId: id });
   }
 
   return getDelivery(companyId, id);

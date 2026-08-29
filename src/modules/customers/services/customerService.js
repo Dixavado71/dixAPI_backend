@@ -1,26 +1,52 @@
-import prisma from '../../../infrastructure/database/prismaClient.js';
+import * as repo from '../repositories/customerRepository.js';
 import { NotFoundError } from '../../../shared/errors/AppError.js';
 
-export function listCustomers(companyId) {
-  return prisma.customer.findMany({ where: { company_id: companyId }, orderBy: { name: 'asc' } });
+function toCustomerDTO(customer) {
+  if (!customer) return customer;
+  return {
+    id: customer.id,
+    companyId: customer.company_id,
+    name: customer.name,
+    email: customer.email,
+    phone: customer.phone,
+    segment: customer.segment,
+    status: customer.status,
+    totalOrders: customer.total_orders,
+    totalSpent: customer.total_spent,
+    lastPurchaseDate: customer.last_purchase_date,
+    registeredAt: customer.registered_at,
+    createdAt: customer.created_at,
+    updatedAt: customer.updated_at,
+  };
 }
 
-export function findCustomerById(companyId, id) {
-  return prisma.customer.findFirst({ where: { id, company_id: companyId } });
+export async function listCustomers(companyId, params) {
+  const result = await repo.findAll(companyId, params);
+  return { ...result, customers: result.customers.map(toCustomerDTO) };
 }
 
-export function createCustomer(companyId, data) {
-  return prisma.customer.create({ data: { company_id: companyId, ...data } });
+export async function findCustomerById(companyId, id) {
+  const customer = await repo.findById(companyId, id);
+  return toCustomerDTO(customer);
+}
+
+export async function createCustomer(companyId, data) {
+  const customer = await repo.create(companyId, data);
+  return toCustomerDTO(customer);
 }
 
 export async function updateCustomer(companyId, id, data) {
-  const customer = await findCustomerById(companyId, id);
+  const customer = await repo.findById(companyId, id);
   if (!customer) throw new NotFoundError('Customer');
-  return prisma.customer.update({ where: { id }, data });
+  const updated = await repo.updateMany(companyId, id, data);
+  if (!updated.count) throw new NotFoundError('Customer');
+  const refreshed = await repo.findById(companyId, id);
+  return toCustomerDTO(refreshed);
 }
 
 export async function deleteCustomer(companyId, id) {
-  const customer = await findCustomerById(companyId, id);
+  const customer = await repo.findById(companyId, id);
   if (!customer) throw new NotFoundError('Customer');
-  return prisma.customer.delete({ where: { id } });
+  const deleted = await repo.deleteMany(companyId, id);
+  return deleted.count > 0;
 }

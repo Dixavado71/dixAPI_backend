@@ -1,6 +1,39 @@
 import dotenv from 'dotenv';
+import { z } from 'zod';
 
 dotenv.config();
+
+const envSchema = z.object({
+  nodeEnv: z.string().default('development'),
+  port: z.coerce.number().int().positive().default(7171),
+  databaseUrl: z.string(),
+  databaseConnectionLimit: z.coerce.number().int().positive().default(10),
+  databasePoolTimeout: z.coerce.number().int().positive().default(10),
+  redisUrl: z.string(),
+  jwtAccessSecret: z.string(),
+  jwtRefreshSecret: z.string(),
+  jwtAccessExpiresIn: z.string().default('15m'),
+  jwtRefreshExpiresIn: z.string().default('7d'),
+  jwtIssuer: z.string().default('dixapi'),
+  jwtAudience: z.string().default('dixapi-api'),
+  corsOrigin: z.string().default('http://localhost:5173'),
+  logLevel: z.string().default('info'),
+  publicApiUrl: z.string().default('http://localhost:7171'),
+  frontendUrl: z.string().default('http://localhost:5173'),
+  smtpHost: z.string().optional(),
+  smtpPort: z.coerce.number().int().positive().default(587),
+  smtpUser: z.string().optional(),
+  smtpPass: z.string().optional(),
+  mailFrom: z.string().default('no-reply@diix.app'),
+  evolutionApiUrl: z.string().optional(),
+  evolutionApiKey: z.string().optional(),
+  evolutionApiGlobalKey: z.string().optional(),
+  evolutionWebhookSecret: z.string().optional(),
+  paymentWebhookSecret: z.string().optional(),
+  defaultAdminPassword: z.string().optional(),
+  defaultManagerPassword: z.string().optional(),
+  defaultOperatorPassword: z.string().optional(),
+});
 
 export const env = {
   nodeEnv: process.env.NODE_ENV || 'development',
@@ -28,6 +61,7 @@ export const env = {
   evolutionApiKey: process.env.EVOLUTION_API_KEY,
   evolutionApiGlobalKey: process.env.EVOLUTION_API_GLOBAL_KEY,
   evolutionWebhookSecret: process.env.EVOLUTION_WEBHOOK_SECRET,
+  paymentWebhookSecret: process.env.PAYMENT_WEBHOOK_SECRET,
   defaultAdminPassword: process.env.DEFAULT_ADMIN_PASSWORD,
   defaultManagerPassword: process.env.DEFAULT_MANAGER_PASSWORD,
   defaultOperatorPassword: process.env.DEFAULT_OPERATOR_PASSWORD,
@@ -53,3 +87,5 @@ export function validateEnv() {
     if (env.databaseUrl && !env.databaseUrl.includes('sslmode=require') && !databaseUsesInternalRailwayNetwork) throw new Error('PostgreSQL TLS is required in production');
   }
 }
+
+validateEnv();

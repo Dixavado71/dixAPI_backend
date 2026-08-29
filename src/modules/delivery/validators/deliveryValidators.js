@@ -1,6 +1,7 @@
 import { z } from 'zod';
+import { idParamSchema } from '../../../shared/validators/commonSchemas.js';
 
-export const idParamsSchema = z.object({ id: z.string().uuid() }).strict();
+export const idParamsSchema = idParamSchema;
 
 const decimal = z.number().finite().nonnegative();
 
@@ -11,8 +12,8 @@ export const settingsSchema = z.object({
   default_delivery_fee: decimal.optional(),
   estimated_min_minutes: z.number().int().positive().optional(),
   estimated_max_minutes: z.number().int().positive().optional(),
-  service_start: z.string().regex(/^([01]\\d|2[0-3]):[0-5]\\d$/).nullable().optional(),
-  service_end: z.string().regex(/^([01]\\d|2[0-3]):[0-5]\\d$/).nullable().optional(),
+  service_start: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/).nullable().optional(),
+  service_end: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/).nullable().optional(),
   accepted_payments: z.array(z.string()).nullable().optional(),
 }).strict().refine(data => Object.keys(data).length > 0, { message: 'At least one setting must be provided' });
 

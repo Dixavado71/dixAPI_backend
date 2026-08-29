@@ -2,8 +2,13 @@ import prisma from '../../../infrastructure/database/prismaClient.js';
 
 const dateRange = (from, to) => {
   const end = to ? new Date(to) : new Date();
-  end.setHours(23, 59, 59, 999);
   const start = from ? new Date(from) : new Date(end.getTime() - 30 * 24 * 60 * 60 * 1000);
+  if (Number.isNaN(end.getTime()) || Number.isNaN(start.getTime())) {
+    const now = new Date();
+    end.setTime(now.getTime());
+    start.setTime(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+  }
+  end.setHours(23, 59, 59, 999);
   start.setHours(0, 0, 0, 0);
   return { start, end };
 };
@@ -18,7 +23,7 @@ export async function getOverview(companyId, { from, to } = {}) {
     }),
     prisma.order.count({ where: { company_id: companyId, order_date: { gte: start, lte: end } } }),
     prisma.customer.count({ where: { company_id: companyId, status: 'active' } }),
-    prisma.conversation.count({ where: { company_id: companyId } }),
+    prisma.conversation.count({ where: { company_id: companyId, updated_at: { gte: start, lte: end } } }),
     prisma.$queryRaw`
       SELECT date_trunc('month', order_date) AS month,
              SUM(total) AS revenue,
@@ -43,12 +48,12 @@ export async function getOverview(companyId, { from, to } = {}) {
     `,
     prisma.customer.groupBy({
       by: ['segment'],
-      where: { company_id: companyId },
+      where: { company_id: companyId, status: 'active' },
       _count: { _all: true },
     }),
     prisma.conversation.groupBy({
       by: ['channel'],
-      where: { company_id: companyId },
+      where: { company_id: companyId, updated_at: { gte: start, lte: end } },
       _count: { _all: true },
     }),
   ]);

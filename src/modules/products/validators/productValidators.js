@@ -15,8 +15,8 @@ export const productSchema = z.object({
   price: z.number().finite().nonnegative('Preço deve ser ≥ 0'),
   cost: z.number().finite().nonnegative('Custo deve ser ≥ 0').optional(),
   stock: z.number().int().nonnegative('Stock deve ser ≥ 0'),
-  min_stock: z.number().int().nonnegative('Min. stock deve ser ≥ 0'),
-  image_url: z.string().url('URL inválida').optional(),
+  minStock: z.number().int().nonnegative('Min. stock deve ser ≥ 0'),
+  imageUrl: z.string().url('URL inválida').optional(),
   status: productStatusSchema.optional(),
 }).strict();
 

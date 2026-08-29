@@ -19,7 +19,7 @@ vi.mock('../src/infrastructure/whatsapp/evolutionApiClient.js', () => ({
   fetchChatMessages: vi.fn(),
   sendText: vi.fn(),
 }));
-vi.mock('../src/infrastructure/cache/chatbotCache.js', () => ({ default: { getFlowState: vi.fn(), setFlowState: vi.fn(), clearFlowState: vi.fn() } }));
+vi.mock('../src/modules/automation/cache/chatbotCache.js', () => ({ default: { getFlowState: vi.fn(), setFlowState: vi.fn(), clearFlowState: vi.fn() } }));
 vi.mock('../src/config/env.js', () => ({ env: { evolutionApiUrl: 'http://evolution', logLevel: 'silent' } }));
 vi.mock('../src/config/logger.js', () => ({
   logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },

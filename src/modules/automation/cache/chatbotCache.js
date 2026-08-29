@@ -1,5 +1,5 @@
-import redis from './redisClient.js';
-import logger from '../../config/logger.js';
+import redis from '../../../infrastructure/cache/redisClient.js';
+import logger from '../../../config/logger.js';
 
 const TTL_SECONDS = 24 * 60 * 60; // 24h
 const PREFIX = 'chatbot';

@@ -59,13 +59,25 @@ describe('users service (store scope)', () => {
     repository.findUserById.mockResolvedValue({ id: 'u1', name: 'Ana', role: 'operator' });
     repository.updateUser.mockResolvedValue({});
     repository.updateMembership.mockResolvedValue({});
-    const result = await usersService.removeUser(C1, 'admin', 'u1');
+    const result = await usersService.removeUser(C1, 'admin', 'actor-1', 'u1');
     expect(repository.updateUser).toHaveBeenCalledWith(C1, 'u1', { is_active: false });
     expect(result.deleted).toBe(true);
   });
 
   it('blocks remove by manager', async () => {
     repository.findUserById.mockResolvedValue({ id: 'u1', name: 'Ana', role: 'operator' });
-    await expect(usersService.removeUser(C1, 'manager', 'u1')).rejects.toMatchObject({ code: 'FORBIDDEN' });
+    await expect(usersService.removeUser(C1, 'manager', 'actor-1', 'u1')).rejects.toMatchObject({ code: 'FORBIDDEN' });
+  });
+
+  it('blocks manager from deactivating an admin', async () => {
+    repository.findUserById.mockResolvedValue({ id: 'u1', name: 'Ana', role: 'admin', UserCompany: [{ role: 'admin' }] });
+    await expect(
+      usersService.updateUser(C1, 'manager', 'actor-1', 'u1', { isActive: false }),
+    ).rejects.toMatchObject({ code: 'FORBIDDEN' });
+  });
+
+  it('blocks admin from removing themselves', async () => {
+    repository.findUserById.mockResolvedValue({ id: 'u1', name: 'Ana', role: 'admin', UserCompany: [{ role: 'admin' }] });
+    await expect(usersService.removeUser(C1, 'admin', 'u1', 'u1')).rejects.toMatchObject({ code: 'FORBIDDEN' });
   });
 });

@@ -36,7 +36,7 @@ vi.mock('../src/modules/automation/repositories/automationRepository.js', () => 
 vi.mock('../src/modules/whatsapp/repositories/whatsappRepository.js', () => whatsappRepo);
 vi.mock('../src/modules/conversations/repositories/conversationRepository.js', () => conversationRepo);
 vi.mock('../src/infrastructure/whatsapp/evolutionApiClient.js', () => evolutionApi);
-vi.mock('../src/infrastructure/cache/chatbotCache.js', () => ({ default: cache }));
+vi.mock('../src/modules/automation/cache/chatbotCache.js', () => ({ default: cache }));
 vi.mock('../src/config/env.js', () => ({ env: { logLevel: 'silent' } }));
 vi.mock('../src/config/logger.js', () => ({
   logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
@@ -44,6 +44,7 @@ vi.mock('../src/config/logger.js', () => ({
 }));
 vi.mock('../src/modules/notifications/services/notificationService.js', () => ({
   notifyAttendants: vi.fn().mockResolvedValue([]),
+  notifyAttendantsAsync: vi.fn(),
 }));
 
 const service = await import('../src/modules/automation/services/automationService.js');

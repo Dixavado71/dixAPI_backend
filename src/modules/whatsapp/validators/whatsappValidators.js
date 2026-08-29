@@ -149,6 +149,7 @@ export const groupPictureSchema = z.object({
 }).strict();
 
 export const reactStatusSchema = z.object({
+  number: z.string().min(1).optional(),
   statusId: z.string().min(1),
   reaction: z.string().min(1).max(50),
 }).strict();

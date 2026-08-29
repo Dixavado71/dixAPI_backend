@@ -72,6 +72,8 @@ export const createFlowSchema = z.object({
 
 export const updateFlowSchema = createFlowSchema.partial();
 
+export const importFlowSchema = createFlowSchema;
+
 export const testFlowSchema = z.object({
   vars: z.record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.null()])).optional(),
   stepId: z.string().optional(),

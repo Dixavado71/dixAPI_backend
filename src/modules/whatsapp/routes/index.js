@@ -5,6 +5,7 @@ import { authenticate } from '../../../infrastructure/http/middlewares/authentic
 import { authorize } from '../../../infrastructure/http/middlewares/authorize.js';
 import ensureTenant from '../../../infrastructure/http/middlewares/tenant.js';
 import { env } from '../../../config/env.js';
+import { requireWebhookSecret } from '../../../shared/http/webhookSecret.js';
 
 const router = Router();
 
@@ -16,16 +17,7 @@ const webhookLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-function requireWebhookSecret(req, res, next) {
-  if (!env.evolutionWebhookSecret) return next();
-  const provided = req.headers['x-webhook-secret'];
-  if (!provided || provided !== env.evolutionWebhookSecret) {
-    return res.status(401).json({ success: false, error: { code: 'UNAUTHORIZED', message: 'Segredo do webhook inválido.' } });
-  }
-  return next();
-}
-
-router.post('/webhook/:instanceName', webhookLimiter, requireWebhookSecret, whatsappController.webhook);
+router.post('/webhook/:instanceName', webhookLimiter, requireWebhookSecret(env.evolutionWebhookSecret), whatsappController.webhook);
 
 // Authenticated routes
 router.use(authenticate, ensureTenant());

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { idParamSchema } from '../../../shared/validators/commonSchemas.js';
 
 const dateField = z.coerce.date().optional();
 export const promotionSchema = z.object({
@@ -27,4 +28,4 @@ export const couponAdminSchema = z.object({
   endsAt: dateField,
 }).strict();
 
-export const idSchema = z.object({ id: z.string().uuid() }).strict();
+export const idSchema = idParamSchema;

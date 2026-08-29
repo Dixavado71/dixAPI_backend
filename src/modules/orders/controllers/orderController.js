@@ -1,31 +1,21 @@
 import * as service from '../services/orderService.js';
 import { createdResponse, successResponse } from '../../../shared/utils/response.js';
-import { createOrderSchema } from '../validators/orderValidators.js';
+import { createOrderSchema, updateOrderSchema } from '../validators/orderValidators.js';
+import { asyncHandler } from '../../../shared/utils/asyncHandler.js';
 
-export async function list(req, res, next) {
-  try { return successResponse(res, await service.listOrders(req.tenant.companyId, req.query.status)); } catch (error) { next(error); }
-}
+export const list = asyncHandler(async (req, res) => successResponse(res, await service.listOrders(req.tenant.companyId, req.query.status)));
 
-export async function get(req, res, next) {
-  try { return successResponse(res, await service.getOrder(req.tenant.companyId, req.params.id)); } catch (error) { next(error); }
-}
+export const get = asyncHandler(async (req, res) => successResponse(res, await service.getOrder(req.tenant.companyId, req.params.id)));
 
-export async function create(req, res, next) {
-  try {
-    const order = await service.createOrder(req.tenant.companyId, createOrderSchema.parse(req.body));
-    return createdResponse(res, order);
-  } catch (error) {
-    return next(error);
-  }
-}
+export const create = asyncHandler(async (req, res) => {
+  const order = await service.createOrder(req.tenant.companyId, createOrderSchema.parse(req.body));
+  return createdResponse(res, order);
+});
 
-export async function updateStatus(req, res, next) {
-  try {
-    const order = await service.updateOrderStatus(req.tenant.companyId, req.params.id, req.body.status);
-    return successResponse(res, order);
-  } catch (error) {
-    return next(error);
-  }
-}
+export const updateStatus = asyncHandler(async (req, res) => {
+  const { status } = updateOrderSchema.parse(req.body);
+  const order = await service.updateOrderStatus(req.tenant.companyId, req.params.id, status);
+  return successResponse(res, order);
+});
 
 export default { list, get, create, updateStatus };

@@ -1,17 +1,65 @@
 import * as repository from '../repositories/productRepository.js';
 import { NotFoundError, ConflictError } from '../../../shared/errors/AppError.js';
+import { dispatchEventAsync } from '../../notifications/services/notificationService.js';
 
-export const listProducts = (companyId, kind) => repository.listProducts(companyId, kind);
+function toProductDTO(product) {
+  if (!product) return product;
+  return {
+    id: product.id,
+    companyId: product.company_id,
+    name: product.name,
+    description: product.description,
+    category: product.category,
+    price: product.price,
+    cost: product.cost,
+    stock: product.stock,
+    minStock: product.min_stock,
+    totalSales: product.total_sales,
+    totalRevenue: product.total_revenue,
+    status: product.status,
+    imageUrl: product.image_url,
+    createdAt: product.created_at,
+    updatedAt: product.updated_at,
+  };
+}
+
+function toPrismaProduct(data) {
+  const prismaData = { ...data };
+  if (prismaData.minStock !== undefined) { prismaData.min_stock = prismaData.minStock; delete prismaData.minStock; }
+  if (prismaData.imageUrl !== undefined) { prismaData.image_url = prismaData.imageUrl; delete prismaData.imageUrl; }
+  return prismaData;
+}
+
+export async function listProducts(companyId, kind) {
+  const products = await repository.listProducts(companyId, kind);
+  return products.map(toProductDTO);
+}
+
 export const listAllProducts = (companyId) => repository.listAllProducts(companyId);
 
-export function createProduct(companyId, data) {
-  return repository.createProduct(companyId, data);
+function maybeDispatchLowStock(companyId, product) {
+  if (!product || product.stock > product.min_stock) return;
+  dispatchEventAsync({
+    companyId,
+    event: 'stock_low',
+    vars: { productName: product.name, stock: product.stock, minStock: product.min_stock },
+    relatedEntityType: 'product',
+    relatedEntityId: product.id,
+  });
+}
+
+export async function createProduct(companyId, data) {
+  const product = await repository.createProduct(companyId, toPrismaProduct(data));
+  maybeDispatchLowStock(companyId, product);
+  return toProductDTO(product);
 }
 
 export async function updateProduct(companyId, id, data) {
   const product = await repository.findProductById(id, companyId);
   if (!product) throw new NotFoundError('Product');
-  return repository.updateProduct(companyId, id, data);
+  const updated = await repository.updateProduct(companyId, id, toPrismaProduct(data));
+  maybeDispatchLowStock(companyId, updated);
+  return toProductDTO(updated);
 }
 
 export async function deleteProduct(companyId, id) {
@@ -35,5 +83,5 @@ export async function deleteProduct(companyId, id) {
 export async function getProduct(companyId, id) {
   const product = await repository.findProductById(id, companyId);
   if (!product) throw new NotFoundError('Product');
-  return product;
+  return toProductDTO(product);
 }

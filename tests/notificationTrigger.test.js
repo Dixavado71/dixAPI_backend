@@ -16,13 +16,14 @@ vi.mock('../src/modules/automation/services/templateEngine.js', () => ({
   fillTemplate: (t, vars) => String(t).replace(/{nome}/g, vars?.nome ?? ''),
 }));
 
-const mockPrisma = {
+const mockPrisma = vi.hoisted(() => ({
   whatsAppNumber: { findFirst: vi.fn() },
-};
-const mockEvolution = { sendText: vi.fn() };
+}));
+const mockEvolution = vi.hoisted(() => ({ sendText: vi.fn() }));
 vi.mock('../src/config/env.js', () => ({ env: {} }));
 vi.mock('../src/infrastructure/database/prismaClient.js', () => ({ default: mockPrisma }));
 vi.mock('../src/infrastructure/whatsapp/evolutionApiClient.js', () => mockEvolution);
+vi.mock('../src/infrastructure/queue/notificationQueue.js', () => ({ enqueueNotification: vi.fn() }));
 
 const service = await import('../src/modules/notifications/services/notificationService.js');
 
@@ -30,6 +31,7 @@ const C1 = '00000000-0000-0000-0000-000000000001';
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mockPrisma.whatsAppNumber.findFirst.mockResolvedValue(null);
 });
 
 describe('dispatchEvent', () => {

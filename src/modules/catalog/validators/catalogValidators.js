@@ -1,12 +1,13 @@
 import { z } from 'zod';
+import { idParamSchema } from '../../../shared/validators/commonSchemas.js';
 
 export const catalogQuerySchema = z.object({
   kind: z.enum(['store_category', 'service_category']).optional(),
   categoryId: z.string().uuid().optional(),
 }).strict();
 
-export const categoryParamsSchema = z.object({ id: z.string().uuid() }).strict();
-export const serviceParamsSchema = z.object({ id: z.string().uuid() }).strict();
+export const categoryParamsSchema = idParamSchema;
+export const serviceParamsSchema = idParamSchema;
 
 export const companyCategorySchema = z.object({
   categoryId: z.string().uuid(),

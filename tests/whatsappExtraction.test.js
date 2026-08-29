@@ -67,4 +67,23 @@ describe('extractMedia', () => {
     expect(extractMedia({ conversation: 'texto' })).toBeNull();
     expect(extractMedia(null)).toBeNull();
   });
+
+  it('extracts location without URL', () => {
+    const result = extractMedia({ locationMessage: { degreesLatitude: -23.55, degreesLongitude: -46.63 } });
+    expect(result.type).toBe('location');
+    expect(result.caption).toBe('-23.55,-46.63');
+    expect(result.url).toBeNull();
+  });
+
+  it('extracts contact with display name', () => {
+    const result = extractMedia({ contactMessage: { displayName: 'Maria', vcard: 'BEGIN:VCARD...' } });
+    expect(result.type).toBe('contact');
+    expect(result.caption).toBe('Maria');
+  });
+
+  it('extracts poll with question and options', () => {
+    const result = extractMedia({ pollCreationMessage: { name: 'Qual seu sabor?', options: [{ optionName: 'Chocolate' }, { optionName: 'Baunilha' }] } });
+    expect(result.type).toBe('poll');
+    expect(result.caption).toBe('Qual seu sabor?');
+  });
 });

@@ -31,12 +31,8 @@ export async function findAll(companyId, { skip, take, search, isActive }) {
 }
 
 export async function findById(id, companyId) {
-  return prisma.company.findFirst({
-    where: {
-      id,
-      ...(companyId && { id: companyId }),
-    },
-  });
+  if (companyId && id !== companyId) return null;
+  return prisma.company.findUnique({ where: { id } });
 }
 
 export async function findByCnpj(cnpj) {
@@ -50,15 +46,17 @@ export async function create(data) {
 }
 
 export async function update(id, companyId, data) {
+  if (companyId && id !== companyId) return { count: 0 };
   return prisma.company.updateMany({
-    where: { id, ...(companyId ? { id: companyId } : {}) },
+    where: { id },
     data,
   });
 }
 
 export async function remove(id, companyId) {
+  if (companyId && id !== companyId) return { count: 0 };
   return prisma.company.deleteMany({
-    where: { id, ...(companyId ? { id: companyId } : {}) },
+    where: { id },
   });
 }
 
