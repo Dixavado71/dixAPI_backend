@@ -786,14 +786,21 @@ async function executeStep({ companyId, number, from, replyTo, text, contact, fl
         nextStep = step.next ?? null;
       }
     } else if (step.action === 'start_atendimento') {
-      const dataStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-      const rand = crypto.randomBytes(2).toString('hex').toUpperCase();
-      const protocol = `MK-${dataStr}-${rand}`;
+      let protocol = null;
+      let existingConv = null;
+      try {
+        existingConv = await conversationRepo.findConversationByContact(companyId, 'whatsapp', from);
+        protocol = existingConv?.protocol ?? null;
+      } catch { /* ignore */ }
+      if (!protocol) {
+        const dataStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+        const rand = crypto.randomBytes(2).toString('hex').toUpperCase();
+        protocol = `MK-${dataStr}-${rand}`;
+      }
       vars.protocol = protocol;
       try {
-        const conv = await conversationRepo.findConversationByContact(companyId, 'whatsapp', from);
-        if (conv) {
-          await conversationRepo.updateConversation(conv.id, { protocol, flow_snapshot: { flowId: flow.id, flowStep: null, vars: {} } });
+        if (existingConv) {
+          await conversationRepo.updateConversation(existingConv.id, { protocol, flow_snapshot: { flowId: flow.id, flowStep: null, vars: {} } });
         }
       } catch (err) {
         logger.error({ err: err.message, companyId, from }, 'start_atendimento: erro ao salvar protocolo');
