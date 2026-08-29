@@ -1,9 +1,12 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, afterAll } from 'vitest';
 import request from 'supertest';
 import app from '../../src/app.js';
 import { routes } from '../route-inventory.js';
 import { getSampleBody } from '../helpers/payload-generator.js';
 import { adminToken, managerToken, operatorToken, masterToken, resellerToken } from '../helpers/auth-setup.js';
+import { generateRouteCoverageReport } from '../reporters/route-coverage.js';
+
+const collected = [];
 
 function tokenForRole(role) {
   if (role === 'admin') return adminToken();
@@ -49,12 +52,19 @@ describe.each(routes)('Route $method $path', ({ path, methods }) => {
       if (body !== undefined) req.send(body);
       else if (['POST', 'PUT', 'PATCH'].includes(method)) req.send({});
 
+      const t0 = Date.now();
       const res = await req;
+      const duration = Date.now() - t0;
       // 5xx (exceto 503 = banco indisponível em teste sem DB) indicam bug
       if (res.status >= 500 && res.status !== 503) {
         throw new Error(`${method} ${path} -> ${res.status} (${JSON.stringify(res.body?.error?.message ?? '').slice(0, 100)})`);
       }
       expect(res.status).not.toBe(501);
+      collected.push({ method, path, status: res.status, ok: true, duration });
     });
   }
+});
+
+afterAll(() => {
+  generateRouteCoverageReport(collected);
 });
