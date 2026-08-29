@@ -38,6 +38,12 @@ export function findConversationByContact(companyId, channel, contactPhone) {
   });
 }
 
+export function findByProtocol(companyId, protocol) {
+  return prisma.conversation.findFirst({
+    where: { company_id: companyId, protocol },
+  });
+}
+
 export function createConversation(data) {
   return prisma.conversation.create({ data });
 }
@@ -99,6 +105,7 @@ export default {
   listConversations,
   findConversationById,
   findConversationByContact,
+  findByProtocol,
   createConversation,
   updateConversation,
   updateConversationLastMessage,

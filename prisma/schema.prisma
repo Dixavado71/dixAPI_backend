@@ -471,6 +471,8 @@ model Company {
   status_history          CompanyStatusHistory[]
   audit_logs              AuditLog[]
   delivery_settings       DeliverySettings?
+  production_settings     ProductionSettings?
+  production_schedules    ProductionSchedule[]
   delivery_zones          DeliveryZone[]
   delivery_drivers        DeliveryDriver[]
   deliveries              Delivery[]
@@ -577,6 +579,7 @@ model Product {
   total_revenue Decimal       @default(0) @db.Decimal(10, 2)
   status        ProductStatus @default(active)
   image_url     String?
+  estimated_production_days Int? @default(1)
   created_at    DateTime      @default(now())
   updated_at    DateTime      @updatedAt
 
@@ -603,6 +606,8 @@ model Order {
   total            Decimal       @db.Decimal(10, 2)
   shipping_address String?
   notes            String?
+  expected_completion_at DateTime?
+  delivery_eta_at        DateTime?
   order_date       DateTime      @default(now())
   completed_at     DateTime?
   created_at       DateTime      @default(now())
@@ -613,6 +618,7 @@ model Order {
   order_items     OrderItem[]
   transactions    Transaction[]
   delivery        Delivery?
+  production_schedule ProductionSchedule?
   payments        PaymentRecord[]
   affiliate_sales AffiliateSale[]
 
@@ -655,6 +661,8 @@ model Conversation {
   is_pinned       Boolean             @default(false)
   is_archived     Boolean             @default(false)
   assigned_to     String?             @db.Uuid
+  protocol        String?
+  flow_snapshot   Json?
   status          ConversationStatus  @default(open)
   created_at      DateTime            @default(now())
   updated_at      DateTime            @updatedAt
@@ -665,6 +673,7 @@ model Conversation {
   messages Message[]
 
   @@unique([company_id, id])
+  @@unique([company_id, protocol])
   @@index([company_id])
   @@index([company_id, channel])
   @@index([company_id, status])
@@ -1100,6 +1109,38 @@ model DeliverySettings {
   company Company @relation(fields: [company_id], references: [id], onDelete: Cascade)
 
   @@map("delivery_settings")
+}
+
+model ProductionSettings {
+  id             String   @id @default(uuid()) @db.Uuid
+  company_id     String   @unique @db.Uuid
+  daily_capacity Int      @default(8)
+  working_days   Json?
+  created_at     DateTime @default(now())
+  updated_at     DateTime @updatedAt
+
+  company Company @relation(fields: [company_id], references: [id], onDelete: Cascade)
+
+  @@map("production_settings")
+}
+
+model ProductionSchedule {
+  id             String   @id @default(uuid()) @db.Uuid
+  company_id     String   @db.Uuid
+  order_id       String   @unique @db.Uuid
+  scheduled_date DateTime
+  status         String   @default("scheduled")
+  notes          String?
+  created_at     DateTime @default(now())
+  updated_at     DateTime @updatedAt
+
+  company Company @relation(fields: [company_id], references: [id], onDelete: Cascade)
+  order   Order   @relation(fields: [order_id], references: [id], onDelete: Cascade)
+
+  @@unique([company_id, id])
+  @@index([company_id, status])
+  @@index([scheduled_date])
+  @@map("production_schedules")
 }
 
 model DeliveryZone {

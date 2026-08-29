@@ -1,5 +1,6 @@
 import { NotFoundError, ConflictError, BadRequestError } from '../../../shared/errors/AppError.js';
 import { lookup } from 'node:dns/promises';
+import crypto from 'node:crypto';
 import * as automationRepo from '../repositories/automationRepository.js';
 import * as whatsappRepo from '../../whatsapp/repositories/whatsappRepository.js';
 import * as conversationRepo from '../../conversations/repositories/conversationRepository.js';
@@ -13,6 +14,7 @@ import { syncConversation } from '../../../shared/whatsapp/conversation.js';
 import { findOrCreateCustomer } from '../../../shared/whatsapp/customer.js';
 import { createOrder } from '../../orders/services/orderService.js';
 import { notifyAttendantsAsync } from '../../notifications/services/notificationService.js';
+import * as productionService from '../../production/services/productionService.js';
 import { logger } from '../../../config/logger.js';
 
 function mapFlow(flow) {
@@ -65,6 +67,7 @@ export function validateFlowConfig(config) {
     if (step.next_false && !ids.has(step.next_false)) dangling.push(`step '${step.id}'.next_false -> '${step.next_false}'`);
     if (step.next_sim && !ids.has(step.next_sim)) dangling.push(`step '${step.id}'.next_sim -> '${step.next_sim}'`);
     if (step.next_nao && !ids.has(step.next_nao)) dangling.push(`step '${step.id}'.next_nao -> '${step.next_nao}'`);
+    if (step.next_empty && !ids.has(step.next_empty)) dangling.push(`step '${step.id}'.next_empty -> '${step.next_empty}'`);
     if (step.else && !ids.has(step.else)) dangling.push(`step '${step.id}'.else -> '${step.else}'`);
     if (step.type === 'question' && (!Array.isArray(step.options) || step.options.length === 0)) {
       throw new BadRequestError(`Step '${step.id}': pergunta precisa de pelo menos 1 opção.`);
@@ -355,12 +358,14 @@ async function resolveProductStep(companyId, step, vars) {
     const product = await whatsappRepo.findProductByCompany(companyId, step.productId).catch(() => null);
     if (product && product.status !== 'inactive') return product;
   }
-  if (step.productSource === 'catalog' && vars?.catalogQueue && vars.catalogQueue.length > 0) {
-    const queue = vars.catalogQueue;
+  if (step.productSource === 'catalog') {
+    const queue = vars?.catalogQueue;
+    if (!Array.isArray(queue) || queue.length === 0) return null;
     const nextId = queue.shift();
     vars.catalogQueue = queue;
     const product = await whatsappRepo.findProductByCompany(companyId, nextId).catch(() => null);
     if (product && product.status !== 'inactive') return product;
+    return null;
   }
   const [featured] = await whatsappRepo.listActiveProducts(companyId, 1);
   return featured ?? null;
@@ -376,7 +381,7 @@ function formatCartSummary(cart) {
   return `${lines.join('\n')}\n\n*Total: R$ ${total.toFixed(2).replace('.', ',')}*`;
 }
 
-async function checkoutCartStep({ companyId, number, from, vars, step }) {
+async function checkoutCartStep({ companyId, number, from, vars, step, contact }) {
   const cart = Array.isArray(vars?.cart) ? vars.cart : [];
   if (cart.length === 0) return null;
   const phone = normalizePhone(from);
@@ -388,7 +393,22 @@ async function checkoutCartStep({ companyId, number, from, vars, step }) {
   });
   vars.customerId = customer.id;
   const items = cart.map((i) => ({ productId: i.productId, quantity: i.quantity }));
-  const order = await createOrder(companyId, customer.id, step.paymentMethod ?? 'pix', items);
+
+  const shippingAddress = vars?.zm_endereco_entrega || vars?.endereco_padrao || null;
+  const order = await createOrder(companyId, customer.id, step.paymentMethod ?? 'pix', items, null, shippingAddress);
+
+  if (vars?.zm_endereco_entrega) {
+    try {
+      const contactRecord = await whatsappRepo.findContactByPhone(companyId, number.id, from);
+      if (contactRecord) {
+        const meta = { ...(contactRecord.metadata ?? {}), default_address: vars.zm_endereco_entrega };
+        await whatsappRepo.updateContactMetadata(contactRecord.id, meta);
+      }
+    } catch (err) {
+      logger.error({ err: err.message, companyId, from }, 'checkout: erro ao salvar endereco padrao');
+    }
+  }
+
   return order;
 }
 
@@ -437,11 +457,21 @@ async function resolveFlow(companyId, number, group, text, priority = ['vendas',
   return null;
 }
 
-function buildFlowContext({ number, from, text, state, flow, group, media, step }) {
+async function buildFlowContext({ number, from, text, state, flow, group, media, step, contact }) {
   const now = new Date();
+  let isCliente = contact?.customer_id ? true : false;
+  if (!isCliente) {
+    try {
+      const customer = await whatsappRepo.findCustomerByPhone(number.company_id, normalizePhone(from)).catch(() => null);
+      isCliente = !!customer;
+    } catch { /* ignore */ }
+  }
+  const enderecoPadrao = contact?.metadata?.default_address ?? null;
   return {
     ...(state?.vars ?? {}),
-    nome: state?.vars?.nome ?? null,
+    cliente: isCliente,
+    endereco_padrao: enderecoPadrao,
+    nome: state?.vars?.nome ?? contact?.name ?? null,
     telefone: normalizePhone(from),
     mensagem: text || '',
     media: media?.url ?? null,
@@ -555,7 +585,7 @@ async function runWebhook({ step, vars, text, from, flow, group, context }) {
 
 async function executeStep({ companyId, number, from, replyTo, text, contact, flow, step, state, group, media }) {
   const vars = { ...(state?.vars ?? {}) };
-  const context = buildFlowContext({ number, from, text, state: { vars }, flow, group, media, step });
+  const context = await buildFlowContext({ number, from, text, state: { vars }, flow, group, media, step, contact });
   let nextStep = step.next ?? null;
   let clear = false;
   const target = replyTo ?? from;
@@ -604,8 +634,13 @@ async function executeStep({ companyId, number, from, replyTo, text, contact, fl
   if (step.type === 'product') {
     const product = await resolveProductStep(companyId, step, vars);
     if (!product) {
-      await sendFlowMessage(number, target, 'Produto indispon\u00edvel no momento.');
-      nextStep = step.next_nao ?? step.next ?? null;
+      if (step.productSource === 'catalog') {
+        await sendFlowMessage(number, target, 'Voce ja viu todos os produtos do catalogo.');
+        nextStep = step.next_empty ?? step.next_nao ?? step.next ?? null;
+      } else {
+        await sendFlowMessage(number, target, 'Produto indispon\u00edvel no momento.');
+        nextStep = step.next_nao ?? step.next ?? null;
+      }
     } else {
       vars.productPending = product.id;
       await sendFlowProductCard(number, target, product, {
@@ -675,6 +710,16 @@ async function executeStep({ companyId, number, from, replyTo, text, contact, fl
         relatedEntityType: 'conversation',
         relatedEntityId: conv?.id ?? null,
       });
+      const atendentePhone = String(bc?.atendentePhone || bc?.ownerPhone || bc?.forwardTo || '').replace(/\D/g, '');
+      if (atendentePhone && atendentePhone !== String(from).replace(/\D/g, '')) {
+        const signal = [
+          `\u{1F464} *Pedido de atendimento humano*`,
+          `Cliente: ${from}${cart ? `\n\n${cart}` : ''}${text ? `\nMensagem: "${text}"` : ''}`,
+        ].join('\n');
+        await evolutionApi.sendText(number.external_account_id, atendentePhone, signal, 300).catch((err) => {
+          logger.error({ err: err.message, companyId, from, atendentePhone }, 'transfer_to_human: falha ao sinalizar atendente no WhatsApp');
+        });
+      }
       nextStep = null;
     } else if (step.action === 'cart_summary') {
       const cart = vars?.cart ?? [];
@@ -693,7 +738,7 @@ async function executeStep({ companyId, number, from, replyTo, text, contact, fl
       }
     } else if (step.action === 'cart_checkout') {
       try {
-        const order = await checkoutCartStep({ companyId, number, from, vars, step });
+        const order = await checkoutCartStep({ companyId, number, from, vars, step, contact });
         if (order) {
           const totalStr = `R$ ${Number(order.total).toFixed(2).replace('.', ',')}`;
           await sendFlowMessage(number, target, `Pedido *${order.order_number}* criado com sucesso!\n\nTotal: ${totalStr}\n\nUm atendente vai enviar o PIX para pagamento em instantes.`);
@@ -729,6 +774,115 @@ async function executeStep({ companyId, number, from, replyTo, text, contact, fl
       vars.cartSummaryPending = false;
       await sendFlowMessage(number, target, step.content || 'Carrinho limpo.');
       nextStep = step.next ?? null;
+    } else if (step.action === 'init_catalog_loop') {
+      const products = await whatsappRepo.listActiveProducts(companyId, step.limit ?? 50);
+      const queue = products.map((p) => p.id);
+      if (queue.length === 0) {
+        await sendFlowMessage(number, target, 'Nao ha produtos disponiveis no momento.');
+        nextStep = step.next_nao ?? step.next ?? null;
+      } else {
+        vars.catalogQueue = queue;
+        await sendFlowMessage(number, target, step.content || 'Vamos mostrar os produtos um a um.');
+        nextStep = step.next ?? null;
+      }
+    } else if (step.action === 'start_atendimento') {
+      const dataStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+      const rand = crypto.randomBytes(2).toString('hex').toUpperCase();
+      const protocol = `MK-${dataStr}-${rand}`;
+      vars.protocol = protocol;
+      try {
+        const conv = await conversationRepo.findConversationByContact(companyId, 'whatsapp', from);
+        if (conv) {
+          await conversationRepo.updateConversation(conv.id, { protocol, flow_snapshot: { flowId: flow.id, flowStep: null, vars: {} } });
+        }
+      } catch (err) {
+        logger.error({ err: err.message, companyId, from }, 'start_atendimento: erro ao salvar protocolo');
+      }
+      await sendFlowMessage(number, target, step.content || `Seu protocolo de atendimento: *${protocol}*. Guarde para retomar depois.`);
+      nextStep = step.next ?? null;
+    } else if (step.action === 'resume_by_protocol') {
+      const protocolInput = String(vars?.protocolo_input || text || '').trim().toUpperCase();
+      const resumeTarget = steps.find((s) => s.id === step.next) ?? step;
+      const resumeFallback = step.next_nao ?? step.next ?? null;
+      if (!protocolInput) {
+        await sendFlowMessage(number, target, 'Digite o n\u00famero do protocolo para retomar seu atendimento.');
+        nextStep = resumeFallback;
+      } else {
+        try {
+          const conv = await conversationRepo.findByProtocol(companyId, protocolInput);
+          if (conv?.flow_snapshot && conv.flow_snapshot.flowStep) {
+            const snapshot = conv.flow_snapshot;
+            const snapshotStep = steps.find((s) => s.id === snapshot.flowStep);
+            const snapshotVars = { ...(snapshot.vars ?? {}), protocol: conv.protocol, protocolo_input: protocolInput };
+            Object.assign(vars, snapshotVars);
+            if (snapshotStep) {
+              await sendFlowMessage(number, target, `Atendimento *${protocolInput}* retomado. Continuando de onde parou.`);
+              nextStep = snapshot.flowStep;
+            } else {
+              await sendFlowMessage(number, target, `Atendimento *${protocolInput}* retomado. Selecione uma op\u00e7\u00e3o: *Catalogo*, *Protocolo* ou *Atendente*.`);
+              nextStep = resumeTarget.next ?? step.next ?? null;
+            }
+          } else {
+            await sendFlowMessage(number, target, 'Protocolo n\u00e3o encontrado ou sem atendimento ativo. Vamos iniciar um novo.');
+            nextStep = resumeFallback;
+          }
+        } catch (err) {
+          logger.error({ err: err.message, companyId, from, protocolInput }, 'resume_by_protocol: erro');
+          await sendFlowMessage(number, target, 'Erro ao buscar protocolo. Tente novamente.');
+          nextStep = resumeFallback;
+        }
+      }
+    } else if (step.action === 'create_custom_order') {
+      const phone = normalizePhone(from);
+      const customer = await findOrCreateCustomer({ companyId, whatsappNumberId: number.id, phone, preferredName: vars?.nome || null });
+      vars.customerId = customer.id;
+      let product = await whatsappRepo.findProductByCompany(companyId, step.productId).catch(() => null);
+      if (!product) {
+        const [existing] = await whatsappRepo.listActiveProducts(companyId, 1);
+        product = existing ?? null;
+      }
+      const qty = Number(vars?.orcamento_quantidade) || 1;
+      const items = product ? [{ productId: product.id, quantity: qty }] : [];
+      const notes = [
+        `Orçamento sob medida - Marcenaria do Kelvin`,
+        `Móvel: ${vars?.orcamento_tipo || ''}`,
+        `Medidas: ${vars?.orcamento_medidas || ''}`,
+        `Material: ${vars?.orcamento_material || ''}`,
+        `Acabamento: ${vars?.orcamento_acabamento || ''}`,
+        `Quantidade: ${qty}`,
+        `Endereço: ${vars?.zm_endereco_entrega || vars?.endereco_padrao || 'Retirada no local'}`,
+        `Obs: ${vars?.orcamento_obs || ''}`,
+      ].filter(Boolean).join('\n');
+      const shippingAddress = vars?.zm_endereco_entrega || vars?.endereco_padrao || null;
+      const order = await createOrder(companyId, customer.id, step.paymentMethod ?? 'pix', items, null, shippingAddress);
+      vars.last_order_id = order.id;
+      await sendFlowMessage(number, target, `Or\u00e7amento registrado! Pedido *${order.order_number}* criado com sucesso.\n\n${notes}`);
+      notifyAttendantsAsync({
+        companyId,
+        title: `Novo orçamento sob medida: ${order.order_number}`,
+        message: `${from} solicitou orçamento.\n\n${notes}\n\nPedido: ${order.order_number}`,
+        type: 'order',
+        relatedEntityType: 'order',
+        relatedEntityId: order.id,
+      });
+      nextStep = step.next ?? null;
+    } else if (step.action === 'schedule_production') {
+      const orderId = vars?.last_order_id;
+      if (!orderId) {
+        await sendFlowMessage(number, target, 'Nenhum pedido encontrado para agendar produ\u00e7\u00e3o.');
+        nextStep = step.next_nao ?? step.next ?? null;
+      } else {
+        try {
+          const result = await productionService.scheduleOrder(companyId, orderId);
+          await sendFlowMessage(number, target, `\u2705 Produ\u00e7\u00e3o agendada!\n\n\u2022 In\u00edcio: ${productionService.formatDateBR(result.start)}\n\u2022 Conclus\u00e3o: ${productionService.formatDateBR(result.completion)}\n\u2022 Previs\u00e3o entrega: ${productionService.formatDateBR(result.eta)}`);
+          await productionService.sendWorkflowReportToOwner(companyId, number);
+          nextStep = step.next ?? null;
+        } catch (err) {
+          logger.error({ err: err.message, companyId, orderId }, 'schedule_production: erro');
+          await sendFlowMessage(number, target, 'Erro ao agendar produ\u00e7\u00e3o. Um atendente vai ajudar.');
+          nextStep = step.next_nao ?? step.next ?? null;
+        }
+      }
     } else if (step.action === 'alert') {
       notifyAttendantsAsync({
         companyId,
@@ -985,6 +1139,20 @@ export async function processIncomingMessage({ companyId, number, from, text, co
     if (resolvedContact?.id) await updateContactFlowState(companyId, resolvedContact.id, nextState);
     await chatbotCache.setFlowState(companyId, from, nextState);
   }
+
+  try {
+    const activeProtocol = (result.vars ?? state.vars)?.protocol;
+    const currentConv = await conversationRepo.findConversationByContact(companyId, 'whatsapp', from).catch(() => null);
+    const targetConv = activeProtocol
+      ? (await conversationRepo.findByProtocol(companyId, String(activeProtocol)).catch(() => null) ?? currentConv)
+      : currentConv;
+    if (targetConv?.protocol) {
+      const snap = { flowId: finalFlowId, flowStep: result.nextStep ?? null, vars: (result.vars ?? state.vars) };
+      await conversationRepo.updateConversation(targetConv.id, { flow_snapshot: snap }).catch(() => null);
+    } else if (currentConv && !activeProtocol) {
+      await conversationRepo.updateConversation(currentConv.id, { flow_snapshot: null }).catch(() => null);
+    }
+  } catch { /* ignore */ }
 
   return { flowId: flow.id, stepId: nextStep.id, nextStepId: result.nextStep ?? null, cacheRead };
 }

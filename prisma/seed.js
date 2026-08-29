@@ -213,6 +213,140 @@ async function main() {
     await prisma.automationFlow.create({ data: { company_id: companyOne.id, ...defaultFlow } });
   }
 
+  // Loja do ZM (Farmácia) — fluxo completo de farmácia
+  const lojaZmFlow = {
+    name: 'Loja do ZM (Farmácia)',
+    type: 'vendas',
+    description: 'Fluxo completo de farmácia: verifica se o número é cliente, cadastro de novos clientes com endereço padrão, catálogo com carrinho, PIX com atendente e aviso ao motoqueiro após confirmação.',
+    icon_emoji: '💊',
+    is_active: false,
+    config_json: {
+      steps: [
+        { id: 'inicio', type: 'condition', expression: 'ctx.cliente == true', next: 'bemVindoCliente', next_false: 'naoCadastrado' },
+        { id: 'naoCadastrado', type: 'message', content: 'Bem vindo a farmacia ZM! Vejo que seu numero nao esta registrado em nosso sistema. Para prosseguir informe seu Codigo de Referencia ou digite *Atendente* para falar com um de nossos atendentes.', next: 'capturarResposta' },
+        { id: 'capturarResposta', type: 'variable', variable: 'zm_resposta', mode: 'input', next: 'verificaAtendente' },
+        { id: 'verificaAtendente', type: 'condition', expression: "String(ctx.zm_resposta || '').toLowerCase().includes('atendente')", next: 'transferirCadastro', next_false: 'codigoRegistro' },
+        { id: 'codigoRegistro', type: 'message', content: 'Codigo de referencia recebido: *{zm_resposta}*. Vou te transferir para um atendente concluir seu cadastro e registrar seu endereco padrao de entrega.', next: 'transferirCadastro' },
+        { id: 'transferirCadastro', type: 'action', action: 'transfer_to_human', content: 'Transferindo para um atendente concluir seu cadastro (nome, telefone e endereco padrao de entrega).' },
+        { id: 'atendenteHumano', type: 'action', action: 'transfer_to_human', content: 'Transferindo para um atendente humano.' },
+        { id: 'bemVindoCliente', type: 'message', content: 'Bem vindo a Farmacia ZM! Para ver nossa lista de produtos digite *Produtos* ou *Catalogo*.', next: 'iniciaCatalogo' },
+        { id: 'iniciaCatalogo', type: 'action', action: 'init_catalog_loop', content: 'Confira nosso catalogo de produtos:', next: 'produto' },
+        { id: 'produto', type: 'product', productSource: 'catalog', askQuantity: true, next_sim: 'produto', next_nao: 'produto', next_empty: 'temEndereco' },
+        { id: 'temEndereco', type: 'condition', expression: "ctx.endereco_padrao != null && ctx.endereco_padrao != ''", next: 'enderecoPergunta', next_false: 'capturarEndereco' },
+        { id: 'enderecoPergunta', type: 'question', content: 'Deseja informar um novo endereco de entrega ou usar o endereco ja cadastrado?', options: [
+          { label: 'Usar endereco cadastrado', value: 'padrao', next: 'carrinho' },
+          { label: 'Informar novo endereco', value: 'novo', next: 'capturarEndereco' },
+        ] },
+        { id: 'capturarEndereco', type: 'variable', variable: 'zm_endereco_entrega', mode: 'input', next: 'carrinho' },
+        { id: 'carrinho', type: 'action', action: 'cart_summary', next: 'finalizar', next_nao: 'iniciaCatalogo' },
+        { id: 'finalizar', type: 'action', action: 'cart_checkout', paymentMethod: 'pix' },
+      ],
+      triggers: [
+        { keyword: 'oi', step: 'inicio' },
+        { keyword: 'bom dia', step: 'inicio' },
+        { keyword: 'ola', step: 'inicio' },
+        { keyword: 'bem vindo', step: 'inicio' },
+        { keyword: 'produtos', step: 'inicio' },
+        { keyword: 'catalogo', step: 'inicio' },
+        { keyword: 'atendente', step: 'atendenteHumano' },
+      ],
+      defaultStep: 'inicio',
+    },
+  };
+  const existingLojaZm = await prisma.automationFlow.findFirst({ where: { company_id: companyOne.id, name: lojaZmFlow.name } });
+  if (existingLojaZm) {
+    await prisma.automationFlow.update({ where: { id: existingLojaZm.id }, data: lojaZmFlow });
+  } else {
+    await prisma.automationFlow.create({ data: { company_id: companyOne.id, ...lojaZmFlow } });
+  }
+
+  // Marcenaria do Kelvin — fluxo completo de marcenaria
+  const marcenariaKelvinFlow = {
+    name: 'Marcenaria do Kelvin',
+    type: 'vendas',
+    description: 'Fluxo completo de marcenaria: catálogo, orçamento sob medida (medidas, material, acabamento), protocolo de retomada, agendamento de produção com relatório de fluxo de trabalho.',
+    icon_emoji: '🪚',
+    is_active: false,
+    config_json: {
+      steps: [
+        { id: 'inicio', type: 'message', content: 'Bem vindo a Marcenaria do Kelvin! Digite *Catalogo* para ver a lista de nossos produtos, caso deseje continuar um atendimento anterior por favor digite o protocolo de atendimento, para outros assuntos ou ajuda digite *Atendente* para falar com um atendente humano.', next: 'menuPrincipal' },
+        { id: 'menuPrincipal', type: 'question', content: 'Escolha uma opção:', options: [
+          { label: 'Ver catálogo', value: 'catalogo', next: 'catalogoInicio' },
+          { label: 'Digitar protocolo', value: 'protocolo', next: 'capturarProtocolo' },
+          { label: 'Solicitar orçamento', value: 'orcamento', next: 'orcamentoInicio' },
+          { label: 'Falar com atendente', value: 'atendente', next: 'atendenteHumano' },
+          { label: 'Entrega ou retirada', value: 'entrega', next: 'entregaPergunta' },
+        ] },
+        { id: 'capturarProtocolo', type: 'variable', variable: 'protocolo_input', mode: 'input', next: 'validaProtocolo' },
+        { id: 'validaProtocolo', type: 'action', action: 'resume_by_protocol', next: 'menuPrincipal', next_nao: 'menuPrincipal' },
+        { id: 'catalogoInicio', type: 'action', action: 'init_catalog_loop', content: 'Confira nossos produtos:', next: 'produto' },
+        { id: 'produto', type: 'product', productSource: 'catalog', askQuantity: true, next_sim: 'produto', next_nao: 'produto', next_empty: 'entregaPergunta' },
+        { id: 'entregaPergunta', type: 'question', content: 'Deseja receber em casa ou retirar na marcenaria?', options: [
+          { label: 'Entrega', value: 'entrega', next: 'capturarEndereco' },
+          { label: 'Retirada', value: 'retirada', next: 'carrinho' },
+        ] },
+        { id: 'capturarEndereco', type: 'variable', variable: 'zm_endereco_entrega', mode: 'input', next: 'carrinho' },
+        { id: 'carrinho', type: 'action', action: 'cart_summary', next: 'finalizar', next_nao: 'catalogoInicio' },
+        { id: 'finalizar', type: 'action', action: 'cart_checkout', paymentMethod: 'pix' },
+        { id: 'orcamentoInicio', type: 'message', content: 'Vou te ajudar com o orçamento. Primeiro, qual móvel você deseja?', next: 'orcamentoMoveis' },
+        { id: 'orcamentoMoveis', type: 'question', content: 'Qual móvel deseja?', options: [
+          { label: 'Mesa', value: 'mesa', next: 'orcamentoMedidas' },
+          { label: 'Cadeira', value: 'cadeira', next: 'orcamentoMedidas' },
+          { label: 'Armário', value: 'armario', next: 'orcamentoMedidas' },
+          { label: 'Estante', value: 'estante', next: 'orcamentoMedidas' },
+          { label: 'Outro', value: 'outro', next: 'orcamentoOutro' },
+        ] },
+        { id: 'orcamentoOutro', type: 'variable', variable: 'orcamento_tipo', mode: 'input', next: 'orcamentoMedidas' },
+        { id: 'orcamentoMedidas', type: 'message', content: 'Informe as medidas (Largura x Altura x Profundidade em cm). Ex.: 120x80x45', next: 'capturarMedidas' },
+        { id: 'capturarMedidas', type: 'variable', variable: 'orcamento_medidas', mode: 'input', next: 'orcamentoMaterial' },
+        { id: 'orcamentoMaterial', type: 'question', content: 'Qual o material desejado?', options: [
+          { label: 'MDF', value: 'mdf', next: 'orcamentoAcabamento' },
+          { label: 'Compensado', value: 'compensado', next: 'orcamentoAcabamento' },
+          { label: 'Maciço', value: 'macico', next: 'orcamentoAcabamento' },
+          { label: 'Outro', value: 'outro', next: 'orcamentoOutroMaterial' },
+        ] },
+        { id: 'orcamentoOutroMaterial', type: 'variable', variable: 'orcamento_material', mode: 'input', next: 'orcamentoAcabamento' },
+        { id: 'orcamentoAcabamento', type: 'question', content: 'Qual o acabamento?', options: [
+          { label: 'Laca', value: 'laca', next: 'orcamentoQuantidade' },
+          { label: 'Verniz', value: 'verniz', next: 'orcamentoQuantidade' },
+          { label: 'Natural', value: 'natural', next: 'orcamentoQuantidade' },
+          { label: 'Outro', value: 'outro', next: 'orcamentoOutroAcabamento' },
+        ] },
+        { id: 'orcamentoOutroAcabamento', type: 'variable', variable: 'orcamento_acabamento', mode: 'input', next: 'orcamentoQuantidade' },
+        { id: 'orcamentoQuantidade', type: 'message', content: 'Quantas unidades? (digite um número)', next: 'capturarQtd' },
+        { id: 'capturarQtd', type: 'variable', variable: 'orcamento_quantidade', mode: 'input', next: 'orcamentoResumo' },
+        { id: 'orcamentoResumo', type: 'message', content: 'Resumo do orçamento:\n\nMóvel: {orcamento_tipo}\nMedidas: {orcamento_medidas}\nMaterial: {orcamento_material}\nAcabamento: {orcamento_acabamento}\nQuantidade: {orcamento_quantidade}', next: 'orcamentoConfirmar' },
+        { id: 'orcamentoConfirmar', type: 'question', content: 'Deseja enviar para um atendente ou adicionar mais itens?', options: [
+          { label: 'Enviar para atendente', value: 'enviar', next: 'criarPedido' },
+          { label: 'Adicionar mais itens', value: 'adicionar', next: 'orcamentoMoveis' },
+        ] },
+        { id: 'criarPedido', type: 'action', action: 'create_custom_order', paymentMethod: 'pix', next: 'agendarProducao' },
+        { id: 'agendarProducao', type: 'action', action: 'schedule_production', next: 'enviarAlerta' },
+        { id: 'enviarAlerta', type: 'action', action: 'alert', title: 'Novo orçamento sob medida', content: 'Cliente {telefone} solicitou orçamento\nMóvel: {orcamento_tipo}\nMedidas: {orcamento_medidas}\nMaterial: {orcamento_material}\nAcabamento: {orcamento_acabamento}\nQtd: {orcamento_quantidade}', next: 'atendenteHumano' },
+        { id: 'atendenteHumano', type: 'action', action: 'transfer_to_human', content: 'Transferindo para um atendente humano.' },
+      ],
+      triggers: [
+        { keyword: 'oi', step: 'inicio' },
+        { keyword: 'bom dia', step: 'inicio' },
+        { keyword: 'ola', step: 'inicio' },
+        { keyword: 'bem vindo', step: 'inicio' },
+        { keyword: 'catalogo', step: 'catalogoInicio' },
+        { keyword: 'produtos', step: 'catalogoInicio' },
+        { keyword: 'atendente', step: 'atendenteHumano' },
+        { keyword: 'ajuda', step: 'atendenteHumano' },
+        { keyword: 'orcamento', step: 'orcamentoInicio' },
+        { keyword: 'orçamento', step: 'orcamentoInicio' },
+      ],
+      defaultStep: 'inicio',
+    },
+  };
+  const existingMarcenaria = await prisma.automationFlow.findFirst({ where: { company_id: companyOne.id, name: marcenariaKelvinFlow.name } });
+  if (existingMarcenaria) {
+    await prisma.automationFlow.update({ where: { id: existingMarcenaria.id }, data: marcenariaKelvinFlow });
+  } else {
+    await prisma.automationFlow.create({ data: { company_id: companyOne.id, ...marcenariaKelvinFlow } });
+  }
+
   const quickReplies = [
     { shortcut: 'horario', message_text: 'Nosso horário de atendimento é de segunda a sábado, das 9h às 18h. 😊' },
     { shortcut: 'entrega', message_text: 'Fazemos entregas em até 60 minutos para a região. Taxa a partir de R$ 8,00.' },

@@ -15,6 +15,7 @@ const flowStepSchema = z.object({
   next_false: z.string().nullable().optional(),
   next_sim: z.string().nullable().optional(),
   next_nao: z.string().nullable().optional(),
+  next_empty: z.string().nullable().optional(),
   else: z.string().nullable().optional(),
   options: z.array(optionSchema).optional(),
   action: z.string().optional(),
