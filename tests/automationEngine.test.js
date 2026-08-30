@@ -35,6 +35,24 @@ describe('expression evaluator (sandbox)', () => {
     expect(evaluateExpression('ctx.mensagem.match(/entrega/i)', { ctx: { mensagem: 'qual o valor?' } })).toBe(false);
   });
 
+  it('supports String() global and null-coalescing || (flow gate pattern)', () => {
+    expect(evaluateExpression("String(ctx.mensagem || '').match(/bom dia|ola|oi/i)", { ctx: { mensagem: 'bom dia' } })).toBe(true);
+    expect(evaluateExpression("String(ctx.mensagem || '').match(/cesta|quanto/i)", { ctx: { mensagem: 'quero uma cesta' } })).toBe(true);
+    expect(evaluateExpression("String(ctx.mensagem || '').match(/bom dia|ola|oi/i)", { ctx: { mensagem: 'tchau' } })).toBe(false);
+    expect(evaluateExpression("String(ctx.zm_resposta || '').toLowerCase().includes('atendente')", { ctx: { zm_resposta: 'Atendente' } })).toBe(true);
+  });
+
+  it('supports safe global helpers Number/Boolean/parseInt', () => {
+    expect(evaluateExpression("Number(ctx.qtd) > 2", { ctx: { qtd: '5' } })).toBe(true);
+    expect(evaluateExpression("Boolean(ctx.ativo)", { ctx: { ativo: 'sim' } })).toBe(true);
+    expect(evaluateExpression("parseInt(ctx.ano, 10) == 2026", { ctx: { ano: '2026' } })).toBe(true);
+  });
+
+  it('|| keeps the operand value for defaulting (ctx.x || fallback)', () => {
+    expect(evaluateExpression("String(ctx.nome || 'Visitante').includes('Ana')", { ctx: { nome: 'Ana' } })).toBe(true);
+    expect(evaluateExpression("String(ctx.nome || 'Visitante').includes('Ana')", { ctx: {} })).toBe(false);
+  });
+
   it('supports string methods and arithmetic', () => {
     expect(evaluateExpression("ctx.texto.trim() == 'oi'", { ctx: { texto: '  oi ' } })).toBe(true);
     expect(evaluateExpression('ctx.a + ctx.b > 10', { ctx: { a: 5, b: 6 } })).toBe(true);

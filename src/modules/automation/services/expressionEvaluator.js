@@ -1,6 +1,8 @@
-const SAFE_STRING_METHODS = new Set(['includes', 'startsWith', 'endsWith', 'toLowerCase', 'toUpperCase', 'trim', 'indexOf', 'match']);
+const SAFE_STRING_METHODS = new Set(['includes', 'startsWith', 'endsWith', 'toLowerCase', 'toUpperCase', 'trim', 'indexOf', 'match', 'replace', 'slice', 'split', 'substring', 'charAt', 'padStart', 'padEnd', 'concat']);
 
 const SAFE_PROPS = new Set(['length']);
+
+const SAFE_GLOBALS = new Set(['String', 'Number', 'Boolean', 'parseInt', 'parseFloat', 'isNaN', 'isFinite']);
 
 function tokenize(input) {
   const tokens = [];
@@ -201,7 +203,16 @@ class Parser {
     let expr = this.parsePrimary();
     while (true) {
       const t = this.peek();
-      if (t.type === 'dot') {
+      if (t.type === 'lparen' && expr.type === 'variable' && SAFE_GLOBALS.has(expr.name)) {
+        this.next();
+        const args = [];
+        if (this.peek().type !== 'rparen') {
+          args.push(this.parseTernary());
+          while (this.peek().type === 'comma') { this.next(); args.push(this.parseTernary()); }
+        }
+        this.expect('rparen');
+        expr = { type: 'globalCall', name: expr.name, args };
+      } else if (t.type === 'dot') {
         this.next();
         const name = this.expect('ident').value;
         if (this.peek().type === 'lparen') {
@@ -296,6 +307,18 @@ function evaluate(node, ctx) {
       const args = node.args.map((a) => evaluate(a, ctx));
       return receiver.apply(receiver, args);
     }
+    case 'globalCall': {
+      const name = node.name;
+      const args = node.args.map((a) => evaluate(a, ctx));
+      if (name === 'String') return String(args[0] ?? '');
+      if (name === 'Number') return Number(args[0]);
+      if (name === 'Boolean') return Boolean(args[0]);
+      if (name === 'parseInt') return Number.parseInt(args[0], 10);
+      if (name === 'parseFloat') return Number.parseFloat(args[0]);
+      if (name === 'isNaN') return Number.isNaN(args[0]);
+      if (name === 'isFinite') return Number.isFinite(args[0]);
+      throw new Error(`Função não permitida: ${name}`);
+    }
     case 'array':
       return node.elements.map((e) => evaluate(e, ctx));
     case 'unary': {
@@ -315,8 +338,8 @@ function evaluate(node, ctx) {
 
 function applyBinary(op, left, right) {
   switch (op) {
-    case '&&': return Boolean(left) && Boolean(right);
-    case '||': return Boolean(left) || Boolean(right);
+    case '&&': return left && right;
+    case '||': return left || right;
     case '==': return left == right; // eslint-disable-line eqeqeq
     case '!=': return left != right; // eslint-disable-line eqeqeq
     case '===': return left === right;
