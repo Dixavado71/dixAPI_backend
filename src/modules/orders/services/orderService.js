@@ -114,7 +114,7 @@ export async function getOrder(companyId, id) {
 }
 
 export async function createOrder(companyId, data) {
-  const order = await repository.createOrder(companyId, data.customerId, data.paymentMethod, data.items, data.couponCode, data.shippingAddress ?? null);
+  const order = await repository.createOrder(companyId, data.customerId, data.paymentMethod, data.items, data.couponCode, data.shippingAddress ?? null, data.notes ?? null);
   await handleOrderEvent(companyId, order.id, 'order_created').catch(() => null);
   dispatchEventAsync({ companyId, event: 'order_created', vars: { orderNumber: order.order_number }, relatedEntityType: 'order', relatedEntityId: order.id });
   return toOrderDTO(order);

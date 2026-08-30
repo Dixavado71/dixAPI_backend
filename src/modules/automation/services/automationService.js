@@ -395,7 +395,17 @@ async function checkoutCartStep({ companyId, number, from, vars, step, contact }
   const items = cart.map((i) => ({ productId: i.productId, quantity: i.quantity }));
 
   const shippingAddress = vars?.zm_endereco_entrega || vars?.endereco_padrao || null;
-  const order = await createOrder(companyId, customer.id, step.paymentMethod ?? 'pix', items, null, shippingAddress);
+
+  const notes = [
+    vars?.orcamento_tipo ? `Móvel: ${vars.orcamento_tipo}` : null,
+    vars?.orcamento_medidas ? `Medidas: ${vars.orcamento_medidas}` : null,
+    vars?.orcamento_material ? `Material: ${vars.orcamento_material}` : null,
+    vars?.orcamento_acabamento ? `Acabamento: ${vars.orcamento_acabamento}` : null,
+    vars?.orcamento_quantidade ? `Quantidade: ${vars.orcamento_quantidade}` : null,
+    vars?.protocolo_input || vars?.protocol ? `Protocolo: ${vars.protocolo_input || vars.protocol}` : null,
+  ].filter(Boolean).join('\n');
+
+  const order = await createOrder(companyId, customer.id, step.paymentMethod ?? 'pix', items, null, shippingAddress, notes || null);
 
   if (vars?.zm_endereco_entrega) {
     try {
@@ -741,34 +751,42 @@ async function executeStep({ companyId, number, from, replyTo, text, contact, fl
         const order = await checkoutCartStep({ companyId, number, from, vars, step, contact });
         if (order) {
           const totalStr = `R$ ${Number(order.total).toFixed(2).replace('.', ',')}`;
-          await sendFlowMessage(number, target, `Pedido *${order.order_number}* criado com sucesso!\n\nTotal: ${totalStr}\n\nUm atendente vai enviar o PIX para pagamento em instantes.`);
-          clear = true;
+          await sendFlowMessage(number, target, `\u{1F4E6} *Pedido ${order.order_number} criado com sucesso!*\n\nTotal: *${totalStr}*\n\nUm atendente vai enviar o PIX para pagamento em instantes.`);
           const conv = await conversationRepo.findConversationByContact(companyId, 'whatsapp', from);
           if (conv) await conversationRepo.updateConversation(conv.id, { status: 'waiting' }).catch(() => null);
-          
+
           const cartSummary = formatCartSummary(vars?.cart ?? []);
           notifyAttendantsAsync({
             companyId,
             title: `Novo pedido: ${order.order_number}`,
-            message: `${from} finalizou o pedido no WhatsApp.\n\nPedido: ${order.order_number}\nTotal: ${totalStr}\n\n${cartSummary}`,
+            message: `${from} finalizou o pedido no WhatsApp.\n\nPedido: ${order.order_number}\nTotal: ${totalStr}\n\n${cartSummary}${vars?.orcamento_tipo ? `\n\nOrçamento: ${vars.orcamento_tipo} ${vars.orcamento_medidas || ''} ${vars.orcamento_material || ''} ${vars.orcamento_acabamento || ''}` : ''}`,
             type: 'order',
             relatedEntityType: 'order',
             relatedEntityId: order.id,
           });
           vars.cart = [];
           vars.cartSummaryPending = false;
+          vars.last_order_id = order.id;
+          if (step.next) {
+            nextStep = step.next;
+            clear = false;
+          } else {
+            nextStep = null;
+            clear = true;
+          }
         } else {
           await sendFlowMessage(number, target, 'Nao foi possivel criar o pedido. Tente novamente ou fale com um atendente.');
           clear = true;
           const conv = await conversationRepo.findConversationByContact(companyId, 'whatsapp', from);
           if (conv) await conversationRepo.updateConversation(conv.id, { status: 'waiting' }).catch(() => null);
+          nextStep = null;
         }
       } catch (err) {
         logger.error({ err: err.message, companyId, from }, 'cart_checkout: erro ao criar pedido');
-        await sendFlowMessage(number, target, 'Erro ao criar pedido. Um atendente vai ajudar.');
+        await sendFlowMessage(number, target, '\u{274C} *Erro ao criar pedido.* Um atendente vai ajudar.');
         clear = true;
+        nextStep = null;
       }
-      nextStep = null;
     } else if (step.action === 'cart_clear') {
       vars.cart = [];
       vars.cartSummaryPending = false;
@@ -819,11 +837,25 @@ async function executeStep({ companyId, number, from, replyTo, text, contact, fl
           const conv = await conversationRepo.findByProtocol(companyId, protocolInput);
           if (conv?.flow_snapshot && conv.flow_snapshot.flowStep) {
             const snapshot = conv.flow_snapshot;
-            const snapshotStep = steps.find((s) => s.id === snapshot.flowStep);
             const snapshotVars = { ...(snapshot.vars ?? {}), protocol: conv.protocol, protocolo_input: protocolInput };
             Object.assign(vars, snapshotVars);
-            if (snapshotStep) {
-              await sendFlowMessage(number, target, `\u{1F4CB} *Atendimento retomado!*\n\nProtocolo: *${protocolInput}*\nContinuando de onde parou.`);
+            vars.customerId = vars.customerId ?? null;
+
+            const targetFlow = snapshot.flowId && snapshot.flowId !== flow.id
+              ? await automationRepo.findFlowById(companyId, snapshot.flowId).catch(() => null)
+              : flow;
+            const targetSteps = targetFlow?.config_json?.steps ?? [];
+            const snapshotStep = targetSteps.find((s) => s.id === snapshot.flowStep);
+
+            if (targetFlow && snapshotStep) {
+              let segmento = 'atendimento anterior';
+              if (Array.isArray(vars.cart) && vars.cart.length > 0) segmento = 'carrinho';
+              else if (vars?.orcamento_tipo) segmento = 'orçamento';
+              else if (vars?.productPending) segmento = 'catálogo';
+              await sendFlowMessage(number, target, `\u{1F4CB} *Atendimento retomado!*\n\nProtocolo: *${protocolInput}*\nVocê estava no *${segmento}*. Continuando de onde parou.`);
+              if (snapshot.flowId && snapshot.flowId !== flow.id) {
+                return { nextStep: snapshot.flowStep, vars, clear: false, switchFlow: snapshot.flowId };
+              }
               nextStep = snapshot.flowStep;
             } else {
               await sendFlowMessage(number, target, `\u{1F4CB} *Atendimento ${protocolInput} retomado!*\n\nSelecione uma op\u00e7\u00e3o: *Catalogo*, *Protocolo* ou *Atendente*.`);
@@ -842,37 +874,39 @@ async function executeStep({ companyId, number, from, replyTo, text, contact, fl
     } else if (step.action === 'create_custom_order') {
       const phone = normalizePhone(from);
       const customer = await findOrCreateCustomer({ companyId, whatsappNumberId: number.id, phone, preferredName: vars?.nome || null });
-      vars.customerId = customer.id;
       let product = await whatsappRepo.findProductByCompany(companyId, step.productId).catch(() => null);
       if (!product) {
         product = await whatsappRepo.findProductByName(companyId, 'Móvel Sob Medida').catch(() => null)
           ?? (await whatsappRepo.listActiveProducts(companyId, 1))[0] ?? null;
       }
-      const qty = Number(vars?.orcamento_quantidade) || 1;
-      const items = product ? [{ productId: product.id, quantity: qty }] : [];
-      const notes = [
-        `Orçamento sob medida - Marcenaria do Kelvin`,
-        `Móvel: ${vars?.orcamento_tipo || ''}`,
-        `Medidas: ${vars?.orcamento_medidas || ''}`,
-        `Material: ${vars?.orcamento_material || ''}`,
-        `Acabamento: ${vars?.orcamento_acabamento || ''}`,
-        `Quantidade: ${qty}`,
-        `Endereço: ${vars?.zm_endereco_entrega || vars?.endereco_padrao || 'Retirada no local'}`,
-        `Obs: ${vars?.orcamento_obs || ''}`,
-      ].filter(Boolean).join('\n');
-      const shippingAddress = vars?.zm_endereco_entrega || vars?.endereco_padrao || null;
-      const order = await createOrder(companyId, customer.id, step.paymentMethod ?? 'pix', items, null, shippingAddress);
-      vars.last_order_id = order.id;
-      await sendFlowMessage(number, target, `Or\u00e7amento registrado! Pedido *${order.order_number}* criado com sucesso.\n\n${notes}`);
-      notifyAttendantsAsync({
-        companyId,
-        title: `Novo orçamento sob medida: ${order.order_number}`,
-        message: `${from} solicitou orçamento.\n\n${notes}\n\nPedido: ${order.order_number}`,
-        type: 'order',
-        relatedEntityType: 'order',
-        relatedEntityId: order.id,
-      });
-      nextStep = step.next ?? null;
+      if (!product) {
+        await sendFlowMessage(number, target, '\u{26A0}\u{FE0F} *Nao foi possivel registrar o orcamento.* Nenhum produto de base cadastrado. Fale com um atendente.');
+        nextStep = step.next_nao ?? step.next ?? null;
+      } else {
+        const qty = Number(vars?.orcamento_quantidade) || 1;
+        const tipo = vars?.orcamento_tipo || 'Móvel sob medida';
+        const specs = {
+          tipo, medidas: vars?.orcamento_medidas || '', material: vars?.orcamento_material || '',
+          acabamento: vars?.orcamento_acabamento || '', quantidade: qty,
+          endereco: vars?.zm_endereco_entrega || vars?.endereco_padrao || 'Retirada no local',
+        };
+        const cart = Array.isArray(vars.cart) ? vars.cart : [];
+        const customName = `${tipo} (${specs.medidas})`;
+        const existing = cart.find((i) => i.specs?.tipo === specs.tipo && i.specs?.medidas === specs.medidas);
+        if (existing) existing.quantity += qty;
+        else cart.push({ productId: product.id, name: customName, price: Number(product.price), quantity: qty, image_url: product.image_url ?? null, specs });
+        vars.cart = cart;
+        vars.orcamento_custom = true;
+        const desc = `\u{1F37D} *Móvel:* ${tipo}\n\u{1F4D0} *Medidas:* ${specs.medidas}\n\u{1FAB5} *Material:* ${specs.material}\n\u{1F3A8} *Acabamento:* ${specs.acabamento}\n\u{1F522} *Qtd:* ${qty}`;
+        await sendFlowMessage(number, target, `\u{1F4E6} *${customName}* adicionado ao carrinho!\n\n${desc}`);
+        notifyAttendantsAsync({
+          companyId,
+          title: `Novo orçamento sob medida: ${tipo}`,
+          message: `${from} solicitou orçamento.\n\n${desc}\n\nEndereço: ${specs.endereco}`,
+          type: 'order',
+        });
+        nextStep = step.next ?? null;
+      }
     } else if (step.action === 'schedule_production') {
       const orderId = vars?.last_order_id;
       if (!orderId) {
@@ -989,6 +1023,15 @@ export async function processIncomingMessage({ companyId, number, from, text, co
     if (nextStep) {
       logger.info({ companyId, from, text, keyword: matchedTrigger.keyword, stepId: nextStep.id, flowId: flow.id }, 'bot: trigger matched');
     }
+  }
+
+  const resumeStep = steps.find((s) => s.type === 'action' && s.action === 'resume_by_protocol');
+  const protocolText = String(text || '').trim().toUpperCase();
+  const looksLikeProtocol = /^MK-[0-9]{8}-[A-F0-9]{4}$/.test(protocolText);
+  if (!nextStep && resumeStep && looksLikeProtocol) {
+    currentState = { ...(currentState ?? {}), vars: { ...(currentState?.vars ?? {}), protocolo_input: protocolText } };
+    nextStep = resumeStep;
+    logger.info({ companyId, from, text }, 'bot: protocolo detectado - retomando atendimento');
   }
 
   if (!nextStep && currentStepId) {

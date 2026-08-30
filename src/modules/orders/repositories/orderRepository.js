@@ -10,7 +10,7 @@ export function listOrders(companyId, status) {
   return prisma.order.findMany({ where: { company_id: companyId, ...(status ? { status } : {}) }, orderBy: { created_at: 'desc' }, include: { customer: true, order_items: { include: { product: true } }, payments: true } });
 }
 
-export async function createOrder(companyId, customerId, paymentMethod, itemsData, couponCode, shippingAddress = null) {
+export async function createOrder(companyId, customerId, paymentMethod, itemsData, couponCode, shippingAddress = null, notes = null) {
   return prisma.$transaction(async (tx) => {
     const customer = await tx.customer.findFirst({ where: { id: customerId, company_id: companyId } });
     if (!customer) throw new NotFoundError('Customer');
@@ -82,6 +82,7 @@ export async function createOrder(companyId, customerId, paymentMethod, itemsDat
         shipping_cost: shippingCost,
         total,
         shipping_address: shippingAddress,
+        notes,
       },
     });
 

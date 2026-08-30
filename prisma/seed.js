@@ -341,7 +341,7 @@ async function main() {
           { label: '\u{1F4E8} Enviar para atendente', value: 'enviar', next: 'criarPedido' },
           { label: '\u{2795} Adicionar mais itens', value: 'adicionar', next: 'orcamentoMoveis' },
         ] },
-        { id: 'criarPedido', type: 'action', action: 'create_custom_order', paymentMethod: 'pix', content: '\u{1F4E6} Registrando seu orçamento...', next: 'agendarProducao' },
+        { id: 'criarPedido', type: 'action', action: 'create_custom_order', paymentMethod: 'pix', content: '\u{1F4E6} Registrando seu orçamento...', next: 'carrinho' },
         { id: 'agendarProducao', type: 'action', action: 'schedule_production', next: 'enviarAlerta' },
         { id: 'enviarAlerta', type: 'action', action: 'alert', title: 'Novo orçamento sob medida', content: '\u{1F3ED} *Novo orçamento*\n\nCliente: {telefone}\nMóvel: {orcamento_tipo}\nMedidas: {orcamento_medidas}\nMaterial: {orcamento_material}\nAcabamento: {orcamento_acabamento}\nQtd: {orcamento_quantidade}\nEndereço: {zm_endereco_entrega}', next: 'atendenteHumano' },
         { id: 'atendenteHumano', type: 'action', action: 'transfer_to_human', content: '\u{1F9D1}\u200D\u{1F9F0} *Transferindo para um atendente humano.*\n\nAguarde, em instantes alguém da nossa equipe vai te atender.' },
