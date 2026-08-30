@@ -19,7 +19,14 @@ export function matchTrigger(triggers, text) {
 }
 
 // Detecta protocolo no formato MK-YYYYMMDD-XXXX (usado pelo step resume_by_protocol).
-export function looksLikeProtocol(text) {
+// Aceita um prefixo configurável (ex.: 'ZM', 'MK') via regex no fluxo/botConfig.
+export function looksLikeProtocol(text, options = {}) {
+  const prefix = options?.prefix ? String(options.prefix).toUpperCase() : null;
+  if (prefix) {
+    const esc = prefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const re = new RegExp(`^${esc}-[0-9]{8}-[A-F0-9]{4}$`);
+    return re.test(String(text || '').trim().toUpperCase());
+  }
   return /^MK-[0-9]{8}-[A-F0-9]{4}$/.test(String(text || '').trim().toUpperCase());
 }
 

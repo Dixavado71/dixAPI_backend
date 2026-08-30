@@ -53,6 +53,14 @@ describe('expression evaluator (sandbox)', () => {
     expect(evaluateExpression("String(ctx.nome || 'Visitante').includes('Ana')", { ctx: {} })).toBe(false);
   });
 
+  it('supports Math and Date safe globals', () => {
+    expect(evaluateExpression('Math.round(ctx.valor) == 6', { ctx: { valor: 5.6 } })).toBe(true);
+    expect(evaluateExpression('Math.floor(ctx.valor) == 5', { ctx: { valor: 5.9 } })).toBe(true);
+    expect(evaluateExpression('Number.isFinite(ctx.valor)', { ctx: { valor: 10 } })).toBe(true);
+    expect(evaluateExpression("ctx.cart.length > 0", { ctx: { cart: [1, 2] } })).toBe(true);
+    expect(evaluateExpression('ctx.cart_total > 100', { ctx: { cart_total: 150.5 } })).toBe(true);
+  });
+
   it('supports string methods and arithmetic', () => {
     expect(evaluateExpression("ctx.texto.trim() == 'oi'", { ctx: { texto: '  oi ' } })).toBe(true);
     expect(evaluateExpression('ctx.a + ctx.b > 10', { ctx: { a: 5, b: 6 } })).toBe(true);
@@ -160,5 +168,120 @@ describe('flow service', () => {
     });
     const result = await automationService.testFlow('c1', 'f1', { stepId: 's1' });
     expect(result.executed.map((e) => e.type)).toEqual(['product', 'message']);
+  });
+
+  it('simulates interactively step-by-step with client inputs', async () => {
+    repository.findFlowById.mockResolvedValue({
+      id: 'f1',
+      config_json: {
+        defaultStep: 's1',
+        steps: [
+          { id: 's1', type: 'question', content: 'Escolha:', options: [{ label: 'Sim', value: 'sim', next: 's2' }, { label: 'Nao', value: 'nao', next: 's3' }] },
+          { id: 's2', type: 'variable', variable: 'nome', mode: 'input', next: 's4' },
+          { id: 's3', type: 'message', content: 'Saiu' },
+          { id: 's4', type: 'message', content: 'Oi {nome}' },
+        ],
+      },
+    });
+    const result = await automationService.testFlow('c1', 'f1', { stepId: 's1', input: ['sim', 'Maria'] });
+    expect(result.executed.map((e) => e.type)).toEqual(['question', 'variable', 'message']);
+    expect(result.executed[2].content).toBe('Oi Maria');
+  });
+
+  it('detects a real loop in non-input steps', async () => {
+    repository.findFlowById.mockResolvedValue({
+      id: 'f1',
+      config_json: {
+        defaultStep: 's1',
+        steps: [
+          { id: 's1', type: 'message', content: 'A', next: 's2' },
+          { id: 's2', type: 'message', content: 'B', next: 's1' },
+        ],
+      },
+    });
+    const result = await automationService.testFlow('c1', 'f1', {});
+    expect(result.loopDetected.length).toBeGreaterThan(0);
+  });
+
+  it('traverses a sub-flow via flow step', async () => {
+    repository.findFlowById.mockImplementation((companyId, id) => {
+      if (id === 'f2') {
+        return Promise.resolve({
+          id: 'f2',
+          name: 'Sub',
+          config_json: { defaultStep: 'x1', steps: [{ id: 'x1', type: 'message', content: 'sub ok' }] },
+        });
+      }
+      return Promise.resolve({
+        id: 'f1',
+        config_json: {
+          defaultStep: 's1',
+          steps: [
+            { id: 's1', type: 'flow', targetFlow: 'f2' },
+          ],
+        },
+      });
+    });
+    const result = await automationService.testFlow('c1', 'f1', {});
+    const types = result.executed.map((e) => e.type);
+    expect(types).toContain('__subflow__');
+    expect(types).toContain('message');
+    expect(result.executed[result.executed.length - 1].content).toBe('sub ok');
+  });
+
+  it('captures free text when question has freeTextVariable', async () => {
+    repository.findFlowById.mockResolvedValue({
+      id: 'f1',
+      config_json: {
+        defaultStep: 's1',
+        steps: [
+          { id: 's1', type: 'question', content: 'Endereco?', freeTextVariable: 'endereco', next: 's2', options: [{ label: 'Atendente', value: 'atendente', next: 's3' }] },
+          { id: 's2', type: 'message', content: 'Entrega em {endereco}' },
+          { id: 's3', type: 'message', content: 'humano' },
+        ],
+      },
+    });
+    const result = await automationService.testFlow('c1', 'f1', { stepId: 's1', input: ['Rua das Flores 100'] });
+    expect(result.executed[1].content).toBe('Entrega em Rua das Flores 100');
+  });
+
+  it('warns on potential infinite loops between non-input steps', () => {
+    const result = automationService.validateFlowConfig({
+      steps: [
+        { id: 's1', type: 'message', content: 'A', next: 's2' },
+        { id: 's2', type: 'message', content: 'B', next: 's1' },
+      ],
+      defaultStep: 's1',
+    });
+    expect(result).toEqual(expect.objectContaining({ valid: true, warnings: expect.any(Array) }));
+    expect(result.warnings.length).toBeGreaterThan(0);
+  });
+
+  it('duplicateFlow remaps step references to new ids', async () => {
+    repository.findFlowById.mockResolvedValue({
+      id: 'f1',
+      name: 'Vendas',
+      type: 'vendas',
+      description: null,
+      icon_emoji: null,
+      is_active: true,
+      config_json: {
+        defaultStep: 's1',
+        triggers: [{ keyword: 'oi', step: 's1' }],
+        steps: [
+          { id: 's1', type: 'message', content: 'oi', next: 's2' },
+          { id: 's2', type: 'question', content: '?', options: [{ label: 'Sim', value: 's', next: 's3' }] },
+          { id: 's3', type: 'condition', expression: 'ctx.a == 1', next: 's1', next_false: 's3' },
+        ],
+      },
+    });
+    repository.createFlow.mockImplementation((data) => Promise.resolve({ id: 'f2', ...data }));
+    const result = await automationService.duplicateFlow('c1', 'f1');
+    const cfg = result.config_json;
+    expect(cfg.steps[0].next).toBe('s2-copy');
+    expect(cfg.steps[1].options[0].next).toBe('s3-copy');
+    expect(cfg.steps[2].next).toBe('s1-copy');
+    expect(cfg.defaultStep).toBe('s1-copy');
+    expect(cfg.triggers[0].step).toBe('s1-copy');
   });
 });

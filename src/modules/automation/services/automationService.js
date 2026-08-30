@@ -102,10 +102,31 @@ export function validateFlowConfig(config) {
       if (t.step && !ids.has(t.step)) dangling.push(`trigger '${t.keyword}' -> '${t.step}'`);
     }
   }
+
+  // Aviso de ciclos potencialmente infinitos entre passos sem espera de input.
+  const warns = [];
+  const waitsForInput = (s) => s.type === 'question'
+    || (s.type === 'variable' && s.mode === 'input')
+    || (s.type === 'action' && (s.action === 'cart_summary' || s.action === 'cart_checkout'))
+    || s.type === 'product';
+  for (const step of steps) {
+    if (waitsForInput(step)) continue;
+    const target = step.next ?? step.next_false ?? step.next_sim ?? step.next_nao ?? step.next_empty;
+    if (target && target !== step.id && ids.has(target)) {
+      const targetStep = steps.find((s) => s.id === target);
+      if (targetStep && !waitsForInput(targetStep) && targetStep.next === step.id) {
+        warns.push(`possível ciclo entre passos '${step.id}' e '${target}' sem entrada do cliente`);
+      }
+    }
+  }
+  if (config.max_hops && Number(config.max_hops) < 1) {
+    warns.push('max_hops deve ser >= 1; aplicado o padrão de 10');
+  }
+
   if (dangling.length > 0) {
     throw new BadRequestError(`Fluxo inválido: referências a passos inexistentes (${dangling.join(', ')}).`);
   }
-  return true;
+  return warns.length > 0 ? { valid: true, warnings: warns } : true;
 }
 
 export async function getFlowById(companyId, id) {
@@ -171,6 +192,35 @@ export async function toggleFlow(companyId, id) {
 export async function duplicateFlow(companyId, id) {
   const existing = await automationRepo.findFlowById(companyId, id);
   if (!existing) throw new NotFoundError('Fluxo não encontrado.');
+  const config = existing.config_json ?? { steps: [], triggers: [], defaultStep: null };
+  const steps = Array.isArray(config.steps) ? config.steps : [];
+
+  // Remapeia os IDs dos passos para evitar colisões de referência na cópia.
+  const idMap = new Map();
+  const remappedSteps = steps.map((s) => {
+    const newId = `${s.id}-copy`;
+    idMap.set(s.id, newId);
+    return { ...s, id: newId };
+  });
+  const mapRef = (ref) => (ref && idMap.has(ref) ? idMap.get(ref) : ref);
+  for (const step of remappedSteps) {
+    step.next = mapRef(step.next);
+    step.next_false = mapRef(step.next_false);
+    step.next_sim = mapRef(step.next_sim);
+    step.next_nao = mapRef(step.next_nao);
+    step.next_empty = mapRef(step.next_empty);
+    step.else = mapRef(step.else);
+    if (Array.isArray(step.options)) {
+      step.options = step.options.map((o) => ({ ...o, next: mapRef(o.next) }));
+    }
+    if (Array.isArray(step.routes)) {
+      step.routes = step.routes.map((r) => ({ ...r, next: mapRef(r.next) }));
+    }
+  }
+  const triggers = Array.isArray(config.triggers)
+    ? config.triggers.map((t) => ({ ...t, step: mapRef(t.step) }))
+    : config.triggers;
+
   return automationRepo.createFlow({
     company_id: companyId,
     name: `${existing.name} (cópia)`,
@@ -178,7 +228,12 @@ export async function duplicateFlow(companyId, id) {
     description: existing.description,
     icon_emoji: existing.icon_emoji,
     is_active: false,
-    config_json: existing.config_json,
+    config_json: {
+      steps: remappedSteps,
+      triggers,
+      defaultStep: mapRef(config.defaultStep),
+      ...(config.max_hops ? { max_hops: config.max_hops } : {}),
+    },
   });
 }
 
@@ -217,29 +272,86 @@ export async function importFlow(companyId, data) {
 export async function testFlow(companyId, id, data) {
   const existing = await automationRepo.findFlowById(companyId, id);
   if (!existing) throw new NotFoundError('Fluxo não encontrado.');
-  const steps = existing.config_json?.steps ?? [];
-  if (steps.length === 0) return { steps: [], executed: [] };
+  const rootSteps = existing.config_json?.steps ?? [];
+  if (rootSteps.length === 0) return { steps: [], executed: [] };
 
   const state = { vars: data?.vars ?? {}, flowId: existing.id };
   const executed = [];
-  let stepId = data?.stepId ?? existing.config_json?.defaultStep ?? steps[0]?.id;
-  const guard = new Set();
+  let stepId = data?.stepId ?? existing.config_json?.defaultStep ?? rootSteps[0]?.id;
+  let currentFlowId = existing.id;
+  let currentSteps = rootSteps;
+  const visitedEdges = new Set();
   let hops = 0;
+  const maxHops = Math.min(Math.max(Number(data?.maxHops) || 30, 1), 200);
+  const inputs = Array.isArray(data?.input) ? data.input : [];
+  let inputIndex = 0;
+  const loopDetected = [];
 
-  while (stepId && hops < 30) {
-    if (guard.has(stepId)) break;
-    guard.add(stepId);
+  const waitsForInput = (step) =>
+    step.type === 'question'
+    || (step.type === 'variable' && step.mode === 'input')
+    || (step.type === 'action' && step.action === 'cart_summary')
+    || step.type === 'product'
+    || (step.type === 'action' && step.action === 'cart_checkout');
+
+  const pushStep = (step, flowId) => {
+    executed.push({
+      id: step.id,
+      type: step.type,
+      content: fillTemplate(step.content ?? '', state.vars),
+      flowId,
+    });
+  };
+
+  while (stepId && hops < maxHops) {
     hops += 1;
-    const step = steps.find((s) => s.id === stepId);
+    const step = currentSteps.find((s) => s.id === stepId);
     if (!step) break;
-    executed.push({ id: step.id, type: step.type, content: fillTemplate(step.content ?? '', state.vars) });
-    const result = await executeStepLocal({ step, state, vars: state.vars, simulated: true });
+    pushStep(step, currentFlowId);
+
+    const inputText = inputIndex < inputs.length ? inputs[inputIndex] : undefined;
+    const result = await executeStepLocal({ step, state, vars: state.vars, simulated: true, extra: { text: inputText, interactive: inputs.length > 0 } });
     if (result.vars) state.vars = result.vars;
+    if (result.switchFlow && result.switchFlow !== currentFlowId) {
+      const targetFlow = await automationRepo.findFlowById(companyId, result.switchFlow).catch(() => null);
+      if (targetFlow?.config_json?.steps?.length) {
+        executed.push({ id: result.switchFlow, type: '__subflow__', content: `→ fluxo: ${targetFlow.name}`, flowId: currentFlowId });
+        currentFlowId = result.switchFlow;
+        currentSteps = targetFlow.config_json.steps;
+        state.flowId = currentFlowId;
+        visitedEdges.clear();
+        stepId = targetFlow.config_json.defaultStep ?? targetFlow.config_json.steps[0]?.id;
+        continue;
+      }
+      break;
+    }
     if (result.clear) break;
-    stepId = result.nextStep ?? null;
+
+    const next = result.nextStep ?? null;
+    const interactive = inputs.length > 0;
+    const waiting = interactive && waitsForInput(step);
+    if (waiting) {
+      if (inputIndex < inputs.length) {
+        inputIndex += 1; // consome a resposta do cliente e continua
+      } else {
+        break; // sem mais entradas: encerra a simulação
+      }
+    }
+
+    // Ciclo real: passo que não espera input repetindo a mesma transição
+    if (!waiting && next) {
+      const edgeKey = `${currentFlowId}:${stepId}->${next}`;
+      if (visitedEdges.has(edgeKey)) {
+        loopDetected.push(stepId);
+        break;
+      }
+      visitedEdges.add(edgeKey);
+    }
+    stepId = next;
   }
 
-  return { steps, executed };
+  if (hops >= maxHops) loopDetected.push('max_hops');
+  return { steps: rootSteps, executed, loopDetected };
 }
 
 /* ===== Quick replies ===== */
@@ -496,6 +608,8 @@ async function buildFlowContext({ number, from, text, state, flow, group, media,
     } catch { /* ignore */ }
   }
   const enderecoPadrao = contact?.metadata?.default_address ?? null;
+  const cart = Array.isArray(state?.vars?.cart) ? state.vars.cart : [];
+  const cartTotal = cart.reduce((a, i) => a + Number(i.price ?? 0) * Number(i.quantity ?? 0), 0);
   return {
     ...(state?.vars ?? {}),
     cliente: isCliente,
@@ -513,17 +627,29 @@ async function buildFlowContext({ number, from, text, state, flow, group, media,
     hora: now.toTimeString().slice(0, 8),
     grupo: group?.senderName ?? null,
     grupo_jid: group?.remoteJid ?? null,
+    cart_length: cart.length,
+    cart_total: cartTotal,
   };
 }
 
 async function executeStepLocal({ step, state, vars, simulated = false, extra = {} }) {
   let nextStep = step.next ?? null;
+  let clear = false;
+  let switchFlow = null;
   const varsOut = { ...(vars ?? {}) };
+  const text = extra.text;
+  const interactive = extra.interactive === true;
 
   if (step.type === 'variable' && step.variable) {
-    if (step.mode === 'input' && extra.text !== undefined) {
-      varsOut[step.variable] = extra.text;
-      nextStep = step.next ?? null;
+    if (step.mode === 'input') {
+      if (text !== undefined) {
+        varsOut[step.variable] = text;
+        nextStep = step.next ?? null;
+      } else if (varsOut[step.variable] !== undefined) {
+        nextStep = step.next ?? null;
+      } else {
+        nextStep = interactive ? step.id : (step.next ?? null);
+      }
     } else if (step.mode === 'value') {
       varsOut[step.variable] = step.value ?? '';
       nextStep = step.next ?? null;
@@ -536,27 +662,118 @@ async function executeStepLocal({ step, state, vars, simulated = false, extra = 
     nextStep = passed ? (step.next ?? null) : (step.next_false ?? step.else ?? null);
   }
 
-  if (step.type === 'question' && step.options && extra.option) {
-    if (extra.option.variable) varsOut[extra.option.variable] = extra.option.value;
-    nextStep = extra.option.next ?? step.next ?? null;
+  if (step.type === 'question' && step.options) {
+    const matched = text !== undefined ? resolveQuestionOption(step, text) : extra.option ?? null;
+    if (matched) {
+      if (matched.variable) varsOut[matched.variable] = matched.value;
+      nextStep = matched.next ?? step.next ?? null;
+    } else if (interactive) {
+      // Resposta livre: se o step define freeTextVariable, captura e segue;
+      // senão permanece para re-perguntar.
+      if (step.freeTextVariable && text !== undefined) {
+        varsOut[step.freeTextVariable] = text;
+        nextStep = step.next ?? null;
+      } else {
+        nextStep = step.id;
+      }
+    } else {
+      nextStep = step.next ?? null;
+    }
   }
 
   if (step.type === 'product') {
-    if (extra.option === 'sim') nextStep = step.next_sim ?? step.next ?? null;
-    else if (extra.option === 'nao') nextStep = step.next_nao ?? step.next ?? null;
-    else nextStep = step.next_sim ?? step.next ?? null;
+    const option = extra.option ?? (text !== undefined ? classifyProductReply(text) : null);
+    if (option === 'sim') nextStep = step.next_sim ?? step.next ?? null;
+    else if (option === 'nao') nextStep = step.next_nao ?? step.next ?? null;
+    else if (option === 'empty') nextStep = step.next_empty ?? step.next_nao ?? step.next ?? null;
+    else nextStep = interactive ? step.id : (step.next_sim ?? step.next ?? null); // interativo: aguarda SIM/NÃO
+  }
+
+  if (step.type === 'message' || step.type === 'media' || step.type === 'delay' || step.type === 'forward' || step.type === 'group') {
+    nextStep = step.next ?? null;
+  }
+
+  if (step.type === 'catalog') {
+    nextStep = step.next ?? null;
+  }
+
+  if (step.type === 'webhook') {
+    nextStep = step.next ?? null;
+  }
+
+  if (step.type === 'router' && step.routes) {
+    const expression = step.expression ?? '';
+    let chosen = null;
+    if (expression) {
+      const value = evaluateExpression(expression, { ctx: varsOut });
+      const key = typeof value === 'string' ? value : String(value);
+      chosen = step.routes.find((r) => r.value === key) ?? null;
+    }
+    nextStep = chosen?.next ?? step.next ?? null;
+  }
+
+  if (step.type === 'ia' || step.type === 'database' || step.type === 'email') {
+    nextStep = step.next ?? null;
+  }
+
+  if (step.type === 'flow') {
+    const targetFlowId = step.targetFlow ?? step.flowId;
+    if (targetFlowId) switchFlow = targetFlowId;
+    else nextStep = step.next ?? null;
   }
 
   if (step.type === 'action') {
-    if (step.action === 'end') return { nextStep: null, vars: varsOut, clear: true };
-    if (step.action === 'transfer_to_human') return { nextStep: null, vars: varsOut, clear: true };
+    if (step.action === 'end') return { nextStep: null, vars: varsOut, clear: true, switchFlow: null };
+    if (step.action === 'transfer_to_human') return { nextStep: null, vars: varsOut, clear: true, switchFlow: null };
+    if (step.action === 'cart_summary') {
+      const cart = Array.isArray(varsOut.cart) ? varsOut.cart : [];
+      if (cart.length === 0) {
+        nextStep = step.next_nao ?? step.next ?? null;
+      } else {
+        const reply = classifyCartSummaryReply(text ?? '');
+        if (reply === 'finish') nextStep = step.next ?? null;
+        else if (reply === 'continue') nextStep = step.next_nao ?? null;
+        else nextStep = step.id; // aguarda decisão
+      }
+    } else if (step.action === 'cart_checkout') {
+      const cart = Array.isArray(varsOut.cart) ? varsOut.cart : [];
+      if (cart.length === 0) {
+        nextStep = step.next_nao ?? null; // carrinho vazio: volta ao catálogo
+      } else {
+        nextStep = step.next ?? null;
+      }
+    } else if (step.action === 'cart_clear') {
+      varsOut.cart = [];
+      nextStep = step.next ?? null;
+    } else if (step.action === 'init_catalog_loop') {
+      nextStep = step.next_nao ?? step.next ?? null;
+    } else if (step.action === 'start_atendimento') {
+      if (!varsOut.protocol) {
+        const dataStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+        const rand = crypto.randomBytes(2).toString('hex').toUpperCase();
+        varsOut.protocol = `MK-${dataStr}-${rand}`;
+      }
+      nextStep = step.next ?? null;
+    } else if (step.action === 'inform_protocolo_existente') {
+      nextStep = step.next ?? null;
+    } else if (step.action === 'resume_by_protocol') {
+      const protocolInput = String(varsOut?.protocolo_input || text || '').trim().toUpperCase();
+      if (!protocolInput) nextStep = step.next_nao ?? step.next ?? null;
+      else nextStep = step.next ?? step.next_nao ?? null;
+    } else if (step.action === 'alert') {
+      nextStep = step.next ?? null;
+    } else if (step.action === 'create_custom_order' || step.action === 'schedule_production') {
+      nextStep = step.next ?? null;
+    } else {
+      nextStep = step.next ?? null;
+    }
   }
 
   if (step.type === 'end') {
-    return { nextStep: null, vars: varsOut, clear: true };
+    return { nextStep: null, vars: varsOut, clear: true, switchFlow: null };
   }
 
-  return { nextStep, vars: varsOut, clear: false };
+  return { nextStep, vars: varsOut, clear, switchFlow };
 }
 
 async function isAllowedWebhookUrl(url) {
@@ -766,7 +983,13 @@ async function executeStep({ companyId, number, from, replyTo, text, contact, fl
         nextStep = step.id;
       }
     } else if (step.action === 'cart_checkout') {
-      try {
+      const cartCount = Array.isArray(vars?.cart) ? vars.cart.length : 0;
+      if (cartCount === 0) {
+        await sendFlowMessage(number, target, '\u{1F6AB} *Seu carrinho esta vazio!*\n\nNao ha itens para finalizar. Adicione produtos pelo catalogo.');
+        nextStep = step.next_nao ?? step.next ?? null;
+        clear = false;
+      } else {
+        try {
         const order = await checkoutCartStep({ companyId, number, from, vars, step, contact });
         if (order) {
           const totalStr = `R$ ${Number(order.total).toFixed(2).replace('.', ',')}`;
@@ -800,11 +1023,12 @@ async function executeStep({ companyId, number, from, replyTo, text, contact, fl
           if (conv) await conversationRepo.updateConversation(conv.id, { status: 'waiting' }).catch(() => null);
           nextStep = null;
         }
-      } catch (err) {
-        logger.error({ err: err.message, companyId, from }, 'cart_checkout: erro ao criar pedido');
-        await sendFlowMessage(number, target, '\u{274C} *Erro ao criar pedido.* Um atendente vai ajudar.');
-        clear = true;
-        nextStep = null;
+        } catch (err) {
+          logger.error({ err: err.message, companyId, from }, 'cart_checkout: erro ao criar pedido');
+          await sendFlowMessage(number, target, '\u{274C} *Erro ao criar pedido.* Um atendente vai ajudar.');
+          clear = true;
+          nextStep = null;
+        }
       }
     } else if (step.action === 'cart_clear') {
       vars.cart = [];
@@ -1070,7 +1294,8 @@ export async function processIncomingMessage({ companyId, number, from, text, co
 
   const resumeStep = findResumeStep(steps);
   const protocolText = String(text || '').trim().toUpperCase();
-  if (!nextStep && resumeStep && looksLikeProtocol(text)) {
+  const protocolPrefix = config.protocol_prefix ?? botCfg?.protocolPrefix ?? null;
+  if (!nextStep && resumeStep && looksLikeProtocol(text, { prefix: protocolPrefix })) {
     currentState = { ...(currentState ?? {}), vars: { ...(currentState?.vars ?? {}), protocolo_input: protocolText } };
     nextStep = resumeStep;
     logger.info({ companyId, from, text }, 'bot: protocolo detectado - retomando atendimento');
@@ -1167,6 +1392,11 @@ export async function processIncomingMessage({ companyId, number, from, text, co
           const base = { ...(currentState.vars ?? {}), [matched.variable]: matched.value };
           currentState.vars = base;
         }
+      } else if (currentStep.freeTextVariable) {
+        // Captura resposta livre (ex.: endereço, nome) sem re-perguntar.
+        const base = { ...(currentState.vars ?? {}), [currentStep.freeTextVariable]: text };
+        currentState.vars = base;
+        nextStep = steps.find((s) => s.id === currentStep.next) ?? null;
       } else {
         const attempts = ((currentState.vars?.questionAttempts) ?? 0) + 1;
         currentState.vars = { ...(currentState.vars ?? {}), questionAttempts: attempts };
@@ -1205,8 +1435,9 @@ export async function processIncomingMessage({ companyId, number, from, text, co
   let finalFlowId = flow.id;
   if (result.switchFlow) finalFlowId = result.switchFlow;
 
+  const chainMaxHops = Math.min(Math.max(Number(config.max_hops) || 10, 1), 50);
   let hops = 0;
-  while (result.nextStep && !result.clear && !result.switchFlow && hops < 10) {
+  while (result.nextStep && !result.clear && !result.switchFlow && hops < chainMaxHops) {
     const chainStep = steps.find((s) => s.id === result.nextStep);
     if (!chainStep) break;
     const needsInput = chainStep.type === 'question'

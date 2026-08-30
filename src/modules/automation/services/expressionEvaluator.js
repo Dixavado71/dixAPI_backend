@@ -2,7 +2,7 @@ const SAFE_STRING_METHODS = new Set(['includes', 'startsWith', 'endsWith', 'toLo
 
 const SAFE_PROPS = new Set(['length']);
 
-const SAFE_GLOBALS = new Set(['String', 'Number', 'Boolean', 'parseInt', 'parseFloat', 'isNaN', 'isFinite']);
+const SAFE_GLOBALS = new Set(['String', 'Number', 'Boolean', 'parseInt', 'parseFloat', 'isNaN', 'isFinite', 'Math', 'Date']);
 
 function tokenize(input) {
   const tokens = [];
@@ -282,6 +282,11 @@ function evaluate(node, ctx) {
       return node.value;
     case 'variable': {
       if (node.name === 'ctx') return ctx.ctx ?? ctx;
+      if (node.name === 'Math') return Math;
+      if (node.name === 'Date') return Date;
+      if (node.name === 'String') return String;
+      if (node.name === 'Number') return Number;
+      if (node.name === 'Boolean') return Boolean;
       return ctx[node.name];
     }
     case 'prop': {
@@ -302,6 +307,11 @@ function evaluate(node, ctx) {
         if (!SAFE_STRING_METHODS.has(name)) throw new Error(`Função não permitida: ${name}`);
         const result = receiver[name].apply(receiver, node.args.map((a) => evaluate(a, ctx)));
         return name === 'match' ? Boolean(result) : result;
+      }
+      if (receiver === Math || receiver === Date || receiver === String || receiver === Number || receiver === Boolean) {
+        const fn = receiver[name];
+        if (typeof fn !== 'function') throw new Error(`Função não encontrada: ${name}`);
+        return fn.apply(receiver, node.args.map((a) => evaluate(a, ctx)));
       }
       if (typeof receiver !== 'function') throw new Error(`Função não encontrada: ${name}`);
       const args = node.args.map((a) => evaluate(a, ctx));
