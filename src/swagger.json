@@ -1582,6 +1582,34 @@
         }
       }
     },
+    "/conversations/reassign-stale": {
+      "post": {
+        "operationId": "post__conversations_reassign_stale_1",
+        "summary": "POST /conversations/reassign-stale",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successo"
+          },
+          "400": {
+            "description": "Requisição inválida"
+          },
+          "401": {
+            "description": "Não autenticado"
+          },
+          "403": {
+            "description": "Sem permissão"
+          },
+          "404": {
+            "description": "Não encontrado"
+          }
+        }
+      }
+    },
     "/coupons/validate": {
       "post": {
         "operationId": "post__coupons_validate_1",
