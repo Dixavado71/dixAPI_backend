@@ -5,7 +5,7 @@ import * as evolutionApi from '../../../infrastructure/whatsapp/evolutionApiClie
 import chatbotCache from '../../automation/cache/chatbotCache.js';
 import { env } from '../../../config/env.js';
 import { extractMessageText, extractMedia } from '../../../shared/whatsapp/extraction.js';
-import { cleanPhone, jidFromPhone } from '../../../shared/whatsapp/phone.js';
+import { cleanPhone, jidFromPhone, canonicalPhone } from '../../../shared/whatsapp/phone.js';
 import { syncConversation } from '../../../shared/whatsapp/conversation.js';
 import { handleCustomerCommand } from '../../../shared/whatsapp/customer.js';
 import { processIncomingMessage } from '../../automation/services/automationService.js';
@@ -993,12 +993,11 @@ async function isContactSaved(companyId, numberId, phone) {
 export async function shouldBotRespond(companyId, numberId, phone, config = null) {
   const cfg = config ?? (await whatsappRepo.getBotConfig(companyId)) ?? {};
   if (cfg.dev_mode) {
-    const clean = (p) => String(p ?? '').replace(/\D/g, '');
-    const own = clean(phone);
+    const sender = canonicalPhone(phone);
     const number = await whatsappRepo.findNumberById(companyId, numberId).catch(() => null);
-    const ownNumber = clean(number?.phone_number);
-    const whitelist = (cfg.dev_whitelist ?? []).map(clean).filter(Boolean);
-    if (own && (own === ownNumber || whitelist.includes(own))) {
+    const ownNumber = canonicalPhone(number?.phone_number);
+    const whitelist = (cfg.dev_whitelist ?? []).map(canonicalPhone).filter(Boolean);
+    if (sender && (sender === ownNumber || whitelist.includes(sender))) {
       return { allowed: true, reason: 'dev_mode' };
     }
     return { allowed: false, reason: 'dev_mode_denied' };

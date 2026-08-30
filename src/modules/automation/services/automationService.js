@@ -9,7 +9,7 @@ import chatbotCache from '../cache/chatbotCache.js';
 import { fillTemplate } from './templateEngine.js';
 import { evaluateExpression } from './expressionEvaluator.js';
 import { extractMessageText as extractMessageTextFromShared } from '../../../shared/whatsapp/extraction.js';
-import { normalizePhone } from '../../../shared/whatsapp/phone.js';
+import { normalizePhone, canonicalPhone } from '../../../shared/whatsapp/phone.js';
 import { syncConversation } from '../../../shared/whatsapp/conversation.js';
 import { findOrCreateCustomer } from '../../../shared/whatsapp/customer.js';
 import { createOrder } from '../../orders/services/orderService.js';
@@ -1232,10 +1232,9 @@ export async function processIncomingMessage({ companyId, number, from, text, co
 
   const botCfg = (await whatsappRepo.getBotConfig(companyId).catch(() => ({}))) ?? {};
   if (botCfg?.dev_mode) {
-    const clean = (p) => String(p ?? '').replace(/\D/g, '');
-    const sender = clean(from);
-    const ownNumber = clean(number?.phone_number);
-    const whitelist = (botCfg.dev_whitelist ?? []).map(clean).filter(Boolean);
+    const sender = canonicalPhone(from);
+    const ownNumber = canonicalPhone(number?.phone_number);
+    const whitelist = (botCfg.dev_whitelist ?? []).map(canonicalPhone).filter(Boolean);
     if (!(sender && (sender === ownNumber || whitelist.includes(sender)))) {
       logger.info({ companyId, from, reason: 'dev_mode_denied' }, 'bot: modo dev/teste ativo - mensagem ignorada');
       return null;
