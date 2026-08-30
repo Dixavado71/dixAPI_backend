@@ -248,6 +248,8 @@ export const botConfigSchema = z.object({
   fallbackMessage: z.string().max(500).nullable().optional(),
   transferMessage: z.string().max(500).nullable().optional(),
   maxAttempts: z.number().int().min(1).max(10).optional(),
+  dev_mode: z.boolean().optional(),
+  dev_whitelist: z.array(z.string().max(20)).optional(),
   templates: z.record(z.string(), z.object({
     to: z.string().optional(),
     message: z.string().optional(),

@@ -987,6 +987,18 @@ async function executeStep({ companyId, number, from, replyTo, text, contact, fl
 export async function processIncomingMessage({ companyId, number, from, text, contact, group, media }) {
   if (!number.is_bot_enabled) return null;
 
+  const botCfg = (await whatsappRepo.getBotConfig(companyId).catch(() => ({}))) ?? {};
+  if (botCfg?.dev_mode) {
+    const clean = (p) => String(p ?? '').replace(/\D/g, '');
+    const sender = clean(from);
+    const ownNumber = clean(number?.phone_number);
+    const whitelist = (botCfg.dev_whitelist ?? []).map(clean).filter(Boolean);
+    if (!(sender && (sender === ownNumber || whitelist.includes(sender)))) {
+      logger.info({ companyId, from, reason: 'dev_mode_denied' }, 'bot: modo dev/teste ativo - mensagem ignorada');
+      return null;
+    }
+  }
+
   const resolvedContact = contact ?? await whatsappRepo.findContactByPhone(companyId, number.id, from);
   const cachedState = await chatbotCache.getFlowState(companyId, from);
   const dbState = resolvedContact?.metadata ?? {};
@@ -1002,7 +1014,6 @@ export async function processIncomingMessage({ companyId, number, from, text, co
       flow = persistedFlow;
     }
   }
-  const botCfg = (await whatsappRepo.getBotConfig(companyId).catch(() => ({}))) ?? {};
   if (!flow) {
     const priority = Array.isArray(botCfg.flowPriority) && botCfg.flowPriority.length > 0 ? botCfg.flowPriority : null;
     flow = await resolveFlow(companyId, number, group, text, priority ?? ['vendas', 'suporte', 'marketing']);

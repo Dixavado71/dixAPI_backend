@@ -992,6 +992,17 @@ async function isContactSaved(companyId, numberId, phone) {
 
 export async function shouldBotRespond(companyId, numberId, phone, config = null) {
   const cfg = config ?? (await whatsappRepo.getBotConfig(companyId)) ?? {};
+  if (cfg.dev_mode) {
+    const clean = (p) => String(p ?? '').replace(/\D/g, '');
+    const own = clean(phone);
+    const number = await whatsappRepo.findNumberById(companyId, numberId).catch(() => null);
+    const ownNumber = clean(number?.phone_number);
+    const whitelist = (cfg.dev_whitelist ?? []).map(clean).filter(Boolean);
+    if (own && (own === ownNumber || whitelist.includes(own))) {
+      return { allowed: true, reason: 'dev_mode' };
+    }
+    return { allowed: false, reason: 'dev_mode_denied' };
+  }
   const mode = cfg.mode ?? 'public';
   if (mode === 'public') return { allowed: true, reason: 'public' };
   if (mode === 'customers_only') {
@@ -1265,6 +1276,10 @@ async function processUpsertMessage(number, data) {
         }
       } else {
         logger.info({ companyId: number.company_id, from: phoneNumber, reason: check.reason, mode: botConfig.mode ?? 'unknown' }, 'bot: contato nao permitido pelo modo de atendimento');
+        if (check.reason === 'dev_mode_denied') {
+          logger.info({ companyId: number.company_id, from: phoneNumber }, 'bot: modo dev/teste ativo - mensagem ignorada');
+          return;
+        }
         const config = botConfig;
         const conv = await conversationRepo.findConversationByContact(number.company_id, 'whatsapp', phoneNumber);
         if (conv) {
