@@ -16,6 +16,18 @@ import { createOrder } from '../../orders/services/orderService.js';
 import { notifyAttendantsAsync } from '../../notifications/services/notificationService.js';
 import * as productionService from '../../production/services/productionService.js';
 import { logger } from '../../../config/logger.js';
+import {
+  normalize as flowNormalize,
+  matchTrigger,
+  looksLikeProtocol,
+  resolveQuestionOption,
+  classifyCartSummaryReply,
+  classifyProductReply,
+  parseQuantity,
+  isResetKeyword,
+  findResumeStep,
+  resolveFallbackStep,
+} from './flowDecisions.js';
 
 function mapFlow(flow) {
   if (!flow) return flow;
@@ -288,11 +300,7 @@ export function extractMessageText(data) {
 }
 
 export function normalize(text) {
-  return String(text || '')
-    .trim()
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '');
+  return flowNormalize(text);
 }
 
 async function sendFlowMessage(number, to, text) {
@@ -1043,18 +1051,16 @@ export async function processIncomingMessage({ companyId, number, from, text, co
   }
 
   const normalizedText = normalize(text);
-  const RESET_KEYWORDS = ['menu', 'inicio', 'reiniciar', 'voltar', 'comecar', 'start', 'zerar'];
-  if (RESET_KEYWORDS.includes(normalizedText)) {
+  if (isResetKeyword(text)) {
     currentState = {};
     if (resolvedContact?.id) await updateContactFlowState(companyId, resolvedContact.id, { flowId: null, flowStep: null, vars: {} });
     await chatbotCache.clearFlowState(companyId, from);
     logger.info({ companyId, from }, 'bot: sessão reiniciada');
   }
-  const triggers = Array.isArray(config.triggers) ? [...config.triggers].sort((a, b) => normalize(b.keyword).length - normalize(a.keyword).length) : [];
 
   let nextStep = null;
 
-  const matchedTrigger = triggers.find((t) => normalizedText.includes(normalize(t.keyword)));
+  const matchedTrigger = matchTrigger(config.triggers, text);
   if (matchedTrigger) {
     nextStep = steps.find((s) => s.id === matchedTrigger.step) ?? null;
     if (nextStep) {
@@ -1062,10 +1068,9 @@ export async function processIncomingMessage({ companyId, number, from, text, co
     }
   }
 
-  const resumeStep = steps.find((s) => s.type === 'action' && s.action === 'resume_by_protocol');
+  const resumeStep = findResumeStep(steps);
   const protocolText = String(text || '').trim().toUpperCase();
-  const looksLikeProtocol = /^MK-[0-9]{8}-[A-F0-9]{4}$/.test(protocolText);
-  if (!nextStep && resumeStep && looksLikeProtocol) {
+  if (!nextStep && resumeStep && looksLikeProtocol(text)) {
     currentState = { ...(currentState ?? {}), vars: { ...(currentState?.vars ?? {}), protocolo_input: protocolText } };
     nextStep = resumeStep;
     logger.info({ companyId, from, text }, 'bot: protocolo detectado - retomando atendimento');
@@ -1078,8 +1083,8 @@ export async function processIncomingMessage({ companyId, number, from, text, co
     if (currentStep?.type === 'product') {
       const vars = { ...(currentState.vars ?? {}) };
       if (vars.pendingQtyProduct) {
-        const qty = Number.parseInt(normalizedText.replace(/\D/g, ''), 10);
-        if (Number.isInteger(qty) && qty >= 1) {
+        const qty = parseQuantity(normalizedText);
+        if (qty !== null) {
           const product = await whatsappRepo.findProductByCompany(companyId, vars.pendingQtyProduct).catch(() => null);
           if (product) {
             const cart = Array.isArray(vars.cart) ? vars.cart : [];
@@ -1104,8 +1109,9 @@ export async function processIncomingMessage({ companyId, number, from, text, co
           nextStep = currentStep;
         }
       } else {
-        const isSim = ['sim', 's', 'yes', 'quero', 'comprar'].includes(normalizedText);
-        const isNao = ['nao', 'n', 'no', 'nao quero', 'nao, obrigado'].includes(normalizedText);
+        const productReply = classifyProductReply(normalizedText);
+        const isSim = productReply === 'sim';
+        const isNao = productReply === 'nao';
         const product = vars.productPending ? await whatsappRepo.findProductByCompany(companyId, vars.productPending).catch(() => null) : null;
         if (isSim && product) {
           if (currentStep.askQuantity !== false) {
@@ -1140,13 +1146,12 @@ export async function processIncomingMessage({ companyId, number, from, text, co
       }
     } else if (currentStep?.type === 'action' && currentStep.action === 'cart_summary') {
       const vars = { ...(currentState.vars ?? {}) };
-      const fin = /finaliz|confirmar|pedido|sim/.test(normalizedText);
-      const cont = /continuar|mais|comprar|voltar/.test(normalizedText);
-      if (fin) {
+      const cartReply = classifyCartSummaryReply(normalizedText);
+      if (cartReply === 'finish') {
         vars.cartSummaryPending = false;
         currentState.vars = vars;
         nextStep = steps.find((s) => s.id === currentStep.next) ?? null;
-      } else if (cont) {
+      } else if (cartReply === 'continue') {
         vars.cartSummaryPending = false;
         currentState.vars = vars;
         nextStep = steps.find((s) => s.id === currentStep.next_nao) ?? null;
@@ -1155,9 +1160,7 @@ export async function processIncomingMessage({ companyId, number, from, text, co
         await sendFlowButtons(number, replyTo, { title: 'O que deseja fazer?', description: null, buttons: ['Finalizar pedido', 'Continuar comprando'] });
       }
     } else if (currentStep?.type === 'question' && currentStep.options) {
-      const matched = currentStep.options.find(
-        (o) => normalize(o.label) === normalizedText || normalize(o.value) === normalizedText,
-      );
+      const matched = resolveQuestionOption(currentStep, normalizedText);
       if (matched) {
         nextStep = steps.find((s) => s.id === matched.next) ?? null;
         if (matched.variable) {
@@ -1188,7 +1191,7 @@ export async function processIncomingMessage({ companyId, number, from, text, co
   }
 
   if (!nextStep) {
-    nextStep = steps.find((s) => s.id === config.defaultStep) ?? steps[0];
+    nextStep = resolveFallbackStep(steps, config.defaultStep);
   }
 
   if (!nextStep) return null;
