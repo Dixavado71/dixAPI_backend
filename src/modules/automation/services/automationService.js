@@ -546,7 +546,8 @@ async function checkoutCartStep({ companyId, number, from, vars, step, contact }
   ].filter(Boolean).join('\n');
 
   const couponCode = vars?.cesta_cupom || vars?.cupom || null;
-  const order = await createOrder(companyId, customer.id, step.paymentMethod ?? 'pix', items, couponCode, shippingAddress, notes || null);
+  const paymentMethod = vars?.payment_method || step.paymentMethod || 'pix';
+  const order = await createOrder(companyId, customer.id, paymentMethod, items, couponCode, shippingAddress, notes || null);
 
   if (vars?.zm_endereco_entrega) {
     try {
@@ -1171,6 +1172,48 @@ async function executeStep({ companyId, number, from, replyTo, text, contact, fl
           companyId,
           title: `Novo orçamento sob medida: ${tipo}`,
           message: `${from} solicitou orçamento.\n\n${desc}\n\nEndereço: ${specs.endereco}`,
+          type: 'order',
+        });
+        nextStep = step.next ?? null;
+      }
+    } else if (step.action === 'create_custom_basket') {
+      // Cesta personalizada (sob medida): cria pedido real com specs de ocasião/itens.
+      const phone = normalizePhone(from);
+      const customer = await findOrCreateCustomer({ companyId, whatsappNumberId: number.id, phone, preferredName: vars?.nome || null });
+      let product = await whatsappRepo.findProductByCompany(companyId, step.productId).catch(() => null);
+      if (!product) {
+        product = await whatsappRepo.findProductByName(companyId, 'Cesta Personalizada').catch(() => null)
+          ?? await whatsappRepo.findProductByName(companyId, 'Cesta Básica').catch(() => null)
+          ?? (await whatsappRepo.listActiveProducts(companyId, 1))[0] ?? null;
+      }
+      if (!product) {
+        await sendFlowMessage(number, target, '\u{26A0}\u{FE0F} *Nao foi possivel registrar a cesta sob medida.* Nenhum produto de base cadastrado. Fale com um atendente.');
+        nextStep = step.next_nao ?? step.next ?? null;
+      } else {
+        const qty = Number(vars?.cesta_qtd || vars?.qtd_pessoas) || 1;
+        const ocasiao = vars?.ocasiao || 'Ocasião especial';
+        const specs = {
+          tipo: 'cesta_sob_medida',
+          ocasiao,
+          itens: vars?.itens_desejados || '',
+          pessoas: vars?.qtd_pessoas || '',
+          orcamento: vars?.orcamento_maximo || '',
+          data: vars?.data_entrega || '',
+          endereco: vars?.zm_endereco_entrega || vars?.endereco_padrao || 'Retirada no local',
+        };
+        const cart = Array.isArray(vars.cart) ? vars.cart : [];
+        const customName = `Cesta sob medida (${ocasiao})`;
+        const existing = cart.find((i) => i.specs?.tipo === 'cesta_sob_medida' && i.specs?.ocasiao === ocasiao);
+        if (existing) existing.quantity += qty;
+        else cart.push({ productId: product.id, name: customName, price: Number(product.price), quantity: qty, image_url: product.image_url ?? null, specs });
+        vars.cart = cart;
+        vars.orcamento_custom = true;
+        const desc = `\u{1F381} *Ocasião:* ${ocasiao}\n\u{1F4E6} *Itens desejados:* ${specs.itens || '-'}\n\u{1F468}\u200D\u{1F469}\u200D\u{1F467} *Pessoas:* ${specs.pessoas || '-'}\n\u{1F4B0} *Orçamento:* ${specs.orcamento || '-'}\n\u{1F4C5} *Data:* ${specs.data || '-'}`;
+        await sendFlowMessage(number, target, `\u{1F4E6} *${customName}* adicionado ao carrinho!\n\n${desc}`);
+        notifyAttendantsAsync({
+          companyId,
+          title: `Nova cesta sob medida: ${ocasiao}`,
+          message: `${from} solicitou cesta personalizada.\n\n${desc}\n\nEndereço: ${specs.endereco}`,
           type: 'order',
         });
         nextStep = step.next ?? null;
