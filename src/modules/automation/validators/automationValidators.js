@@ -78,6 +78,8 @@ export const importFlowSchema = createFlowSchema;
 export const testFlowSchema = z.object({
   vars: z.record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.null()])).optional(),
   stepId: z.string().optional(),
+  input: z.array(z.string()).optional(),
+  maxHops: z.number().int().positive().optional(),
 }).strict();
 
 export const createQuickReplySchema = z.object({
