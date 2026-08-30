@@ -277,7 +277,17 @@ export async function testFlow(companyId, id, data) {
 
   const state = { vars: data?.vars ?? {}, flowId: existing.id };
   const executed = [];
-  let stepId = data?.stepId ?? existing.config_json?.defaultStep ?? rootSteps[0]?.id;
+  let stepId = data?.stepId ?? null;
+  if (!stepId) {
+    // Aplica o match de triggers (como no bot real) quando stepId não é fornecido.
+    const triggers = Array.isArray(existing.config_json?.triggers) ? existing.config_json.triggers : [];
+    const matchedTrigger = matchTrigger(triggers, state.vars?.mensagem ?? '');
+    if (matchedTrigger) {
+      stepId = matchedTrigger.step;
+    } else {
+      stepId = existing.config_json?.defaultStep ?? rootSteps[0]?.id;
+    }
+  }
   let currentFlowId = existing.id;
   let currentSteps = rootSteps;
   const visitedEdges = new Set();
