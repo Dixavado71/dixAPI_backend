@@ -823,7 +823,22 @@ async function executeStep({ companyId, number, from, replyTo, text, contact, fl
       } catch (err) {
         logger.error({ err: err.message, companyId, from }, 'start_atendimento: erro ao salvar protocolo');
       }
-      await sendFlowMessage(number, target, fillTemplate(step.content || `Seu protocolo de atendimento: *${protocol}*. Guarde para retomar depois.`, { ...context, ...vars, protocol }));
+      if (!vars?.protocolo_mostrado) {
+        await sendFlowMessage(number, target, fillTemplate(step.content || `Seu protocolo de atendimento: *${protocol}*. Guarde para retomar depois.`, { ...context, ...vars, protocol }));
+        vars.protocolo_mostrado = true;
+      }
+      nextStep = step.next ?? null;
+    } else if (step.action === 'inform_protocolo_existente') {
+      let protocol = null;
+      try {
+        const conv = await conversationRepo.findConversationByContact(companyId, 'whatsapp', from);
+        protocol = conv?.protocol ?? null;
+      } catch { /* ignore */ }
+      if (protocol && !vars?.protocolo_mostrado) {
+        vars.protocol = protocol;
+        await sendFlowMessage(number, target, fillTemplate(step.content || `\u{1F4CB} Voce ja possui um protocolo de atendimento: *${protocol}*. \n\nGuarde para retomar a qualquer momento.`, { ...context, ...vars, protocol }));
+        vars.protocolo_mostrado = true;
+      }
       nextStep = step.next ?? null;
     } else if (step.action === 'resume_by_protocol') {
       const protocolInput = String(vars?.protocolo_input || text || '').trim().toUpperCase();

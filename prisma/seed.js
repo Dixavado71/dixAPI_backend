@@ -289,14 +289,17 @@ async function main() {
     is_active: false,
     config_json: {
       steps: [
-        { id: 'inicio', type: 'message', content: '\u{1FA9A} *Bem vindo a Marcenaria do Kelvin!* \u{1F3E0}\n\nAqui você encontra móveis planejados, sob medida e com qualidade de artesão.\n\n\u{1F4E6} Digite *Catalogo* para ver nossos produtos\n\u{1F4CB} Digite o *protocolo* para retomar um atendimento anterior\n\u{1F3ED} Digite *Orçamento* para solicitar um móvel sob medida\n\u{1F9D1}\u200D\u{1F9F0} Digite *Atendente* para falar com um atendente humano', next: 'gerarProtocolo' },
-        { id: 'gerarProtocolo', type: 'action', action: 'start_atendimento', content: '\u{1F4CB} Seu protocolo de atendimento: *{protocol}*\nGuarde para retomar depois!', next: 'menuPrincipal' },
+        { id: 'inicio', type: 'message', content: '\u{1FA9A} *Bem vindo a Marcenaria do Kelvin!* \u{1F3E0}\n\nAqui você encontra móveis planejados, sob medida e com qualidade de artesão.\n\n\u{1F4E6} Digite *Catalogo* para ver nossos produtos\n\u{1F4CB} Digite o *protocolo* para retomar um atendimento anterior\n\u{1F3ED} Digite *Orçamento* para solicitar um móvel sob medida\n\u{1F9D1}\u200D\u{1F9F0} Digite *Atendente* para falar com um atendente humano', next: 'informarProtocolo' },
+        { id: 'informarProtocolo', type: 'action', action: 'inform_protocolo_existente', content: '\u{1F4CB} Voce ja possui um protocolo de atendimento: *{protocol}*\n\nGuarde para retomar a qualquer momento.', next: 'menuPrincipal' },
+        { id: 'gerarProtocoloCatalogo', type: 'action', action: 'start_atendimento', content: '\u{1F4CB} Seu protocolo de atendimento: *{protocol}*\nGuarde para retomar depois!', next: 'catalogoInicio' },
+        { id: 'gerarProtocoloOrcamento', type: 'action', action: 'start_atendimento', content: '\u{1F4CB} Seu protocolo de atendimento: *{protocol}*\nGuarde para retomar depois!', next: 'orcamentoInicio' },
+        { id: 'gerarProtocoloEntrega', type: 'action', action: 'start_atendimento', content: '\u{1F4CB} Seu protocolo de atendimento: *{protocol}*\nGuarde para retomar depois!', next: 'entregaPergunta' },
         { id: 'menuPrincipal', type: 'question', content: '\u{1F4CB} *O que você deseja fazer?*', options: [
-          { label: '\u{1F4E6} Ver catálogo', value: 'catalogo', next: 'catalogoInicio' },
+          { label: '\u{1F4E6} Ver catálogo', value: 'catalogo', next: 'gerarProtocoloCatalogo' },
           { label: '\u{1F4CB} Digitar protocolo', value: 'protocolo', next: 'capturarProtocolo' },
-          { label: '\u{1F3ED} Solicitar orçamento', value: 'orcamento', next: 'orcamentoInicio' },
+          { label: '\u{1F3ED} Solicitar orçamento', value: 'orcamento', next: 'gerarProtocoloOrcamento' },
           { label: '\u{1F9D1}\u200D\u{1F9F0} Falar com atendente', value: 'atendente', next: 'atendenteHumano' },
-          { label: '\u{1F69A} Entrega ou retirada', value: 'entrega', next: 'entregaPergunta' },
+          { label: '\u{1F69A} Entrega ou retirada', value: 'entrega', next: 'gerarProtocoloEntrega' },
         ] },
         { id: 'capturarProtocolo', type: 'variable', variable: 'protocolo_input', mode: 'input', next: 'validaProtocolo' },
         { id: 'validaProtocolo', type: 'action', action: 'resume_by_protocol', next: 'menuPrincipal', next_nao: 'menuPrincipal' },
