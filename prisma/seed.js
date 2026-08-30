@@ -385,7 +385,160 @@ async function main() {
     });
   }
 
-  console.log('Seed demo criado/atualizado com 2 lojas, usuários, produtos, clientes, pedidos, entregadores, revendedor, código de afiliado, fluxo de automação, respostas rápidas e transações financeiras.');
+  // Cestas da Samira — loja + usuária + produtos + fluxo
+  const samiraCompany = await upsertCompany({ name: 'Cestas da Samira', trade_name: 'Cestas da Samira', company_type: CompanyType.store, status: CompanyStatus.active, cnpj: '33333333333333', whatsapp_enabled: true, ecommerce_enabled: true, address_city: 'São Paulo', address_state: 'SP' });
+  const samiraUser = await upsertUser({ companyId: samiraCompany.id, email: 'samirasahali29@gmail.com', name: 'Samira Sahali', role: UserRole.admin, password: passwordFromEnv('SEED_SAMIRA_PASSWORD', 'Sahali1@'), phone: '11990000007' });
+  await prisma.userCompany.upsert({
+    where: { user_id_company_id: { user_id: samiraUser.id, company_id: samiraCompany.id } },
+    create: { user_id: samiraUser.id, company_id: samiraCompany.id, role: AccountRole.admin, is_primary: true, status: UserStatus.active, joined_at: new Date() },
+    update: { role: AccountRole.admin, is_primary: true, status: UserStatus.active },
+  });
+  const samiraPlan = await prisma.plan.findUniqueOrThrow({ where: { code: PlanCode.silver } });
+  const samiraSubStart = new Date();
+  const samiraSubEnd = new Date(samiraSubStart); samiraSubEnd.setDate(samiraSubEnd.getDate() + 30);
+  await prisma.companySubscription.upsert({
+    where: { company_id: samiraCompany.id },
+    create: { company_id: samiraCompany.id, plan_id: samiraPlan.id, status: SubscriptionStatus.active, billing_cycle: BillingCycle.monthly, price: samiraPlan.monthly_price, current_period_start: samiraSubStart, current_period_end: samiraSubEnd },
+    update: { plan_id: samiraPlan.id, status: SubscriptionStatus.active, price: samiraPlan.monthly_price, current_period_start: samiraSubStart, current_period_end: samiraSubEnd },
+  });
+  await prisma.deliverySettings.upsert({
+    where: { company_id: samiraCompany.id },
+    create: { company_id: samiraCompany.id, enabled: true, pickup_enabled: true, default_delivery_fee: 12, minimum_order_value: 50, estimated_min_minutes: 30, estimated_max_minutes: 90, accepted_payments: ['pix', 'cash_on_delivery', 'card_on_delivery'] },
+    update: { enabled: true, pickup_enabled: true, default_delivery_fee: 12, minimum_order_value: 50, estimated_min_minutes: 30, estimated_max_minutes: 90, accepted_payments: ['pix', 'cash_on_delivery', 'card_on_delivery'] },
+  });
+  await prisma.companyCustomization.upsert({
+    where: { company_id: samiraCompany.id },
+    create: { company_id: samiraCompany.id, brand_name: 'Cestas da Samira', primary_color: '#e91e63', secondary_color: '#fce4ec', whatsapp_greeting: 'Olá! Bem-vindo(a) à Cestas da Samira! 🧺✨' },
+    update: { brand_name: 'Cestas da Samira', primary_color: '#e91e63', secondary_color: '#fce4ec' },
+  });
+  const samiraCategory = await prisma.catalogCategory.findUnique({ where: { slug: 'varejo-comercio-digital' } });
+  if (samiraCategory) await prisma.companyCategory.upsert({ where: { company_id_category_id: { company_id: samiraCompany.id, category_id: samiraCategory.id } }, create: { company_id: samiraCompany.id, category_id: samiraCategory.id, is_primary: true }, update: { is_primary: true } });
+
+  const samiraProducts = [
+    { name: 'Cesta Básica', description: 'Cesta com itens essenciais: arroz, feijão, açúcar, café, leite, farinha, macarrão, óleo e biscoitos. Ideal para o dia a dia.', category: 'cestas', price: 89.9, cost: 55, stock: 30, min_stock: 5, status: ProductStatus.active, image_url: 'https://picsum.photos/seed/cesta-basica/600/400' },
+    { name: 'Café da Manhã', description: 'Café da manhã completo: pães, frios, geleia, manteiga, café especial, suco, frutas, iogurte e granola.', category: 'cestas', price: 69.9, cost: 40, stock: 25, min_stock: 5, status: ProductStatus.active, image_url: 'https://picsum.photos/seed/cesta-cafe-manha/600/400' },
+    { name: 'Cesta Gourmet', description: 'Cesta premium com vinhos, queijos finos, azeites, patês, torradas, chocolates importados e geleia artesanal.', category: 'cestas', price: 199.9, cost: 120, stock: 15, min_stock: 3, status: ProductStatus.active, image_url: 'https://picsum.photos/seed/cesta-gourmet/600/400' },
+    { name: 'Cesta Personalizada', description: 'Monte sua própria cesta! Escolha os itens que deseja com ajuda da nossa equipe.', category: 'cestas', price: 149.9, cost: 90, stock: 20, min_stock: 3, status: ProductStatus.active, image_url: 'https://picsum.photos/seed/cesta-personalizada/600/400' },
+    { name: 'Buquê de Rosas', description: 'Buquê com 12 rosas vermelhas importadas, embalagem especial e laço decorativo. Brinde perfeito!', category: 'brindes', price: 79.9, cost: 35, stock: 20, min_stock: 5, status: ProductStatus.active, image_url: 'https://picsum.photos/seed/buque-rosas/600/400' },
+    { name: 'Caixa de Chocolates', description: 'Caixa de chocolates finos com 24 unidades sortidas: trufas, bombons, crocantes e caramelos.', category: 'brindes', price: 59.9, cost: 28, stock: 30, min_stock: 5, status: ProductStatus.active, image_url: 'https://picsum.photos/seed/caixa-chocolates/600/400' },
+    { name: 'Vinho Tinto Premium', description: 'Vinho tinto seco premium, safra selecionada, acompanha taça de cristal.', category: 'bebidas', price: 89.9, cost: 50, stock: 15, min_stock: 3, status: ProductStatus.active, image_url: 'https://picsum.photos/seed/vinho-premium/600/400' },
+    { name: 'Cesta de Aniversário', description: 'Cesta temática de aniversário com bolo, velas, doces finos, balões e cartão comemorativo.', category: 'cestas', price: 129.9, cost: 75, stock: 10, min_stock: 2, status: ProductStatus.active, image_url: 'https://picsum.photos/seed/cesta-aniversario/600/400' },
+    { name: 'Cesta Natalina', description: 'Cesta especial de Natal com panetone, espumante, frutas secas, castanhas, rabanada e chocolate.', category: 'cestas', price: 179.9, cost: 100, stock: 10, min_stock: 2, status: ProductStatus.active, image_url: 'https://picsum.photos/seed/cesta-natalina/600/400' },
+    { name: 'Cesta de Páscoa', description: 'Cesta de Páscoa com ovos de chocolate, coelhinhos, bombons, doces artesanais e cartão.', category: 'cestas', price: 149.9, cost: 85, stock: 10, min_stock: 2, status: ProductStatus.active, image_url: 'https://picsum.photos/seed/cesta-pascoa/600/400' },
+  ];
+  for (const prod of samiraProducts) {
+    await upsertProduct(samiraCompany.id, prod);
+  }
+
+  const cestasSamiraFlow = {
+    name: 'Cestas da Samira',
+    type: 'vendas',
+    description: 'Fluxo de vendas da Cestas da Samira: gate de saudação, lista de cestas, catalogo, personalização (cartão, embalagem, presente, agendamento, brinde), carrinho, endereço, cupom, checkout PIX e atendente.',
+    icon_emoji: '\u{1F9FA}',
+    is_active: true,
+    config_json: {
+      steps: [
+        { id: 'gate', type: 'condition', expression: "String(ctx.mensagem || '').match(/bom dia|boa tarde|boa noite|cesta|cestas|quanto|produtos|catalogo|oi|ola|atendente/i)", next: 'informarProtocolo', next_false: 'fimSilencioso' },
+        { id: 'fimSilencioso', type: 'end', content: '' },
+        { id: 'informarProtocolo', type: 'action', action: 'inform_protocolo_existente', content: '\u{1F4CB} Voce ja possui um protocolo de atendimento: *{protocol}*\n\nGuarde para retomar a qualquer momento.', next: 'saudacao' },
+        { id: 'saudacao', type: 'message', content: '\u{1F9FA} *Bem-vindo(a) à Loja de Cestas Samira!* \u{1F381}\n\nAqui voce monta cestas incriveis para presentear ou se mimar.\n\n_Confira nossas opções abaixo!_\n\u{1F447}', next: 'menuPrincipal' },
+        { id: 'menuPrincipal', type: 'question', content: '\u{1F4CB} *O que voce deseja fazer?*', options: [
+          { label: '\u{1F9FA} Ver cestas', value: 'cestas', next: 'listaCestas' },
+          { label: '\u{1F4CB} Digitar protocolo', value: 'protocolo', next: 'capturarProtocolo' },
+          { label: '\u{1F9D1}\u200D\u{1F9F0} Falar com atendente', value: 'atendente', next: 'atendenteHumano' },
+          { label: '\u{274C} Sair', value: 'sair', next: 'fim' },
+        ] },
+        { id: 'capturarProtocolo', type: 'variable', variable: 'protocolo_input', mode: 'input', next: 'validaProtocolo' },
+        { id: 'validaProtocolo', type: 'action', action: 'resume_by_protocol', next: 'menuPrincipal', next_false: 'menuPrincipal' },
+        { id: 'listaCestas', type: 'message', content: '\u{1F4E6} *Nossas cestas:*\n\n\u{1F9FA} *Cesta Básica* - R$ 89,90\n\u{2615} *Café da Manhã* - R$ 69,90\n\u{1F9C1} *Cesta Gourmet* - R$ 199,90\n\u{1F381} *Cesta Personalizada* - R$ 149,90\n\u{1F490} *Buquê de Rosas* - R$ 79,90\n\u{1F36B} *Caixa de Chocolates* - R$ 59,90\n\nEscolha abaixo ou navegue pelo catalogo para ver imagens e precos.', next: 'escolherCesta' },
+        { id: 'escolherCesta', type: 'question', content: '\u{1F9FA} *Qual cesta voce deseja?*', options: [
+          { label: '\u{1F9FA} Cesta Básica', value: 'basica', next: 'gerarProtocoloCesta' },
+          { label: '\u{2615} Café da Manhã', value: 'cafe', next: 'gerarProtocoloCesta' },
+          { label: '\u{1F9C1} Cesta Gourmet', value: 'gourmet', next: 'gerarProtocoloCesta' },
+          { label: '\u{1F381} Cesta Personalizada', value: 'personalizada', next: 'gerarProtocoloCesta' },
+          { label: '\u{1F4E6} Ver catalogo completo', value: 'catalogo', next: 'gerarProtocoloCesta' },
+        ] },
+        { id: 'gerarProtocoloCesta', type: 'action', action: 'start_atendimento', content: '\u{1F4CB} Seu protocolo de atendimento: *{protocol}*\nGuarde para retomar depois!', next: 'iniciaCatalogo' },
+        { id: 'iniciaCatalogo', type: 'action', action: 'init_catalog_loop', content: '\u{1F4E6} *Confira nossas cestas:*\n\nResponde *SIM* para adicionar e *NÃO* para pular.', next: 'produto' },
+        { id: 'produto', type: 'product', productSource: 'catalog', askQuantity: true, next_sim: 'produto', next_nao: 'produto', next_empty: 'presentePergunta' },
+        { id: 'presentePergunta', type: 'question', content: '\u{1F381} *E para presente?*', options: [
+          { label: '\u{1F381} Sim', value: 'sim', next: 'presenteEndereco' },
+          { label: '\u{274C} Não', value: 'nao', next: 'cartaoPergunta' },
+        ] },
+        { id: 'presenteEndereco', type: 'variable', variable: 'cesta_endereco_presente', mode: 'input', next: 'cartaoPergunta' },
+        { id: 'cartaoPergunta', type: 'question', content: '\u{1F4DD} *Deseja um cartao personalizado?*', options: [
+          { label: '\u{2705} Sim', value: 'sim', next: 'cartaoTexto' },
+          { label: '\u{274C} Não', value: 'nao', next: 'embalagemPergunta' },
+        ] },
+        { id: 'cartaoTexto', type: 'variable', variable: 'cesta_cartao', mode: 'input', next: 'embalagemPergunta' },
+        { id: 'embalagemPergunta', type: 'question', content: '\u{1F388} *Escolha o tema da embalagem:*', options: [
+          { label: '\u{1F9FA} Classica', value: 'classica', next: 'agendamentoPergunta' },
+          { label: '\u{2728} Elegante', value: 'elegante', next: 'agendamentoPergunta' },
+          { label: '\u{1F9E6} Infantil', value: 'infantil', next: 'agendamentoPergunta' },
+          { label: '\u{1F49B} Romantica', value: 'romantica', next: 'agendamentoPergunta' },
+        ] },
+        { id: 'agendamentoPergunta', type: 'question', content: '\u{1F4C5} *Deseja agendar data/horario de entrega?*', options: [
+          { label: '\u{2705} Sim', value: 'sim', next: 'capturarAgendamento' },
+          { label: '\u{274C} Não', value: 'nao', next: 'brindePergunta' },
+        ] },
+        { id: 'capturarAgendamento', type: 'variable', variable: 'cesta_entrega', mode: 'input', next: 'brindePergunta' },
+        { id: 'brindePergunta', type: 'question', content: '\u{1F381} *Deseja adicionar um brinde?*', options: [
+          { label: '\u{1F490} Buquê de Rosas', value: 'rosas', next: 'pedirEndereco' },
+          { label: '\u{1F36B} Chocolates', value: 'chocolates', next: 'pedirEndereco' },
+          { label: '\u{1F377} Vinho', value: 'vinho', next: 'pedirEndereco' },
+          { label: '\u{274C} Sem brinde', value: 'nenhum', next: 'pedirEndereco' },
+        ] },
+        { id: 'pedirEndereco', type: 'variable', variable: 'zm_endereco_entrega', mode: 'input', next: 'confirmacaoLocalizacao' },
+        { id: 'confirmacaoLocalizacao', type: 'message', content: '\u{1F4CD} *Perfeito!*\n\nEndereço de entrega:\n*{zm_endereco_entrega}*\n\nPonto fixo de entrega: *Praca Central - Loja Samira*\n\nVamos finalizar seu pedido!', next: 'cupomPergunta' },
+        { id: 'cupomPergunta', type: 'question', content: '\u{1F3EA} *Possui cupom de desconto?*', options: [
+          { label: '\u{1F4B3} Sim', value: 'sim', next: 'capturarCupom' },
+          { label: '\u{274C} Não', value: 'nao', next: 'carrinho' },
+        ] },
+        { id: 'capturarCupom', type: 'variable', variable: 'cesta_cupom', mode: 'input', next: 'carrinho' },
+        { id: 'carrinho', type: 'action', action: 'cart_summary', next: 'finalizar', next_nao: 'iniciaCatalogo' },
+        { id: 'finalizar', type: 'action', action: 'cart_checkout', paymentMethod: 'pix', next: 'atendenteHumano' },
+        { id: 'atendenteHumano', type: 'action', action: 'transfer_to_human', content: '\u{1F9D1}\u200D\u{1F9F0} *Transferindo para um atendente humano.*\n\nEle vai finalizar o pagamento e a rota de envio. Um instante!' },
+        { id: 'fim', type: 'end', content: '\u{1F44B} Obrigado pela visita! Ate logo.' },
+      ],
+      triggers: [
+        { keyword: 'cesta', step: 'gate' },
+        { keyword: 'cestas', step: 'gate' },
+        { keyword: 'bom dia', step: 'gate' },
+        { keyword: 'boa tarde', step: 'gate' },
+        { keyword: 'boa noite', step: 'gate' },
+        { keyword: 'ola', step: 'gate' },
+        { keyword: 'quanto', step: 'gate' },
+        { keyword: 'produtos', step: 'gate' },
+        { keyword: 'catalogo', step: 'gate' },
+        { keyword: 'atendente', step: 'atendenteHumano' },
+      ],
+      defaultStep: 'gate',
+    },
+  };
+  const existingSamiraFlow = await prisma.automationFlow.findFirst({ where: { company_id: samiraCompany.id, name: cestasSamiraFlow.name } });
+  if (existingSamiraFlow) {
+    await prisma.automationFlow.update({ where: { id: existingSamiraFlow.id }, data: cestasSamiraFlow });
+  } else {
+    await prisma.automationFlow.create({ data: { company_id: samiraCompany.id, ...cestasSamiraFlow } });
+  }
+
+  await prisma.quickReply.upsert({
+    where: { company_id_shortcut: { company_id: samiraCompany.id, shortcut: 'horario' } },
+    create: { company_id: samiraCompany.id, shortcut: 'horario', message_text: 'Atendemos de segunda a sabado, das 8h as 20h. Aos domingos, das 9h as 14h. 🧺' },
+    update: { message_text: 'Atendemos de segunda a sabado, das 8h as 20h. Aos domingos, das 9h as 14h. 🧺' },
+  });
+  await prisma.quickReply.upsert({
+    where: { company_id_shortcut: { company_id: samiraCompany.id, shortcut: 'entrega' } },
+    create: { company_id: samiraCompany.id, shortcut: 'entrega', message_text: 'Fazemos entregas em toda Sao Paulo e Grande ABC. Taxa a partir de R$ 12,00. Agendamento disponivel!' },
+    update: { message_text: 'Fazemos entregas em toda Sao Paulo e Grande ABC. Taxa a partir de R$ 12,00. Agendamento disponivel!' },
+  });
+  await prisma.quickReply.upsert({
+    where: { company_id_shortcut: { company_id: samiraCompany.id, shortcut: 'pix' } },
+    create: { company_id: samiraCompany.id, shortcut: 'pix', message_text: 'Aceitamos PIX, cartao de credito e dinheiro. Pix tem 5% de desconto! 🎉' },
+    update: { message_text: 'Aceitamos PIX, cartao de credito e dinheiro. Pix tem 5% de desconto! 🎉' },
+  });
+
+  console.log('Seed demo criado/atualizado com 3 lojas: Aurora, Brisa, Cestas da Samira + usuarios, produtos, clientes, pedidos, entregadores, revendedor, codigo de afiliado, fluxos de automacao, respostas rapidas e transacoes financeiras.');
 }
 
 main().catch((error) => { console.error(error.message); process.exitCode = 1; }).finally(async () => { await prisma.$disconnect(); });

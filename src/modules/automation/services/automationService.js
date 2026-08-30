@@ -397,6 +397,16 @@ async function checkoutCartStep({ companyId, number, from, vars, step, contact }
   const shippingAddress = vars?.zm_endereco_entrega || vars?.endereco_padrao || null;
 
   const notes = [
+    vars?.cesta_tipo ? `Cesta: ${vars.cesta_tipo}` : null,
+    vars?.cesta_qtd ? `Quantidade: ${vars.cesta_qtd}` : null,
+    vars?.cesta_presente ? `Presente: ${vars.cesta_presente}` : null,
+    vars?.cesta_endereco_presente ? `Endereço do presente: ${vars.cesta_endereco_presente}` : null,
+    vars?.cesta_cartao ? `Cartão personalizado: ${vars.cesta_cartao}` : null,
+    vars?.cesta_embalagem ? `Embalagem: ${vars.cesta_embalagem}` : null,
+    vars?.cesta_entrega ? `Agendamento de entrega: ${vars.cesta_entrega}` : null,
+    vars?.cesta_brinde ? `Brinde: ${vars.cesta_brinde}` : null,
+    vars?.cesta_cupom ? `Cupom: ${vars.cesta_cupom}` : null,
+    vars?.zm_endereco_entrega ? `Endereço de entrega: ${vars.zm_endereco_entrega}` : null,
     vars?.orcamento_tipo ? `Móvel: ${vars.orcamento_tipo}` : null,
     vars?.orcamento_medidas ? `Medidas: ${vars.orcamento_medidas}` : null,
     vars?.orcamento_material ? `Material: ${vars.orcamento_material}` : null,
@@ -405,7 +415,8 @@ async function checkoutCartStep({ companyId, number, from, vars, step, contact }
     vars?.protocolo_input || vars?.protocol ? `Protocolo: ${vars.protocolo_input || vars.protocol}` : null,
   ].filter(Boolean).join('\n');
 
-  const order = await createOrder(companyId, customer.id, step.paymentMethod ?? 'pix', items, null, shippingAddress, notes || null);
+  const couponCode = vars?.cesta_cupom || vars?.cupom || null;
+  const order = await createOrder(companyId, customer.id, step.paymentMethod ?? 'pix', items, couponCode, shippingAddress, notes || null);
 
   if (vars?.zm_endereco_entrega) {
     try {
