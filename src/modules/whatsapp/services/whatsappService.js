@@ -10,7 +10,10 @@ import { syncConversation } from '../../../shared/whatsapp/conversation.js';
 import { handleCustomerCommand } from '../../../shared/whatsapp/customer.js';
 import { processIncomingMessage } from '../../automation/services/automationService.js';
 import { notifyAttendantsAsync } from '../../notifications/services/notificationService.js';
+import { isOwner, handleOwnerMessage, setSyncConversation } from './ownerProductAdmin.js';
 import { logger } from '../../../config/logger.js';
+
+setSyncConversation(syncConversation);
 
 function mapNumber(number) {
   if (!number) return number;
@@ -1261,6 +1264,15 @@ async function processUpsertMessage(number, data) {
 
     if (number.is_bot_enabled && messageContent) {
       const botConfig = (await whatsappRepo.getBotConfig(number.company_id).catch(() => ({}))) ?? {};
+      // Modo dono da loja: permite gerenciar produtos via conversa, mesmo em dev_mode.
+      if (isOwner(botConfig, phoneNumber)) {
+        try {
+          const handled = await handleOwnerMessage({ companyId: number.company_id, number, from: phoneNumber, text: messageContent, media, contact });
+          if (handled) return;
+        } catch (err) {
+          logger.error({ companyId: number.company_id, from: phoneNumber, err: err.message }, 'owner admin: erro ao processar mensagem');
+        }
+      }
       const check = await shouldBotRespond(number.company_id, number.id, phoneNumber, botConfig);
       if (check.allowed) {
         try {

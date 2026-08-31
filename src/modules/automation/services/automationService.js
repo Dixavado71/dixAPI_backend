@@ -447,16 +447,15 @@ async function sendFlowMedia(number, to, media) {
 }
 
 async function sendFlowButtons(number, to, { title, description, buttons, footer = '', delay = 500 }) {
-  if (!buttons || buttons.length === 0) { await sendFlowMessage(number, to, [title, description].filter(Boolean).join('\n\n')); return; }
-  try {
-    const mapped = buttons.map((b) => ({ type: 'reply', title: b, id: `btn_${Date.now()}_${b}` }));
-    await evolutionApi.sendButtons(number.external_account_id, to, title ?? '', description ?? '', mapped, footer, delay);
-  } catch (err) {
-    logger.error({ err: err.message, to, title }, 'bot: falha ao enviar botoes');
-    const fallback = [title, description, '', buttons.map((b) => `*${b}*`).join('\n')].filter(Boolean).join('\n');
-    if (footer) await sendFlowMessage(number, to, `${fallback}\n\n${footer}`);
-    else await sendFlowMessage(number, to, fallback);
-  }
+  // Botões interativos não são suportados pelo Baileys da Evolution API: envia como texto.
+  const text = [
+    title,
+    description,
+    '',
+    ...(buttons ?? []).map((b, i) => `${i + 1}. *${b}*`),
+    footer ? `\n${footer}` : '',
+  ].filter(Boolean).join('\n');
+  await sendFlowMessage(number, to, text);
 }
 
 async function sendFlowProductCard(number, to, product, opts = {}) {
@@ -987,9 +986,8 @@ async function executeStep({ companyId, number, from, replyTo, text, contact, fl
         const summary = formatCartSummary(cart);
         const total = cart.reduce((a, i) => a + Number(i.price) * i.quantity, 0);
         const totalStr = `R$ ${total.toFixed(2).replace('.', ',')}`;
-        await sendFlowMessage(number, target, `${content() || 'Resumo do carrinho:'}\n\n${summary}\n\n*Total: ${totalStr}*`);
+        await sendFlowMessage(number, target, `${content() || 'Resumo do carrinho:'}\n\n${summary}\n\n*Total: ${totalStr}*\n\nResponda *1 - Finalizar pedido* ou *2 - Continuar comprando*.`);
         await sleep(300);
-        await sendFlowButtons(number, target, { title: 'O que deseja fazer?', description: null, buttons: ['Finalizar pedido', 'Continuar comprando'], footer: totalStr });
         vars.cartSummaryPending = true;
         nextStep = step.id;
       }
@@ -1434,7 +1432,7 @@ export async function processIncomingMessage({ companyId, number, from, text, co
         nextStep = steps.find((s) => s.id === currentStep.next_nao) ?? null;
       } else {
         nextStep = currentStep;
-        await sendFlowButtons(number, replyTo, { title: 'O que deseja fazer?', description: null, buttons: ['Finalizar pedido', 'Continuar comprando'] });
+        await sendFlowMessage(number, replyTo, 'O que deseja fazer?\n\n1. *Finalizar pedido*\n2. *Continuar comprando*');
       }
     } else if (currentStep?.type === 'question' && currentStep.options) {
       const matched = resolveQuestionOption(currentStep, normalizedText);
