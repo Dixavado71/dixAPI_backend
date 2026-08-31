@@ -458,9 +458,9 @@ async function main() {
         { id: 'capturar_produto', type: 'variable', variable: 'produto_selecionado', mode: 'input', next: 'mostrar_detalhe' },
         { id: 'mostrar_detalhe', type: 'action', action: 'show_product_detail', next: 'confirmar_adicionar', next_nao: 'mostrar_lista' },
         { id: 'confirmar_adicionar', type: 'question', content: 'O que deseja fazer?', options: [
-          { label: 'Adicionar ao carrinho', value: 'sim', next: 'processar_escolha' },
-          { label: 'Ver outro produto', value: 'outro', next: 'processar_escolha' },
-          { label: 'Finalizar pedido', value: 'finalizar', next: 'processar_escolha' },
+          { label: 'Adicionar ao carrinho', value: 'sim', variable: 'adicionar_resposta', next: 'processar_escolha' },
+          { label: 'Ver outro produto', value: 'outro', variable: 'adicionar_resposta', next: 'processar_escolha' },
+          { label: 'Finalizar pedido', value: 'finalizar', variable: 'adicionar_resposta', next: 'processar_escolha' },
         ] },
         { id: 'processar_escolha', type: 'action', action: 'add_selected_product', next: 'presente_quiz', next_loop: 'mostrar_lista' },
         // Personalização da cesta

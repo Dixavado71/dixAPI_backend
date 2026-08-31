@@ -1513,6 +1513,14 @@ export async function processIncomingMessage({ companyId, number, from, text, co
         nextStep = currentStep;
         await sendFlowMessage(number, replyTo, 'O que deseja fazer?\n\n1. *Finalizar pedido*\n2. *Continuar comprando*');
       }
+    } else if (currentStep?.type === 'variable' && currentStep.mode === 'input') {
+      // Captura a resposta digitada pelo cliente na variável do step.
+      const vars = { ...(currentState.vars ?? {}) };
+      if (currentStep.variable) {
+        vars[currentStep.variable] = text ?? '';
+        currentState.vars = vars;
+      }
+      nextStep = steps.find((s) => s.id === currentStep.next) ?? null;
     } else if (currentStep?.type === 'question' && currentStep.options) {
       const matched = resolveQuestionOption(currentStep, normalizedText);
       if (matched) {

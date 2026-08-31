@@ -224,6 +224,33 @@ describe('auto-chain e retry de question', () => {
     expect(cache.clearFlowState).toHaveBeenCalledWith(C1, '5511');
     expect(evolutionApi.sendText).toHaveBeenCalledWith('inst1', '5511', 'Não consegui entender. Vou transferir para um atendente.', 0);
   });
+
+  it('captures client text into a variable step (mode input)', async () => {
+    const varFlow = {
+      id: 'vf', is_active: true,
+      config_json: {
+        defaultStep: 'capturar',
+        steps: [
+          { id: 'capturar', type: 'variable', variable: 'produto_selecionado', mode: 'input', next: 'detalhe' },
+          { id: 'detalhe', type: 'message', content: 'Detalhe do {produto_selecionado}', next: null },
+        ],
+      },
+    };
+    automationRepo.findActiveFlowByType.mockResolvedValue(varFlow);
+    automationRepo.findFlowById.mockResolvedValue(null);
+    whatsappRepo.findContactByPhone.mockResolvedValue({ id: 'c1', metadata: { flowStep: 'capturar', flowId: 'vf', vars: {} } });
+    cache.getFlowState.mockResolvedValue(null);
+    evolutionApi.sendText.mockResolvedValue({});
+    conversationRepo.findConversationByContact.mockResolvedValue(null);
+    conversationRepo.createConversation.mockResolvedValue({ id: 'conv1' });
+    conversationRepo.createMessage.mockResolvedValue({});
+    automationRepo.incrementMessagesCount.mockResolvedValue({});
+
+    const result = await service.processIncomingMessage({ companyId: C1, number, from: '5511', text: 'Caixa de Chocolates' });
+
+    expect(evolutionApi.sendText).toHaveBeenCalledWith('inst1', '5511', 'Detalhe do Caixa de Chocolates', 0);
+    expect(result.stepId).toBe('detalhe');
+  });
 });
 
 describe('executeStep webhook', () => {
