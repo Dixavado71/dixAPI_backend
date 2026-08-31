@@ -72,6 +72,40 @@ describe('flowDecisions — resolveQuestionOption', () => {
     expect(resolveQuestionOption(step, 'tchau')).toBeNull();
   });
 
+  it('matches by numeric index (1-based)', () => {
+    expect(resolveQuestionOption(step, '1')).toMatchObject({ value: 'cestas' });
+    expect(resolveQuestionOption(step, '2')).toMatchObject({ value: 'sair' });
+    expect(resolveQuestionOption(step, '9')).toBeNull();
+  });
+
+  it('matches by partial keyword contained in label/value', () => {
+    expect(resolveQuestionOption(step, 'ver')).toMatchObject({ value: 'cestas' });
+    expect(resolveQuestionOption(step, 'cestas')).toMatchObject({ value: 'cestas' });
+    expect(resolveQuestionOption(step, 'sai')).toMatchObject({ value: 'sair' });
+  });
+
+  it('matches the confirm-add numeric options correctly', () => {
+    const confirmStep = {
+      options: [
+        { label: 'Adicionar ao carrinho', value: 'sim' },
+        { label: 'Ver outro produto', value: 'outro' },
+        { label: 'Finalizar pedido', value: 'finalizar' },
+      ],
+    };
+    expect(resolveQuestionOption(confirmStep, '1')).toMatchObject({ value: 'sim' });
+    expect(resolveQuestionOption(confirmStep, '2')).toMatchObject({ value: 'outro' });
+    expect(resolveQuestionOption(confirmStep, '3')).toMatchObject({ value: 'finalizar' });
+    expect(resolveQuestionOption(confirmStep, 'sim')).toMatchObject({ value: 'sim' });
+    expect(resolveQuestionOption(confirmStep, 'adicionar')).toMatchObject({ value: 'sim' });
+    expect(resolveQuestionOption(confirmStep, 'finalizar')).toMatchObject({ value: 'finalizar' });
+    expect(resolveQuestionOption(confirmStep, '0')).toMatchObject({ value: 'finalizar' });
+  });
+
+  it('returns null for empty text', () => {
+    expect(resolveQuestionOption(step, '')).toBeNull();
+    expect(resolveQuestionOption(step, '   ')).toBeNull();
+  });
+
   it('returns null for step without options', () => {
     expect(resolveQuestionOption({}, 'oi')).toBeNull();
   });

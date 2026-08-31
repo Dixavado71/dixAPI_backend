@@ -30,13 +30,33 @@ export function looksLikeProtocol(text, options = {}) {
   return /^MK-[0-9]{8}-[A-F0-9]{4}$/.test(String(text || '').trim().toUpperCase());
 }
 
-// Classifica a resposta para um step 'question' por label ou value.
+// Classifica a resposta para um step 'question' por label, value, índice numérico ou palavra-chave parcial.
 export function resolveQuestionOption(step, text) {
   if (!step?.options) return null;
   const normalizedText = normalize(text);
-  return step.options.find(
+  if (!normalizedText) return null;
+  // 0) "0" significa finalizar/cancelar → última opção (convenção do card de produto)
+  if (normalizedText === '0') {
+    return step.options.find((o) => normalize(o.value) === 'finalizar')
+      ?? step.options[step.options.length - 1] ?? null;
+  }
+  // 1) Match exato por label ou value
+  const exact = step.options.find(
     (o) => normalize(o.label) === normalizedText || normalize(o.value) === normalizedText,
-  ) ?? null;
+  );
+  if (exact) return exact;
+  // 2) Match por índice numérico (ex.: "1", "2", "3") — o cliente pode digitar o número da opção
+  const num = Number.parseInt(normalizedText, 10);
+  if (Number.isInteger(num) && num >= 1 && num <= step.options.length) {
+    return step.options[num - 1];
+  }
+  // 3) Match por palavra-chave contida no label (ex.: "adicionar", "finalizar", "outro")
+  return step.options.find((o) => {
+    const label = normalize(o.label);
+    const value = normalize(o.value);
+    return label.includes(normalizedText) || value.includes(normalizedText)
+      || normalizedText.includes(label) || normalizedText.includes(value);
+  }) ?? null;
 }
 
 // Classifica a resposta do step 'action: cart_summary'.

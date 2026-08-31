@@ -270,6 +270,12 @@ export async function importFlow(companyId, data) {
   return mapFlow(flow);
 }
 
+// Trigger de "escape": aponta para transfer_to_human ou fim, deve funcionar a qualquer momento.
+function isEscapeTrigger(matchedTrigger, steps) {
+  const target = steps.find((s) => s.id === matchedTrigger?.step);
+  return Boolean(target && (target.type === 'action' && ['transfer_to_human', 'end'].includes(target.action)));
+}
+
 export async function testFlow(companyId, id, data) {
   const existing = await automationRepo.findFlowById(companyId, id);
   if (!existing) throw new NotFoundError('Fluxo não encontrado.');
@@ -1419,8 +1425,17 @@ export async function processIncomingMessage({ companyId, number, from, text, co
 
   let nextStep = null;
 
+  // Triggers globais: só disparam quando não há step atual aguardando resposta.
+  // Exceção: triggers de "escape" (transfer_to_human / end) funcionam a qualquer momento.
+  const currentStepWaiting = currentStepId ? steps.find((s) => s.id === currentStepId) : null;
+  const currentWaitsInput = currentStepWaiting && (
+    currentStepWaiting.type === 'question'
+    || (currentStepWaiting.type === 'variable' && currentStepWaiting.mode === 'input')
+    || currentStepWaiting.type === 'product'
+    || (currentStepWaiting.type === 'action' && ['cart_summary', 'cart_checkout'].includes(currentStepWaiting.action))
+  );
   const matchedTrigger = matchTrigger(config.triggers, text);
-  if (matchedTrigger) {
+  if (matchedTrigger && (!currentWaitsInput || isEscapeTrigger(matchedTrigger, steps))) {
     nextStep = steps.find((s) => s.id === matchedTrigger.step) ?? null;
     if (nextStep) {
       logger.info({ companyId, from, text, keyword: matchedTrigger.keyword, stepId: nextStep.id, flowId: flow.id }, 'bot: trigger matched');
