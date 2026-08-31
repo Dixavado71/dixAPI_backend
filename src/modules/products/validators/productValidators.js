@@ -1,8 +1,8 @@
 import { z } from 'zod';
 
-export const categoryEnumSchema = z.enum([
-  'alimentacao', 'vestuario', 'eletronicos', 'beauty', 'esportes', 'outros'
-]);
+// Categoria aceita texto livre (ex.: presentes, comemorativas, natal, alimentacao...)
+// para permitir CRUD de produtos via chat e categorias personalizadas da loja.
+export const categoryEnumSchema = z.string().min(1, 'Categoria é obrigatória').max(50);
 
 export const productParamsSchema = z.object({ id: z.string().uuid() }).strict();
 

@@ -415,20 +415,21 @@ async function main() {
   if (samiraCategory) await prisma.companyCategory.upsert({ where: { company_id_category_id: { company_id: samiraCompany.id, category_id: samiraCategory.id } }, create: { company_id: samiraCompany.id, category_id: samiraCategory.id, is_primary: true }, update: { is_primary: true } });
 
   const samiraProducts = [
-    { name: 'Cesta Básica', description: 'Cesta com itens essenciais: arroz, feijão, açúcar, café, leite, farinha, macarrão, óleo e biscoitos. Ideal para o dia a dia.', category: 'cestas', price: 89.9, cost: 55, stock: 30, min_stock: 5, status: ProductStatus.active, image_url: 'https://picsum.photos/seed/cesta-basica/600/400' },
-    { name: 'Café da Manhã', description: 'Café da manhã completo: pães, frios, geleia, manteiga, café especial, suco, frutas, iogurte e granola.', category: 'cestas', price: 69.9, cost: 40, stock: 25, min_stock: 5, status: ProductStatus.active, image_url: 'https://picsum.photos/seed/cesta-cafe-manha/600/400' },
-    { name: 'Cesta Gourmet', description: 'Cesta premium com vinhos, queijos finos, azeites, patês, torradas, chocolates importados e geleia artesanal.', category: 'cestas', price: 199.9, cost: 120, stock: 15, min_stock: 3, status: ProductStatus.active, image_url: 'https://picsum.photos/seed/cesta-gourmet/600/400' },
-    { name: 'Cesta Personalizada', description: 'Monte sua própria cesta! Escolha os itens que deseja com ajuda da nossa equipe.', category: 'cestas', price: 149.9, cost: 90, stock: 20, min_stock: 3, status: ProductStatus.active, image_url: 'https://picsum.photos/seed/cesta-personalizada/600/400' },
-    { name: 'Buquê de Rosas', description: 'Buquê com 12 rosas vermelhas importadas, embalagem especial e laço decorativo. Brinde perfeito!', category: 'brindes', price: 79.9, cost: 35, stock: 20, min_stock: 5, status: ProductStatus.active, image_url: 'https://picsum.photos/seed/buque-rosas/600/400' },
-    { name: 'Caixa de Chocolates', description: 'Caixa de chocolates finos com 24 unidades sortidas: trufas, bombons, crocantes e caramelos.', category: 'brindes', price: 59.9, cost: 28, stock: 30, min_stock: 5, status: ProductStatus.active, image_url: 'https://picsum.photos/seed/caixa-chocolates/600/400' },
-    { name: 'Vinho Tinto Premium', description: 'Vinho tinto seco premium, safra selecionada, acompanha taça de cristal.', category: 'bebidas', price: 89.9, cost: 50, stock: 15, min_stock: 3, status: ProductStatus.active, image_url: 'https://picsum.photos/seed/vinho-premium/600/400' },
-    { name: 'Cesta de Aniversário', description: 'Cesta temática de aniversário com bolo, velas, doces finos, balões e cartão comemorativo.', category: 'cestas', price: 129.9, cost: 75, stock: 10, min_stock: 2, status: ProductStatus.active, image_url: 'https://picsum.photos/seed/cesta-aniversario/600/400' },
-    { name: 'Cesta Natalina', description: 'Cesta especial de Natal com panetone, espumante, frutas secas, castanhas, rabanada e chocolate.', category: 'cestas', price: 179.9, cost: 100, stock: 10, min_stock: 2, status: ProductStatus.active, image_url: 'https://picsum.photos/seed/cesta-natalina/600/400' },
-    { name: 'Cesta de Páscoa', description: 'Cesta de Páscoa com ovos de chocolate, coelhinhos, bombons, doces artesanais e cartão.', category: 'cestas', price: 149.9, cost: 85, stock: 10, min_stock: 2, status: ProductStatus.active, image_url: 'https://picsum.photos/seed/cesta-pascoa/600/400' },
+    { name: 'Cesta Personalizada', description: 'Monte sua própria cesta! Escolha os itens que deseja com ajuda da nossa equipe para qualquer ocasião.', category: 'presentes', price: 149.9, cost: 90, stock: 20, min_stock: 3, status: ProductStatus.active, image_url: 'https://picsum.photos/seed/cesta-personalizada/600/400' },
+    { name: 'Cesta de Aniversário', description: 'Cesta temática de aniversário com bolo, velas, doces finos, balões e cartão comemorativo.', category: 'comemorativas', price: 129.9, cost: 75, stock: 10, min_stock: 2, status: ProductStatus.active, image_url: 'https://picsum.photos/seed/cesta-aniversario/600/400' },
+    { name: 'Cesta Natalina', description: 'Cesta especial de Natal com panetone, espumante, frutas secas, castanhas, rabanada e chocolate.', category: 'natal', price: 179.9, cost: 100, stock: 10, min_stock: 2, status: ProductStatus.active, image_url: 'https://picsum.photos/seed/cesta-natalina/600/400' },
+    { name: 'Buquê de Rosas', description: 'Buquê com 12 rosas vermelhas importadas, embalagem especial e laço decorativo. Brinde perfeito para presentear!', category: 'presentes', price: 79.9, cost: 35, stock: 20, min_stock: 5, status: ProductStatus.active, image_url: 'https://picsum.photos/seed/buque-rosas/600/400' },
+    { name: 'Caixa de Chocolates', description: 'Caixa de chocolates finos com 24 unidades sortidas: trufas, bombons, crocantes e caramelos.', category: 'presentes', price: 59.9, cost: 28, stock: 30, min_stock: 5, status: ProductStatus.active, image_url: 'https://picsum.photos/seed/caixa-chocolates/600/400' },
   ];
   for (const prod of samiraProducts) {
     await upsertProduct(samiraCompany.id, prod);
   }
+  // Desativa produtos antigos que saíram do catálogo da Samira (máximo 5 produtos/serviços).
+  const samiraActive = samiraProducts.map((p) => p.name);
+  await prisma.product.updateMany({
+    where: { company_id: samiraCompany.id, name: { notIn: samiraActive }, status: 'active' },
+    data: { status: 'inactive' },
+  });
 
   // Fluxo completo: cestas, carrinho, orçamento sob medida, protocolo e pagamento.
   const samiraFlow = {
@@ -449,12 +450,19 @@ async function main() {
           { label: 'Falar com atendente', value: 'atendente', next: 'transferir' },
           { label: 'Sair', value: 'sair', next: 'fim' },
         ] },
-        { id: 'lista_produtos', type: 'message', content: '\u{1F9FA} *Nossas cestas e produtos:*\n\n\u{1F9FA} *Cesta Básica* — Cesta com itens essenciais: arroz, feijão, açúcar, café, leite, farinha, macarrão, óleo e biscoitos.\n\u{2615} *Café da Manhã* — Café da manhã completo: pães, frios, geleia, manteiga, café especial, suco, frutas, iogurte e granola.\n\u{1F9C1} *Cesta Gourmet* — Cesta premium com vinhos, queijos finos, azeites, patês, torradas, chocolates importados e geleia artesanal.\n\u{1F381} *Cesta Personalizada* — Monte sua própria cesta! Escolha os itens que deseja com ajuda da nossa equipe.\n\u{1F490} *Buquê de Rosas* — 12 rosas vermelhas importadas, embalagem especial e laço decorativo.\n\u{1F36B} *Caixa de Chocolates* — 24 chocolates finos sortidos: trufas, bombons, crocantes e caramelos.\n\u{1F377} *Vinho Premium* — Vinho tinto seco premium, safra selecionada, acompanha taça de cristal.\n\u{1F382} *Cesta de Aniversário* — Cesta temática com bolo, velas, doces finos, balões e cartão comemorativo.\n\u{1F384} *Cesta Natalina* — Cesta especial com panetone, espumante, frutas secas, castanhas, rabanada e chocolate.\n\u{1F430} *Cesta de Páscoa* — Cesta com ovos de chocolate, coelhinhos, bombons, doces artesanais e cartão.\n\nDigite *comprar* para escolher uma cesta, *preços* para ver valores ou *atendente*.', next: 'menu' },
-        { id: 'info_precos', type: 'message', content: '\u{1F4B0} *Preços e modelos:*\n\n\u{1F9FA} *Cesta Básica* — R$ 89,90\n\u{2615} *Café da Manhã* — R$ 69,90\n\u{1F9C1} *Cesta Gourmet* — R$ 199,90\n\u{1F381} *Cesta Personalizada* — a partir de R$ 149,90\n\u{1F490} *Buquê de Rosas* — R$ 79,90\n\u{1F36B} *Caixa de Chocolates* — R$ 59,90\n\u{1F377} *Vinho Premium* — R$ 89,90\n\u{1F382} *Cesta de Aniversário* — R$ 129,90\n\u{1F384} *Cesta Natalina* — R$ 179,90\n\u{1F430} *Cesta de Páscoa* — R$ 149,90\n\nDigite *comprar* para escolher ou *cesta personalizada* para montar a sua!', next: 'menu' },
-        // BLOCO 1 — Venda de cestas (catálogo + carrinho + personalização + pagamento)
-        { id: 'gerar_protocolo', type: 'action', action: 'start_atendimento', content: '\u{1F4CB} Seu protocolo de atendimento: *{protocol}*\n\nGuarde para retomar seu carrinho depois!', next: 'inicia_catalogo' },
-        { id: 'inicia_catalogo', type: 'action', action: 'init_catalog_loop', content: '\u{1F4E6} *Vou mostrar nossos produtos um a um.*\n\nResponda *SIM* para adicionar ao carrinho ou *NÃO* para pular.', next: 'produto' },
-        { id: 'produto', type: 'product', productSource: 'catalog', askQuantity: true, next_sim: 'produto', next_nao: 'produto', next_empty: 'presente_quiz' },
+        { id: 'lista_produtos', type: 'message', content: '\u{1F9FA} *Nossos produtos:*\n\n\u{1F381} *Cesta Personalizada* — Monte sua própria cesta para qualquer ocasião.\n\u{1F382} *Cesta de Aniversário* — Cesta temática com bolo, velas, doces finos e balões.\n\u{1F384} *Cesta Natalina* — Cesta especial de Natal com panetone, espumante e frutas secas.\n\u{1F490} *Buquê de Rosas* — 12 rosas vermelhas importadas, embalagem especial e laço.\n\u{1F36B} *Caixa de Chocolates* — 24 chocolates finos sortidos: trufas, bombons e caramelos.\n\nDigite *comprar* para escolher, *preços* para ver valores ou *atendente*.', next: 'menu' },
+        { id: 'info_precos', type: 'message', content: '\u{1F4B0} *Preços:*\n\n\u{1F381} *Cesta Personalizada* — a partir de R$ 149,90\n\u{1F382} *Cesta de Aniversário* — R$ 129,90\n\u{1F384} *Cesta Natalina* — R$ 179,90\n\u{1F490} *Buquê de Rosas* — R$ 79,90\n\u{1F36B} *Caixa de Chocolates* — R$ 59,90\n\nDigite *comprar* para escolher ou *cesta personalizada* para montar a sua!', next: 'menu' },
+        // BLOCO 1 — Venda de cestas (lista de produtos + escolha múltipla + personalização + pagamento)
+        { id: 'gerar_protocolo', type: 'action', action: 'start_atendimento', content: '\u{1F4CB} Seu protocolo de atendimento: *{protocol}*\n\nGuarde para retomar seu carrinho depois!', next: 'mostrar_lista' },
+        { id: 'mostrar_lista', type: 'message', content: '\u{1F4E6} *Produtos disponíveis:*\n\n{lista_produtos}\n\nDigite o *número* ou *nome* do produto para ver detalhes e adicionar. Você pode escolher vários. Digite *0* para finalizar.', next: 'capturar_produto' },
+        { id: 'capturar_produto', type: 'variable', variable: 'produto_selecionado', mode: 'input', next: 'mostrar_detalhe' },
+        { id: 'mostrar_detalhe', type: 'action', action: 'show_product_detail', next: 'confirmar_adicionar', next_nao: 'mostrar_lista' },
+        { id: 'confirmar_adicionar', type: 'question', content: 'O que deseja fazer?', options: [
+          { label: 'Adicionar ao carrinho', value: 'sim', next: 'processar_escolha' },
+          { label: 'Ver outro produto', value: 'outro', next: 'processar_escolha' },
+          { label: 'Finalizar pedido', value: 'finalizar', next: 'processar_escolha' },
+        ] },
+        { id: 'processar_escolha', type: 'action', action: 'add_selected_product', next: 'presente_quiz', next_loop: 'mostrar_lista' },
         // Personalização da cesta
         { id: 'presente_quiz', type: 'question', content: '\u{1F381} *É para presente?*', options: [
           { label: 'Sim', value: 'sim', next: 'endereco_presente' },
@@ -495,7 +503,7 @@ async function main() {
           { label: 'Dinheiro', value: 'dinheiro', next: 'cart_summary' },
           { label: 'WhatsApp Pay', value: 'whatsapp_pay', next: 'cart_summary' },
         ] },
-        { id: 'cart_summary', type: 'action', action: 'cart_summary', next: 'finalizar', next_nao: 'inicia_catalogo' },
+        { id: 'cart_summary', type: 'action', action: 'cart_summary', next: 'finalizar', next_nao: 'mostrar_lista' },
         { id: 'finalizar', type: 'action', action: 'cart_checkout', next: 'pedido_confirmado' },
         { id: 'pedido_confirmado', type: 'message', content: '\u{2705} *Pedido criado com sucesso!*\n\nSeu protocolo: *{protocol}*\n\nUm atendente vai confirmar o pagamento e a entrega em instantes.', next: 'transferir' },
         // BLOCO 2 — Cesta personalizada (orçamento sob medida)
@@ -523,7 +531,7 @@ async function main() {
         { id: 'finalizar_sobmedida', type: 'action', action: 'cart_checkout', next: 'pedido_confirmado_sobmedida' },
         { id: 'pedido_confirmado_sobmedida', type: 'message', content: '\u{2705} *Pedido da cesta personalizada criado!*\n\nSeu protocolo: *{protocol}*\n\nNossa equipe vai analisar seu orçamento e entrar em contato.', next: 'transferir' },
         // BLOCO 3 — Carrinho
-        { id: 'ver_carrinho', type: 'action', action: 'cart_summary', next: 'finalizar_carrinho', next_nao: 'inicia_catalogo' },
+        { id: 'ver_carrinho', type: 'action', action: 'cart_summary', next: 'finalizar_carrinho', next_nao: 'mostrar_lista' },
         { id: 'finalizar_carrinho', type: 'action', action: 'cart_checkout', next: 'pedido_confirmado' },
         // Ações globais
         { id: 'transferir', type: 'action', action: 'transfer_to_human', content: '\u{1F9D1}\u200D\u{1F9F0} *Transferindo para um atendente humano.*\n\nUm instante, alguém da nossa equipe vai te atender.' },

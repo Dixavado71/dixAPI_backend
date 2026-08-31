@@ -80,6 +80,7 @@ export function validateFlowConfig(config) {
     if (step.next_sim && !ids.has(step.next_sim)) dangling.push(`step '${step.id}'.next_sim -> '${step.next_sim}'`);
     if (step.next_nao && !ids.has(step.next_nao)) dangling.push(`step '${step.id}'.next_nao -> '${step.next_nao}'`);
     if (step.next_empty && !ids.has(step.next_empty)) dangling.push(`step '${step.id}'.next_empty -> '${step.next_empty}'`);
+    if (step.next_loop && !ids.has(step.next_loop)) dangling.push(`step '${step.id}'.next_loop -> '${step.next_loop}'`);
     if (step.else && !ids.has(step.else)) dangling.push(`step '${step.id}'.else -> '${step.else}'`);
     if (step.type === 'question' && (!Array.isArray(step.options) || step.options.length === 0)) {
       throw new BadRequestError(`Step '${step.id}': pergunta precisa de pelo menos 1 opção.`);
@@ -620,6 +621,20 @@ async function buildFlowContext({ number, from, text, state, flow, group, media,
   const enderecoPadrao = contact?.metadata?.default_address ?? null;
   const cart = Array.isArray(state?.vars?.cart) ? state.vars.cart : [];
   const cartTotal = cart.reduce((a, i) => a + Number(i.price ?? 0) * Number(i.quantity ?? 0), 0);
+  // Lista numerada de produtos do catálogo para template {lista_produtos}
+  let listaProdutos = '';
+  try {
+    const products = await whatsappRepo.listActiveProducts(number.company_id, 100);
+    if (products.length > 0) {
+      listaProdutos = products.map((p, i) =>
+        `${i + 1}. *${p.name}* — R$ ${Number(p.price).toFixed(2).replace('.', ',')}`
+      ).join('\n');
+    } else {
+      listaProdutos = 'Nenhum produto disponível no momento.';
+    }
+  } catch {
+    listaProdutos = 'Erro ao carregar produtos.';
+  }
   return {
     ...(state?.vars ?? {}),
     cliente: isCliente,
@@ -639,6 +654,7 @@ async function buildFlowContext({ number, from, text, state, flow, group, media,
     grupo_jid: group?.remoteJid ?? null,
     cart_length: cart.length,
     cart_total: cartTotal,
+    lista_produtos: listaProdutos,
   };
 }
 
@@ -772,7 +788,13 @@ async function executeStepLocal({ step, state, vars, simulated = false, extra = 
       else nextStep = step.next ?? step.next_nao ?? null;
     } else if (step.action === 'alert') {
       nextStep = step.next ?? null;
-    } else if (step.action === 'create_custom_order' || step.action === 'schedule_production') {
+    } else if (step.action === 'add_selected_product') {
+      const cleanSel = String(varsOut?.adicionar_resposta ?? '').trim().toLowerCase();
+      if (['finalizar', '0', 'sair', 'fim'].includes(cleanSel)) nextStep = step.next ?? null;
+      else nextStep = step.next_loop ?? step.id ?? null;
+    } else if (step.action === 'show_product_detail') {
+      nextStep = step.next ?? null;
+    } else if (step.action === 'create_custom_order' || step.action === 'create_custom_basket' || step.action === 'schedule_production') {
       nextStep = step.next ?? null;
     } else {
       nextStep = step.next ?? null;
@@ -1215,6 +1237,63 @@ async function executeStep({ companyId, number, from, replyTo, text, contact, fl
           type: 'order',
         });
         nextStep = step.next ?? null;
+      }
+    } else if (step.action === 'show_product_detail') {
+      // Mostra a imagem + título + descrição do produto selecionado na lista.
+      const selection = String(vars?.produto_selecionado ?? '').trim();
+      const cleanSel = selection.toLowerCase();
+      const products = await whatsappRepo.listActiveProducts(companyId, 100);
+      let product = null;
+      const index = Number.parseInt(selection, 10);
+      if (Number.isInteger(index) && index >= 1 && index <= products.length) {
+        product = products[index - 1];
+      } else if (selection) {
+        product = products.find((p) => String(p.name).toLowerCase() === cleanSel)
+          ?? products.find((p) => String(p.name).toLowerCase().includes(cleanSel));
+      }
+      if (!product) {
+        await sendFlowMessage(number, target, '\u{274C} *Produto não encontrado.*\n\nDigite o número ou nome de um produto da lista, ou *0* para finalizar.');
+        nextStep = step.next_nao ?? step.next_loop ?? step.id ?? null;
+      } else {
+        vars.produto_detalhe = product.id;
+        await sendFlowProductCard(number, target, product, {
+          title: `Deseja adicionar *${product.name}* ao carrinho?`,
+          verb: 'adicionar',
+          buttons: ['1 - Sim, adicionar', '2 - Ver outro', '0 - Finalizar'],
+        });
+        nextStep = step.next ?? null; // vai para a pergunta de confirmação
+      }
+    } else if (step.action === 'add_selected_product') {
+      // Processa a resposta do cliente sobre o produto mostrado.
+      const answer = String(vars?.adicionar_resposta ?? '').trim().toLowerCase();
+      const isAdd = ['1', 'sim', 's', 'adicionar', 'quero'].includes(answer);
+      const isFinish = ['0', 'finalizar', 'fim', 'sair'].includes(answer);
+      const productId = vars?.produto_detalhe || null;
+      if (isFinish) {
+        vars.produto_detalhe = null;
+        vars.produto_selecionado = null;
+        nextStep = step.next ?? null; // vai para personalização/checkout
+      } else if (isAdd && productId) {
+        const product = await whatsappRepo.findProductByCompany(companyId, productId).catch(() => null);
+        if (product) {
+          const cart = Array.isArray(vars.cart) ? vars.cart : [];
+          const existing = cart.find((i) => i.productId === product.id);
+          if (existing) existing.quantity += 1;
+          else cart.push({ productId: product.id, name: product.name, price: Number(product.price), quantity: 1, image_url: product.image_url });
+          vars.cart = cart;
+          const total = (Number(product.price)).toFixed(2).replace('.', ',');
+          await sendFlowMessage(number, target, `\u{2705} Adicionado: 1x *${product.name}* — R$ ${total}\n\nDigite outro produto ou *0* para finalizar.`);
+        } else {
+          await sendFlowMessage(number, target, '\u{274C} Produto não encontrado no banco.');
+        }
+        vars.produto_detalhe = null;
+        vars.produto_selecionado = null;
+        nextStep = step.next_loop ?? step.id ?? null; // volta para a lista
+      } else {
+        // "ver outro" ou resposta inválida → volta para a lista
+        vars.produto_detalhe = null;
+        vars.produto_selecionado = null;
+        nextStep = step.next_loop ?? step.id ?? null;
       }
     } else if (step.action === 'schedule_production') {
       const orderId = vars?.last_order_id;
