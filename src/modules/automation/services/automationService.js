@@ -1242,26 +1242,32 @@ async function executeStep({ companyId, number, from, replyTo, text, contact, fl
       // Mostra a imagem + título + descrição do produto selecionado na lista.
       const selection = String(vars?.produto_selecionado ?? '').trim();
       const cleanSel = selection.toLowerCase();
-      const products = await whatsappRepo.listActiveProducts(companyId, 100);
-      let product = null;
-      const index = Number.parseInt(selection, 10);
-      if (Number.isInteger(index) && index >= 1 && index <= products.length) {
-        product = products[index - 1];
-      } else if (selection) {
-        product = products.find((p) => String(p.name).toLowerCase() === cleanSel)
-          ?? products.find((p) => String(p.name).toLowerCase().includes(cleanSel));
-      }
-      if (!product) {
-        await sendFlowMessage(number, target, '\u{274C} *Produto não encontrado.*\n\nDigite o número ou nome de um produto da lista, ou *0* para finalizar.');
-        nextStep = step.next_nao ?? step.next_loop ?? step.id ?? null;
+      // Se o cliente digitou "0" ou "finalizar", pula a exibição do produto.
+      if (['0', 'finalizar', 'fim', 'sair', 'cancelar'].includes(cleanSel)) {
+        vars.adicionar_resposta = 'finalizar';
+        nextStep = step.next_finish ?? step.next ?? null; // direto para processar a escolha
       } else {
-        vars.produto_detalhe = product.id;
-        await sendFlowProductCard(number, target, product, {
-          title: `Deseja adicionar *${product.name}* ao carrinho?`,
-          verb: 'adicionar',
-          buttons: ['1 - Sim, adicionar', '2 - Ver outro', '0 - Finalizar'],
-        });
-        nextStep = step.next ?? null; // vai para a pergunta de confirmação
+        const products = await whatsappRepo.listActiveProducts(companyId, 100);
+        let product = null;
+        const index = Number.parseInt(selection, 10);
+        if (Number.isInteger(index) && index >= 1 && index <= products.length) {
+          product = products[index - 1];
+        } else if (selection) {
+          product = products.find((p) => String(p.name).toLowerCase() === cleanSel)
+            ?? products.find((p) => String(p.name).toLowerCase().includes(cleanSel));
+        }
+        if (!product) {
+          await sendFlowMessage(number, target, '\u{274C} *Produto não encontrado.*\n\nDigite o número ou nome de um produto da lista, ou *0* para finalizar.');
+          nextStep = step.next_nao ?? step.next_loop ?? step.id ?? null;
+        } else {
+          vars.produto_detalhe = product.id;
+          await sendFlowProductCard(number, target, product, {
+            title: `Deseja adicionar *${product.name}* ao carrinho?`,
+            verb: 'adicionar',
+            buttons: ['1 - Sim, adicionar', '2 - Ver outro', '0 - Finalizar'],
+          });
+          nextStep = step.next ?? null; // vai para a pergunta de confirmação
+        }
       }
     } else if (step.action === 'add_selected_product') {
       // Processa a resposta do cliente sobre o produto mostrado.

@@ -456,7 +456,7 @@ async function main() {
         { id: 'gerar_protocolo', type: 'action', action: 'start_atendimento', content: '\u{1F4CB} Seu protocolo de atendimento: *{protocol}*\n\nGuarde para retomar seu carrinho depois!', next: 'mostrar_lista' },
         { id: 'mostrar_lista', type: 'message', content: '\u{1F4E6} *Produtos disponíveis:*\n\n{lista_produtos}\n\nDigite o *número* ou *nome* do produto para ver detalhes e adicionar. Você pode escolher vários. Digite *0* para finalizar.', next: 'capturar_produto' },
         { id: 'capturar_produto', type: 'variable', variable: 'produto_selecionado', mode: 'input', next: 'mostrar_detalhe' },
-        { id: 'mostrar_detalhe', type: 'action', action: 'show_product_detail', next: 'confirmar_adicionar', next_nao: 'mostrar_lista' },
+        { id: 'mostrar_detalhe', type: 'action', action: 'show_product_detail', next: 'confirmar_adicionar', next_finish: 'processar_escolha', next_nao: 'mostrar_lista' },
         { id: 'confirmar_adicionar', type: 'question', content: 'O que deseja fazer?', options: [
           { label: 'Adicionar ao carrinho', value: 'sim', variable: 'adicionar_resposta', next: 'processar_escolha' },
           { label: 'Ver outro produto', value: 'outro', variable: 'adicionar_resposta', next: 'processar_escolha' },
