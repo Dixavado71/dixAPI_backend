@@ -14,6 +14,7 @@ import { syncConversation } from '../../../shared/whatsapp/conversation.js';
 import { findOrCreateCustomer } from '../../../shared/whatsapp/customer.js';
 import { createOrder } from '../../orders/services/orderService.js';
 import { notifyAttendantsAsync } from '../../notifications/services/notificationService.js';
+import * as couponService from '../../coupons/services/couponService.js';
 import * as productionService from '../../production/services/productionService.js';
 import { logger } from '../../../config/logger.js';
 import {
@@ -81,6 +82,8 @@ export function validateFlowConfig(config) {
     if (step.next_nao && !ids.has(step.next_nao)) dangling.push(`step '${step.id}'.next_nao -> '${step.next_nao}'`);
     if (step.next_empty && !ids.has(step.next_empty)) dangling.push(`step '${step.id}'.next_empty -> '${step.next_empty}'`);
     if (step.next_loop && !ids.has(step.next_loop)) dangling.push(`step '${step.id}'.next_loop -> '${step.next_loop}'`);
+    if (step.next_finish && !ids.has(step.next_finish)) dangling.push(`step '${step.id}'.next_finish -> '${step.next_finish}'`);
+    if (step.next_coupon && !ids.has(step.next_coupon)) dangling.push(`step '${step.id}'.next_coupon -> '${step.next_coupon}'`);
     if (step.else && !ids.has(step.else)) dangling.push(`step '${step.id}'.else -> '${step.else}'`);
     if (step.type === 'question' && (!Array.isArray(step.options) || step.options.length === 0)) {
       throw new BadRequestError(`Step '${step.id}': pergunta precisa de pelo menos 1 opção.`);
@@ -471,7 +474,7 @@ async function sendFlowProductCard(number, to, product, opts = {}) {
   const desc = product.description ? `\n\n${product.description}` : '';
   const caption = `*${name}*${desc}`;
   const stockInfo = product.stock > 0 ? `Disponivel: ${product.stock} un.` : 'Indisponivel';
-  const buttons = opts.buttons ?? ['SIM', 'NAO'];
+  const hasButtons = Array.isArray(opts.buttons) && opts.buttons.length > 0;
   const footer = opts.footer ?? price;
   const title = opts.title ?? `Deseja ${opts.verb ?? 'adicionar'}?`;
 
@@ -486,7 +489,12 @@ async function sendFlowProductCard(number, to, product, opts = {}) {
     await sendFlowMessage(number, to, caption);
   }
   await sleep(300);
-  await sendFlowButtons(number, to, { title, description: stockInfo, buttons, footer });
+  if (hasButtons) {
+    await sendFlowButtons(number, to, { title, description: stockInfo, buttons: opts.buttons, footer });
+  } else {
+    // Sem botões interativos: só informa preço/estoque (a pergunta é feita pelo step seguinte).
+    await sendFlowMessage(number, to, `${stockInfo}\n\n${footer}`);
+  }
 }
 
 async function resolveProductStep(companyId, step, vars) {
@@ -800,6 +808,9 @@ async function executeStepLocal({ step, state, vars, simulated = false, extra = 
       else nextStep = step.next_loop ?? step.id ?? null;
     } else if (step.action === 'show_product_detail') {
       nextStep = step.next ?? null;
+    } else if (step.action === 'remove_cart_item') {
+      const sel = String(varsOut?.item_remover ?? '').trim();
+      nextStep = sel ? (step.next ?? null) : (step.next_loop ?? step.id ?? null);
     } else if (step.action === 'create_custom_order' || step.action === 'create_custom_basket' || step.action === 'schedule_production') {
       nextStep = step.next ?? null;
     } else {
@@ -1026,6 +1037,22 @@ async function executeStep({ companyId, number, from, replyTo, text, contact, fl
         nextStep = step.next_nao ?? step.next ?? null;
         clear = false;
       } else {
+        // Valida o cupom informado antes de criar o pedido.
+        const couponCode = vars?.cesta_cupom || vars?.cupom || null;
+        if (couponCode) {
+          const subtotal = (Array.isArray(vars.cart) ? vars.cart : []).reduce((a, i) => a + Number(i.price ?? 0) * Number(i.quantity ?? 0), 0);
+          try {
+            await couponService.validateCoupon({ companyId, code: couponCode, subtotal });
+          } catch (couponErr) {
+            const msg = `\u{1F6AB} *Cupom inv\u00e1lido ou expirado.*\n\nVerifique o c\u00f3digo ou continue sem cupom.`;
+            await sendFlowMessage(number, target, msg);
+            vars.cesta_cupom = null;
+            vars.cupom = null;
+            nextStep = step.next_coupon ?? step.next_nao ?? step.next ?? null;
+            clear = false;
+            return;
+          }
+        }
         try {
         const order = await checkoutCartStep({ companyId, number, from, vars, step, contact });
         if (order) {
@@ -1267,11 +1294,9 @@ async function executeStep({ companyId, number, from, replyTo, text, contact, fl
           nextStep = step.next_nao ?? step.next_loop ?? step.id ?? null;
         } else {
           vars.produto_detalhe = product.id;
-          await sendFlowProductCard(number, target, product, {
-            title: `Deseja adicionar *${product.name}* ao carrinho?`,
-            verb: 'adicionar',
-            buttons: ['1 - Sim, adicionar', '2 - Ver outro', '0 - Finalizar'],
-          });
+          // Exibe só o produto (imagem + nome + descrição + preço). A pergunta de
+          // confirmação é feita pelo step `confirmar_adicionar` a seguir.
+          await sendFlowProductCard(number, target, product, { buttons: [], title: `Deseja adicionar *${product.name}* ao carrinho?`, verb: 'adicionar' });
           nextStep = step.next ?? null; // vai para a pergunta de confirmação
         }
       }
@@ -1288,13 +1313,15 @@ async function executeStep({ companyId, number, from, replyTo, text, contact, fl
       } else if (isAdd && productId) {
         const product = await whatsappRepo.findProductByCompany(companyId, productId).catch(() => null);
         if (product) {
+          const qty = Math.max(1, Number.parseInt(String(vars?.cesta_qtd ?? '1'), 10) || 1);
           const cart = Array.isArray(vars.cart) ? vars.cart : [];
           const existing = cart.find((i) => i.productId === product.id);
-          if (existing) existing.quantity += 1;
-          else cart.push({ productId: product.id, name: product.name, price: Number(product.price), quantity: 1, image_url: product.image_url });
+          if (existing) existing.quantity += qty;
+          else cart.push({ productId: product.id, name: product.name, price: Number(product.price), quantity: qty, image_url: product.image_url });
           vars.cart = cart;
-          const total = (Number(product.price)).toFixed(2).replace('.', ',');
-          await sendFlowMessage(number, target, `\u{2705} Adicionado: 1x *${product.name}* — R$ ${total}\n\nDigite outro produto ou *0* para finalizar.`);
+          const lineTotal = (Number(product.price) * qty).toFixed(2).replace('.', ',');
+          await sendFlowMessage(number, target, `\u{2705} Adicionado: ${qty}x *${product.name}* — R$ ${lineTotal}\n\nDigite outro produto ou *0* para finalizar.`);
+          vars.cesta_qtd = null;
         } else {
           await sendFlowMessage(number, target, '\u{274C} Produto não encontrado no banco.');
         }
@@ -1306,6 +1333,34 @@ async function executeStep({ companyId, number, from, replyTo, text, contact, fl
         vars.produto_detalhe = null;
         vars.produto_selecionado = null;
         nextStep = step.next_loop ?? step.id ?? null;
+      }
+    } else if (step.action === 'remove_cart_item') {
+      // Remove um item do carrinho por índice (ex.: "2") ou nome.
+      const sel = String(vars?.item_remover ?? '').trim().toLowerCase();
+      const cart = Array.isArray(vars.cart) ? vars.cart : [];
+      if (cart.length === 0) {
+        await sendFlowMessage(number, target, '\u{1F6AB} *Seu carrinho está vazio.*');
+        nextStep = step.next_nao ?? step.next ?? null;
+      } else if (!sel) {
+        await sendFlowMessage(number, target, '\u{1F4CB} Digite o *número* ou *nome* do item que deseja remover.');
+        nextStep = step.next_loop ?? step.id ?? null;
+      } else {
+        const idx = Number.parseInt(sel, 10);
+        let removed = null;
+        if (Number.isInteger(idx) && idx >= 1 && idx <= cart.length) {
+          removed = cart.splice(idx - 1, 1)[0] ?? null;
+        } else {
+          const found = cart.findIndex((i) => String(i.name).toLowerCase() === sel || String(i.name).toLowerCase().includes(sel));
+          if (found >= 0) removed = cart.splice(found, 1)[0] ?? null;
+        }
+        vars.cart = cart;
+        vars.item_remover = null;
+        if (removed) {
+          await sendFlowMessage(number, target, `\u{1F5D1}\u{FE0F} Removido: *${removed.name}* do carrinho.`);
+        } else {
+          await sendFlowMessage(number, target, '\u{274C} Item não encontrado no carrinho.');
+        }
+        nextStep = step.next ?? null; // volta para o resumo do carrinho
       }
     } else if (step.action === 'schedule_production') {
       const orderId = vars?.last_order_id;
@@ -1561,7 +1616,8 @@ export async function processIncomingMessage({ companyId, number, from, text, co
         const replyTo = group?.remoteJid ?? from;
         const maxAttempts = botCfg?.maxAttempts ?? 3;
         const transferMsg = botCfg?.transferMessage || 'Não consegui entender. Vou transferir para um atendente.';
-        const fallbackMsg = botCfg?.fallbackMessage || 'Desculpe, não entendi. Escolha uma das opções abaixo:';
+        const optionLines = (currentStep.options ?? []).map((o, i) => `${i + 1}. *${o.label}*`).join('\n');
+        const fallbackMsg = `Desculpe, não entendi. Escolha uma das opções (digite o *número* ou o *texto*):\n\n${optionLines}\n\nOu digite *atendente* para falar com um humano.`;
         if (attempts >= maxAttempts) {
           await sendFlowMessage(number, replyTo, transferMsg);
           if (resolvedContact?.id) await updateContactFlowState(companyId, resolvedContact.id, { flowId: null, flowStep: null, vars: currentState.vars ?? {} });

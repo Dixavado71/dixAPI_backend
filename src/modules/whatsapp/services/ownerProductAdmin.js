@@ -241,13 +241,10 @@ export async function handleOwnerMessage({ companyId, number, from, text, media,
       return true;
     }
     if (nextStep === 'edit_delete') {
-      try {
-        await productService.deleteProduct(companyId, id);
-        await sendMsg(number, from, '🗑️ Produto excluído.');
-      } catch (err) {
-        await sendMsg(number, from, `❌ Não foi possível excluir: ${err.message}`);
-      }
-      await persist(contact, clearState(contact));
+      await persist(contact, withState(contact, { step: 'confirm_delete', data: state.data }));
+      const current = await productService.getProduct(companyId, id).catch(() => null);
+      const name = current?.name || 'produto';
+      await sendMsg(number, from, `🗑️ *Tem certeza que deseja excluir "${name}"?*\n\n1. *Sim, excluir*\n2. *Cancelar*`);
       return true;
     }
     const prompts = {
@@ -301,6 +298,22 @@ export async function handleOwnerMessage({ companyId, number, from, text, media,
     const imageUrl = media?.url || null;
     try { await productService.updateProduct(companyId, state.data.productId, { imageUrl }); await sendMsg(number, from, '✅ Foto atualizada.'); }
     catch (err) { await sendMsg(number, from, `❌ Erro: ${err.message}`); }
+    await persist(contact, clearState(contact));
+    return true;
+  }
+
+  // Confirmação de exclusão
+  if (state.step === 'confirm_delete') {
+    if (normalized === '1' || normalized === 'sim' || normalized === 'excluir') {
+      try {
+        await productService.deleteProduct(companyId, state.data.productId);
+        await sendMsg(number, from, '🗑️ Produto excluído com sucesso.');
+      } catch (err) {
+        await sendMsg(number, from, `❌ Erro ao excluir: ${err.message}`);
+      }
+    } else {
+      await sendMsg(number, from, 'Exclusão cancelada. Digite *menu* para mais opções.');
+    }
     await persist(contact, clearState(contact));
     return true;
   }

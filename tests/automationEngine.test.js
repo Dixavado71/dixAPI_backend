@@ -284,4 +284,59 @@ describe('flow service', () => {
     expect(cfg.defaultStep).toBe('s1-copy');
     expect(cfg.triggers[0].step).toBe('s1-copy');
   });
+
+  it('simulates show_product_detail -> confirm -> add_selected_product with quantity', async () => {
+    repository.findFlowById.mockResolvedValue({
+      id: 'f1',
+      config_json: {
+        defaultStep: 'detalhe',
+        steps: [
+          { id: 'detalhe', type: 'action', action: 'show_product_detail', next: 'confirmar' },
+          { id: 'confirmar', type: 'question', content: 'O que deseja?', options: [
+            { label: 'Adicionar', value: 'sim', variable: 'adicionar_resposta', next: 'qtd' },
+            { label: 'Ver outro', value: 'outro', variable: 'adicionar_resposta', next: 'processar' },
+            { label: 'Finalizar', value: 'finalizar', variable: 'adicionar_resposta', next: 'processar' },
+          ] },
+          { id: 'qtd', type: 'variable', variable: 'cesta_qtd', mode: 'input', next: 'processar' },
+          { id: 'processar', type: 'action', action: 'add_selected_product', next: 'fim_ok', next_loop: 'lista' },
+          { id: 'lista', type: 'message', content: 'lista', next: 'capturar' },
+          { id: 'capturar', type: 'variable', variable: 'produto_selecionado', mode: 'input', next: 'detalhe' },
+          { id: 'fim_ok', type: 'message', content: 'ok' },
+        ],
+      },
+    });
+    const result = await automationService.testFlow('c1', 'f1', { vars: { produto_detalhe: 'p1' }, input: ['sim', '3'] });
+    expect(result.executed.map((e) => e.type)).toContain('variable');
+    expect(result.executed.map((e) => e.type)).toContain('action');
+    expect(result.loopDetected).toEqual([]);
+  });
+
+  it('simulates remove_cart_item routing', async () => {
+    repository.findFlowById.mockResolvedValue({
+      id: 'f1',
+      config_json: {
+        defaultStep: 'capturar',
+        steps: [
+          { id: 'capturar', type: 'variable', variable: 'item_remover', mode: 'input', next: 'remover' },
+          { id: 'remover', type: 'action', action: 'remove_cart_item', next: 'resumo', next_nao: 'lista', next_loop: 'capturar' },
+          { id: 'resumo', type: 'message', content: 'resumo' },
+          { id: 'lista', type: 'message', content: 'lista' },
+        ],
+      },
+    });
+    const result = await automationService.testFlow('c1', 'f1', { vars: { cart: [{ name: 'A', quantity: 1 }] }, input: ['2'] });
+    expect(result.executed.map((e) => e.id)).toContain('resumo');
+  });
+
+  it('validateFlowConfig accepts next_finish and next_coupon refs', () => {
+    expect(() => automationService.validateFlowConfig({
+      steps: [
+        { id: 'a', type: 'action', action: 'show_product_detail', next: 'b', next_finish: 'c', next_loop: 'a', next_nao: 'a' },
+        { id: 'b', type: 'question', options: [{ label: 'x', value: 'x', next: 'c' }] },
+        { id: 'c', type: 'action', action: 'cart_checkout', next: 'd', next_coupon: 'b' },
+        { id: 'd', type: 'message' },
+      ],
+      defaultStep: 'a',
+    })).not.toThrow();
+  });
 });

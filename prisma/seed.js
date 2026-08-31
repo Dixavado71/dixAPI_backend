@@ -458,10 +458,11 @@ async function main() {
         { id: 'capturar_produto', type: 'variable', variable: 'produto_selecionado', mode: 'input', next: 'mostrar_detalhe' },
         { id: 'mostrar_detalhe', type: 'action', action: 'show_product_detail', next: 'confirmar_adicionar', next_finish: 'processar_escolha', next_nao: 'mostrar_lista' },
         { id: 'confirmar_adicionar', type: 'question', content: 'O que deseja fazer?', options: [
-          { label: 'Adicionar ao carrinho', value: 'sim', variable: 'adicionar_resposta', next: 'processar_escolha' },
+          { label: 'Adicionar ao carrinho', value: 'sim', variable: 'adicionar_resposta', next: 'capturar_qtd' },
           { label: 'Ver outro produto', value: 'outro', variable: 'adicionar_resposta', next: 'processar_escolha' },
           { label: 'Finalizar pedido', value: 'finalizar', variable: 'adicionar_resposta', next: 'processar_escolha' },
         ] },
+        { id: 'capturar_qtd', type: 'variable', variable: 'cesta_qtd', mode: 'input', next: 'processar_escolha' },
         { id: 'processar_escolha', type: 'action', action: 'add_selected_product', next: 'presente_quiz', next_loop: 'mostrar_lista' },
         // Personalização da cesta
         { id: 'presente_quiz', type: 'question', content: '\u{1F381} *É para presente?*', options: [
@@ -491,21 +492,29 @@ async function main() {
           { label: 'Vinho', value: 'vinho', next: 'endereco_entrega' },
           { label: 'Sem brinde', value: 'nenhum', next: 'endereco_entrega' },
         ] },
-        { id: 'endereco_entrega', type: 'variable', variable: 'zm_endereco_entrega', mode: 'input', next: 'cupom_quiz' },
+        { id: 'endereco_entrega', type: 'variable', variable: 'zm_endereco_entrega', mode: 'input', next: 'confirmar_endereco' },
+        { id: 'confirmar_endereco', type: 'question', content: '\u{1F4CD} Confirma o endereço de entrega?\n\n*{zm_endereco_entrega}*', options: [
+          { label: 'Confirmar', value: 'confirmar', variable: 'endereco_confirmado', next: 'cupom_quiz' },
+          { label: 'Editar', value: 'editar', variable: 'endereco_confirmado', next: 'endereco_entrega' },
+        ] },
         { id: 'cupom_quiz', type: 'question', content: '\u{1F3EA} *Possui cupom de desconto?*', options: [
           { label: 'Sim', value: 'sim', next: 'codigo_cupom' },
           { label: 'Não', value: 'nao', next: 'pagamento_quiz' },
         ] },
         { id: 'codigo_cupom', type: 'variable', variable: 'cesta_cupom', mode: 'input', next: 'pagamento_quiz' },
         { id: 'pagamento_quiz', type: 'question', content: '\u{1F4B3} *Qual a forma de pagamento?*', options: [
-          { label: 'PIX', value: 'pix', next: 'cart_summary' },
-          { label: 'Cartão', value: 'cartao', next: 'cart_summary' },
-          { label: 'Dinheiro', value: 'dinheiro', next: 'cart_summary' },
-          { label: 'WhatsApp Pay', value: 'whatsapp_pay', next: 'cart_summary' },
+          { label: 'PIX', value: 'pix', variable: 'payment_method', next: 'cart_summary' },
+          { label: 'Cartão', value: 'cartao', variable: 'payment_method', next: 'cart_summary' },
+          { label: 'Dinheiro', value: 'dinheiro', variable: 'payment_method', next: 'cart_summary' },
+          { label: 'WhatsApp Pay', value: 'whatsapp_pay', variable: 'payment_method', next: 'cart_summary' },
         ] },
         { id: 'cart_summary', type: 'action', action: 'cart_summary', next: 'finalizar', next_nao: 'mostrar_lista' },
-        { id: 'finalizar', type: 'action', action: 'cart_checkout', next: 'pedido_confirmado' },
+        { id: 'finalizar', type: 'action', action: 'cart_checkout', next_coupon: 'codigo_cupom', next: 'pedido_confirmado' },
         { id: 'pedido_confirmado', type: 'message', content: '\u{2705} *Pedido criado com sucesso!*\n\nSeu protocolo: *{protocol}*\n\nUm atendente vai confirmar o pagamento e a entrega em instantes.', next: 'transferir' },
+        // Comandos do carrinho (limpar / remover item)
+        { id: 'limpar_carrinho', type: 'action', action: 'cart_clear', next: 'ver_carrinho' },
+        { id: 'capturar_remover', type: 'variable', variable: 'item_remover', mode: 'input', next: 'remover_item' },
+        { id: 'remover_item', type: 'action', action: 'remove_cart_item', next: 'ver_carrinho', next_nao: 'mostrar_lista', next_loop: 'capturar_remover' },
         // BLOCO 2 — Cesta personalizada (orçamento sob medida)
         { id: 'orcamento_inicio', type: 'message', content: '\u{1F381} *Vamos montar sua cesta personalizada!*\n\nResponda as perguntas abaixo para criarmos o orçamento ideal para você.', next: 'capturar_ocasiao' },
         { id: 'capturar_ocasiao', type: 'question', content: '\u{1F389} *Para qual ocasião?*', options: [
@@ -564,6 +573,9 @@ async function main() {
         { keyword: 'meu carrinho', step: 'ver_carrinho' },
         { keyword: 'finalizar', step: 'ver_carrinho' },
         { keyword: 'resumo', step: 'ver_carrinho' },
+        { keyword: 'limpar', step: 'limpar_carrinho' },
+        { keyword: 'remover', step: 'capturar_remover' },
+        { keyword: 'quero remover', step: 'capturar_remover' },
         { keyword: 'atendente', step: 'transferir' },
         { keyword: 'humano', step: 'transferir' },
         { keyword: 'ajuda', step: 'transferir' },
